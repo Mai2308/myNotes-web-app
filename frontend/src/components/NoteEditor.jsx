@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from "react";
 import "../styles.css";
 
-export default function NoteEditor({ username }) {
+export default function NoteEditor({ username, onSaved, initialFolderId }) {
   const [note, setNote] = useState("");
+  const [title, setTitle] = useState("");
+  const [folders, setFolders] = useState([]);
+  const [folderId, setFolderId] = useState(initialFolderId || "");
   const [savedMessage, setSavedMessage] = useState("");
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
+
+  // Fetch available folders from backend
+  useEffect(() => {
+    fetch("/api/folders", { credentials: "include" })
+      .then((res) => res.json())
+      .then(setFolders)
+      .catch(() => setFolders([]));
+  }, []);
 
   // تحميل الملاحظة التلقائية عند الفتح
   useEffect(() => {
@@ -28,6 +39,11 @@ export default function NoteEditor({ username }) {
     setHistory([...history, note]);
     setNote(e.target.value);
     setRedoStack([]);
+  };
+
+  // تحديث العنوان
+  const handleTitleChange = (e) => {
+    setTitle(e.target.value);
   };
 
   // 🔙 التراجع
@@ -81,11 +97,64 @@ export default function NoteEditor({ username }) {
     setTimeout(() => setSavedMessage(""), 1500);
   };
 
+  // 📝 حفظ الملاحظة في قاعدة البيانات (مع المجلد)
+  const handleSaveNote = async () => {
+    if (!title.trim()) {
+      setSavedMessage("⚠️ Title required!");
+      setTimeout(() => setSavedMessage(""), 1500);
+      return;
+    }
+    try {
+      await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          content: note,
+          folder_id: folderId || null,
+        }),
+      });
+      setNote("");
+      setTitle("");
+      setFolderId("");
+      setSavedMessage("✅ Note saved!");
+      setTimeout(() => setSavedMessage(""), 1500);
+      if (onSaved) onSaved();
+    } catch (err) {
+      setSavedMessage("❌ Error saving note!");
+      setTimeout(() => setSavedMessage(""), 1500);
+    }
+  };
+
   return (
     <div>
       <label style={{ fontWeight: "bold", color: "#1e3a8a" }}>
         ✍️ Write your note:
       </label>
+
+      {/* Folder selection */}
+      <div style={{ marginTop: "10px", marginBottom: "10px" }}>
+        <label style={{ fontWeight: "bold", color: "#1e3a8a" }}>📁 Select folder:</label>
+        <select
+          value={folderId}
+          onChange={e => setFolderId(e.target.value)}
+          style={{ marginLeft: "8px", padding: "4px", borderRadius: "6px", border: "1px solid #ccc" }}
+        >
+          <option value="">No Folder</option>
+          {folders.map(folder => (
+            <option key={folder.id} value={folder.id}>{folder.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Title input */}
+      <input
+        value={title}
+        onChange={handleTitleChange}
+        placeholder="Note title"
+        style={{ width: "100%", padding: "8px", marginBottom: "10px", borderRadius: "8px", border: "1px solid #a5b4fc", fontSize: "16px" }}
+      />
 
       <textarea
         value={note}
@@ -102,12 +171,13 @@ export default function NoteEditor({ username }) {
         placeholder="Start typing your note here..."
       />
 
-      {/* 🔘 الأزرار */}
+      {/* أزرار التحكم */}
       <div style={{ marginTop: "10px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
         <button className="btn" onClick={handleUndo}>↩️ Undo</button>
         <button className="btn" onClick={handleRedo}>↪️ Redo</button>
         <button className="btn" onClick={handleSaveDraft}>💾 Save as Draft</button>
         <button className="btn" onClick={handleLoadDraft}>📂 Load Draft</button>
+        <button className="btn" style={{ background: "#7e22ce", color: "white" }} onClick={handleSaveNote}>✅ Save Note</button>
       </div>
 
       {savedMessage && (
@@ -125,4 +195,3 @@ export default function NoteEditor({ username }) {
     </div>
   );
 }
-
