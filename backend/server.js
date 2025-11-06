@@ -4,8 +4,9 @@ import dotenv from "dotenv";
 import { poolConnect } from "./database/db.js"; // ✅ existing DB connection
 
 // ✅ Import Routes
-import userRoutes from "./routes/users.js"; // make sure filename matches exactly
-import noteRoutes from "./routes/notes.js"; // for notes routes
+import userRoutes from "./routes/users.js";
+import noteRoutes from "./routes/notes.js";
+import folderRoutes from "./routes/folders.js"; // <- ADD HERE
 
 // ✅ Load environment variables
 dotenv.config();
@@ -24,6 +25,7 @@ app.get("/", (req, res) => {
 // ✅ API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
+app.use("/api/folders", folderRoutes);  // <- ADD HERE
 
 // ✅ Connect to SQL Server
 poolConnect
