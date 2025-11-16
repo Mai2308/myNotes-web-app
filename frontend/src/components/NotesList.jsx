@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "../styles.css";
+
+const API_URL = "http://localhost:5000/api";
 
 export default function NotesList({ selectedFolderId, onNoteChange }) {
   const [notes, setNotes] = useState([]);
@@ -9,14 +11,7 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
   const [message, setMessage] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  const API_URL = "http://localhost:5000/api";
-
-  useEffect(() => {
-    fetchNotes();
-    fetchFolders();
-  }, [selectedFolderId]);
-
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       let url = `${API_URL}/notes`;
@@ -40,9 +35,9 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
     } catch (error) {
       console.error("Error fetching notes:", error);
     }
-  };
+  }, [selectedFolderId]);
 
-  const fetchFolders = async () => {
+  const fetchFolders = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/folders`, {
@@ -58,7 +53,12 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
     } catch (error) {
       console.error("Error fetching folders:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchNotes();
+    fetchFolders();
+  }, [fetchNotes, fetchFolders]);
 
   const handleCreateNote = async (e) => {
     e.preventDefault();

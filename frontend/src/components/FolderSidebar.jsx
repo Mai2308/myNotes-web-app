@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "../styles.css";
+
+const API_URL = "http://localhost:5000/api";
 
 export default function FolderSidebar({ onFolderSelect, selectedFolderId }) {
   const [folders, setFolders] = useState([]);
@@ -9,13 +11,7 @@ export default function FolderSidebar({ onFolderSelect, selectedFolderId }) {
   const [message, setMessage] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  const API_URL = "http://localhost:5000/api";
-
-  useEffect(() => {
-    fetchFolders();
-  }, []);
-
-  const fetchFolders = async () => {
+  const fetchFolders = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/folders`, {
@@ -33,7 +29,11 @@ export default function FolderSidebar({ onFolderSelect, selectedFolderId }) {
     } catch (error) {
       console.error("Error fetching folders:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchFolders();
+  }, [fetchFolders]);
 
   const handleCreateFolder = async (e) => {
     e.preventDefault();
