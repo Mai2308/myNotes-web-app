@@ -1,12 +1,12 @@
 # Use Node.js official image
-FROM node:18
+FROM node:20
 
 # Set working directory inside container
 WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm config set strict-ssl false && npm install
 
 # Copy the rest of your frontend code
 COPY . .
