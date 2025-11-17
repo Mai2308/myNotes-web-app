@@ -1,37 +1,44 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { poolConnect } from "./database/db.js"; // ✅ existing DB connection
-
-// ✅ Import Routes
-import userRoutes from "./routes/users.js";
-import noteRoutes from "./routes/notes.js";
-import folderRoutes from "./routes/folders.js"; // <- ADD HERE
+import { poolConnect } from "./database/db.js";
 
 // ✅ Load environment variables
 dotenv.config();
 
+// ✅ Initialize Express App
 const app = express();
 
 // ✅ Middleware
 app.use(cors());
 app.use(express.json());
 
-// ✅ Test route (optional)
-app.get("/", (req, res) => {
-  res.send("🚀 Notes App Backend Running!");
-});
+// ✅ Import Routes
+import userRoutes from "./routes/users.js";
+import noteRoutes from "./routes/notes.js";
+import folderRoutes from "./routes/folders.js";
 
 // ✅ API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
-app.use("/api/folders", folderRoutes);  // <- ADD HERE
+app.use("/api/folders", folderRoutes);
 
-// ✅ Connect to SQL Server
-poolConnect
-  .then(() => console.log("✅ Connected to SQL Server in Docker!"))
-  .catch((err) => console.error("❌ SQL Server connection failed:", err));
+// ✅ Health Check Route
+app.get("/", (req, res) => {
+  res.send("✅ Backend is running!");
+});
 
-// ✅ Start server
+// ✅ Connect to SQL Server & Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
+poolConnect
+  .then(() => {
+    console.log("✅ Connected to SQL Server");
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Database connection failed:", err);
+    process.exit(1);
+  });
