@@ -3,10 +3,28 @@ import { pool } from "../database/db.js";
 // ✅ Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
   try {
-    const userId = req.user.id; // from authMiddleware
+    const userId = req.user.id;
+    const sort = req.query.sort || "date_desc"; 
+
+    let orderBy;
+    switch (sort) {
+      case "title_asc":
+        orderBy = "title ASC";
+        break;
+      case "title_desc":
+        orderBy = "title DESC";
+        break;
+      case "date_asc":
+        orderBy = "createdAt ASC";
+        break;
+      case "date_desc":
+      default:
+        orderBy = "createdAt DESC";
+    }
+
     const result = await pool.request()
       .input("userId", userId)
-      .query("SELECT * FROM Notes WHERE userId = @userId ORDER BY createdAt DESC");
+      .query(`SELECT * FROM Notes WHERE userId=@userId ORDER BY ${orderBy}`);
 
     res.json(result.recordset);
   } catch (error) {
@@ -14,6 +32,7 @@ export const getNotes = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // ✅ Create a new note
 export const createNote = async (req, res) => {
@@ -77,12 +96,29 @@ export const deleteNote = async (req, res) => {
 export const searchNotes = async (req, res) => {
   try {
     const userId = req.user.id;        
-    const keyword = req.query.q || ""; 
+    const keyword = req.query.q || "";
+    const sort = req.query.sort || "date_desc";
+
+    let orderBy;
+    switch (sort) {
+      case "title_asc":
+        orderBy = "title ASC";
+        break;
+      case "title_desc":
+        orderBy = "title DESC";
+        break;
+      case "date_asc":
+        orderBy = "createdAt ASC";
+        break;
+      case "date_desc":
+      default:
+        orderBy = "createdAt DESC";
+    }
 
     const result = await pool.request()
       .input("userId", userId)
-      .input("keyword", `%${keyword}%`) 
-      .query("SELECT * FROM Notes WHERE userId=@userId AND title LIKE @keyword ORDER BY createdAt DESC");
+      .input("keyword", `%${keyword}%`)
+      .query(`SELECT * FROM Notes WHERE userId=@userId AND title LIKE @keyword ORDER BY ${orderBy}`);
 
     res.json(result.recordset);
   } catch (error) {
@@ -90,4 +126,27 @@ export const searchNotes = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ✅ Reorder notes after drag & drop
+export const reorderNotes = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const notesOrder = req.body; // array of {id, order}
+
+    for (const note of notesOrder) {
+      await pool.request()
+        .input("noteId", note.id)
+        .input("userId", userId)
+        .input("order", note.order)
+        .query("UPDATE Notes SET displayOrder=@order WHERE id=@noteId AND userId=@userId");
+    }
+
+    res.json({ message: "✅ Notes reordered successfully!" });
+  } catch (error) {
+    console.error("❌ Error reordering notes:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 
