@@ -72,3 +72,22 @@ export const deleteNote = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ✅ Search notes by keyword (title only) for the logged-in user
+export const searchNotes = async (req, res) => {
+  try {
+    const userId = req.user.id;        
+    const keyword = req.query.q || ""; 
+
+    const result = await pool.request()
+      .input("userId", userId)
+      .input("keyword", `%${keyword}%`) 
+      .query("SELECT * FROM Notes WHERE userId=@userId AND title LIKE @keyword ORDER BY createdAt DESC");
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("❌ Error searching notes:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
