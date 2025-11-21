@@ -18,16 +18,36 @@ export const getNotes = async (req, res) => {
 // ✅ Create a new note
 export const createNote = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { title, content } = req.body;
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    await pool.request()
+    let { title = "", content = "" } = req.body;
+    title = String(title).trim();
+    content = String(content).trim();
+
+    if (!title && !content) {
+      return res.status(400).json({ message: "Title or content required" });
+    }
+    if (title.length > 255) {
+      return res.status(400).json({ message: "Title too long (max 255 characters)" });
+    }
+
+    const result = await pool.request()
       .input("userId", userId)
       .input("title", title)
       .input("content", content)
-      .query("INSERT INTO Notes (userId, title, content, createdAt) VALUES (@userId, @title, @content, GETDATE())");
+      .query(`
+        INSERT INTO Notes (userId, title, content, createdAt)
+        VALUES (@userId, @title, @content, GETDATE());
+        SELECT CAST(SCOPE_IDENTITY() AS INT) AS id, GETDATE() AS createdAt;
+      `);
 
-    res.status(201).json({ message: "✅ Note created successfully!" });
+    const inserted = result.recordset?.[0] ?? null;
+    res.status(201).json({
+      message: "✅ Note created successfully!",
+      id: inserted?.id ?? null,
+      createdAt: inserted?.createdAt ?? null
+    });
   } catch (error) {
     console.error("❌ Error creating note:", error);
     res.status(500).json({ message: "Server error" });

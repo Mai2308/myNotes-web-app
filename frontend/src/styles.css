@@ -141,3 +141,76 @@ p {
   font-size: 15px;
 }
 
+/* toolbar */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  padding: 8px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+}
+
+.toolbar-left,
+.toolbar-center,
+.toolbar-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar button {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.toolbar button:hover {
+  background: #e0e7ff;
+}
+
+.toolbar select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #c7d2fe;
+  background: #fff;
+}
+
+.color-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #c7d2fe;
+  background: #fff;
+  cursor: pointer;
+}
+
+.color-picker input[type="color"] {
+  border: none;
+  padding: 0;
+  width: 28px;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* rich editor styling */
+.rich-editor:empty:before {
+  content: attr(placeholder);
+  color: #9aa4b2;
+  pointer-events: none;
+  display: block;
+}
+
+.rich-editor {
+  outline: none;
+}
+
