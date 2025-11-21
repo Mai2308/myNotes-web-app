@@ -1,114 +1,173 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../styles.css";
 
 export default function NoteEditor({ username }) {
-  const [note, setNote] = useState("");
+  const editorRef = useRef(null);
   const [savedMessage, setSavedMessage] = useState("");
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
+  const saveKey = username ? `draftNote_${username}` : "draftNote_anonymous";
 
-  // تحميل الملاحظة التلقائية عند الفتح
+  // load auto-saved or user draft on mount
   useEffect(() => {
-    const savedNote = localStorage.getItem("autoSavedNote");
-    if (savedNote) setNote(savedNote);
+    const saved = localStorage.getItem("autoSavedNote");
+    const draft = localStorage.getItem(saveKey);
+    const html = draft || saved || "";
+    if (editorRef.current) editorRef.current.innerHTML = html;
+    // initialize history
+    setHistory(html ? [html] : []);
+  }, [saveKey]);
+
+  // auto-save while typing (throttled)
+  useEffect(() => {
+    const handler = setInterval(() => {
+      const html = editorRef.current?.innerHTML ?? "";
+      if (html) localStorage.setItem("autoSavedNote", html);
+    }, 2000); // every 2s
+    return () => clearInterval(handler);
   }, []);
 
-  // الحفظ التلقائي أثناء الكتابة
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      localStorage.setItem("autoSavedNote", note);
-      setSavedMessage("💾 Auto-saved!");
-      setTimeout(() => setSavedMessage(""), 1500);
-    }, 1000);
-    return () => clearTimeout(timeout);
-  }, [note]);
-
-  // تحديث النص وتسجيله في history
-  const handleChange = (e) => {
-    setHistory([...history, note]);
-    setNote(e.target.value);
+  const pushHistory = (snapshot) => {
+    setHistory((h) => {
+      const next = [...h, snapshot].slice(-50); // keep last 50
+      return next;
+    });
     setRedoStack([]);
   };
 
-  // 🔙 التراجع
-  const handleUndo = () => {
-    if (history.length === 0) return;
-    const previous = history[history.length - 1];
-    setRedoStack([note, ...redoStack]);
-    setNote(previous);
-    setHistory(history.slice(0, -1));
+  // handle input in contentEditable
+  const handleInput = () => {
+    const html = editorRef.current.innerHTML;
+    pushHistory(html);
   };
 
-  // 🔁 الإعادة
+  // formatting wrapper using execCommand (works cross-browser)
+  const format = (cmd, value = null) => {
+    document.execCommand(cmd, false, value);
+    // after formatting, push snapshot
+    const html = editorRef.current.innerHTML;
+    pushHistory(html);
+    editorRef.current.focus();
+  };
+
+  const handleFontChange = (e) => {
+    format("fontName", e.target.value);
+  };
+
+  const handleColor = (color) => {
+    // use hiliteColor where available, fall back to backColor
+    try {
+      document.execCommand("hiliteColor", false, color);
+    } catch {
+      document.execCommand("backColor", false, color);
+    }
+    const html = editorRef.current.innerHTML;
+    pushHistory(html);
+    editorRef.current.focus();
+  };
+
+  const handleUndo = () => {
+    if (history.length <= 1) return;
+    const last = history[history.length - 1];
+    const prev = history[history.length - 2];
+    setRedoStack((r) => [last, ...r]);
+    setHistory((h) => h.slice(0, -1));
+    if (editorRef.current) editorRef.current.innerHTML = prev;
+  };
+
   const handleRedo = () => {
     if (redoStack.length === 0) return;
     const next = redoStack[0];
-    setHistory([...history, note]);
-    setNote(next);
-    setRedoStack(redoStack.slice(1));
+    setRedoStack((r) => r.slice(1));
+    setHistory((h) => [...h, next]);
+    if (editorRef.current) editorRef.current.innerHTML = next;
   };
 
-  // 🟡 حفظ كمسودة باسم المستخدم
   const handleSaveDraft = () => {
-    if (!username) {
-      setSavedMessage("⚠️ No user logged in!");
-      setTimeout(() => setSavedMessage(""), 1500);
-      return;
-    }
-
-    const draftKey = `draftNote_${username}`;
-    localStorage.setItem(draftKey, note);
-    setSavedMessage(`📝 Draft saved for ${username}!`);
+    const html = editorRef.current.innerHTML;
+    localStorage.setItem(saveKey, html);
+    setSavedMessage(`📝 Draft saved for ${username || "guest"}!`);
     setTimeout(() => setSavedMessage(""), 1500);
   };
 
-  // 🟢 تحميل المسودة الخاصة بالمستخدم
   const handleLoadDraft = () => {
-    if (!username) {
-      setSavedMessage("⚠️ No user logged in!");
-      setTimeout(() => setSavedMessage(""), 1500);
-      return;
-    }
-
-    const draftKey = `draftNote_${username}`;
-    const draft = localStorage.getItem(draftKey);
+    const draft = localStorage.getItem(saveKey);
     if (draft) {
-      setNote(draft);
-      setSavedMessage(`📂 Draft loaded for ${username}!`);
+      if (editorRef.current) editorRef.current.innerHTML = draft;
+      pushHistory(draft);
+      setSavedMessage(`📂 Draft loaded for ${username || "guest"}!`);
     } else {
-      setSavedMessage(`⚠️ No draft found for ${username}.`);
+      setSavedMessage(`⚠️ No draft found for ${username || "guest"}.`);
     }
     setTimeout(() => setSavedMessage(""), 1500);
   };
+
+  const handleDelete = () => {
+    if (!confirm("Delete current note? This will clear the editor.")) return;
+    if (editorRef.current) editorRef.current.innerHTML = "";
+    localStorage.removeItem(saveKey);
+    localStorage.removeItem("autoSavedNote");
+    setHistory([]);
+    setRedoStack([]);
+    setSavedMessage("🗑️ Note cleared.");
+    setTimeout(() => setSavedMessage(""), 1200);
+  };
+
+  // Export plain HTML or text (example helper)
+  const getHtml = () => editorRef.current?.innerHTML ?? "";
 
   return (
     <div>
-      <label style={{ fontWeight: "bold", color: "#1e3a8a" }}>
-        ✍️ Write your note:
-      </label>
+      <div className="toolbar">
+        <div className="toolbar-left">
+          <button onClick={() => handleDelete()} title="Delete note">🗑️</button>
+          <button onClick={handleUndo} title="Undo">↩️</button>
+          <button onClick={handleRedo} title="Redo">↪️</button>
+        </div>
 
-      <textarea
-        value={note}
-        onChange={handleChange}
-        rows="6"
+        <div className="toolbar-center">
+          <select defaultValue="Arial" onChange={handleFontChange} title="Font">
+            <option>Arial</option>
+            <option>Georgia</option>
+            <option>Verdana</option>
+            <option>Tahoma</option>
+            <option>Times New Roman</option>
+            <option>Courier New</option>
+          </select>
+
+          <button onClick={() => format("bold")} title="Bold"><b>B</b></button>
+          <button onClick={() => format("italic")} title="Italic"><i>I</i></button>
+          <button onClick={() => format("underline")} title="Underline"><u>U</u></button>
+
+          <label className="color-picker" title="Highlight">
+            🎨
+            <input type="color" onChange={(e) => handleColor(e.target.value)} />
+          </label>
+        </div>
+
+        <div className="toolbar-right">
+          <button onClick={handleSaveDraft} title="Save draft">💾 Save</button>
+          <button onClick={handleLoadDraft} title="Load draft">📂 Load</button>
+        </div>
+      </div>
+
+      <div
+        ref={editorRef}
+        className="rich-editor"
+        contentEditable
+        onInput={handleInput}
+        placeholder="Start typing your note..."
+        suppressContentEditableWarning={true}
         style={{
-          width: "100%",
-          padding: "10px",
+          minHeight: "140px",
+          padding: "12px",
           marginTop: "8px",
           border: "2px solid #c7d2fe",
           borderRadius: "10px",
           fontSize: "15px",
+          background: "#fff"
         }}
-        placeholder="Start typing your note here..."
       />
-
-      {/* 🔘 الأزرار */}
-      <div style={{ marginTop: "10px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        <button className="btn" onClick={handleUndo}>↩️ Undo</button>
-        <button className="btn" onClick={handleRedo}>↪️ Redo</button>
-        <button className="btn" onClick={handleSaveDraft}>💾 Save as Draft</button>
-        <button className="btn" onClick={handleLoadDraft}>📂 Load Draft</button>
-      </div>
 
       {savedMessage && (
         <p style={{ color: "green", marginTop: "8px", fontWeight: "bold" }}>
@@ -117,9 +176,12 @@ export default function NoteEditor({ username }) {
       )}
 
       <p style={{ color: "#555", marginTop: "10px", fontSize: "14px" }}>
-        Saved data example:{" "}
+        Saved snippet:{" "}
         <strong>
-          {note ? note.substring(0, 30) + (note.length > 30 ? "..." : "") : "No auto-saved note"}
+          {(() => {
+            const txt = (editorRef.current?.textContent || "").trim();
+            return txt ? (txt.substring(0, 30) + (txt.length > 30 ? "..." : "")) : "No auto-saved note";
+          })()}
         </strong>
       </p>
     </div>
