@@ -3,11 +3,14 @@ import { pool } from "../database/db.js";
 // ✅ Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
   try {
-    const userId = req.user.id; // from authMiddleware
+    const userId = req.user.id;
     const result = await pool.request()
       .input("userId", userId)
-      .query("SELECT * FROM Notes WHERE userId = @userId ORDER BY createdAt DESC");
-
+      .query(`
+        SELECT * FROM Notes
+        WHERE userId = @userId
+        ORDER BY createdAt DESC
+      `);
     res.json(result.recordset);
   } catch (error) {
     console.error("❌ Error getting notes:", error);
@@ -66,7 +69,12 @@ export const updateNote = async (req, res) => {
       .input("userId", userId)
       .input("title", title)
       .input("content", content)
-      .query("UPDATE Notes SET title=@title, content=@content WHERE id=@noteId AND userId=@userId");
+      .query(`
+        UPDATE Notes
+        SET title = @title,
+            content = @content
+        WHERE id = @noteId AND userId = @userId
+      `);
 
     res.json({ message: "✅ Note updated successfully!" });
   } catch (error) {
@@ -92,3 +100,22 @@ export const deleteNote = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ✅ Search notes by keyword (title only) for the logged-in user
+export const searchNotes = async (req, res) => {
+  try {
+    const userId = req.user.id;        
+    const keyword = req.query.q || ""; 
+
+    const result = await pool.request()
+      .input("userId", userId)
+      .input("keyword", `%${keyword}%`) 
+      .query("SELECT * FROM Notes WHERE userId=@userId AND title LIKE @keyword ORDER BY createdAt DESC");
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("❌ Error searching notes:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
