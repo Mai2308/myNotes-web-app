@@ -3,20 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 
 export default function Signup() {
-  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const { signup } = useAuth();
   const nav = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!username.trim() || !password.trim()) {
-      setError("Enter username and password");
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError("Enter name, email and password");
       return;
     }
-    const res = signup({ username: username.trim(), password: password });
+    const res = await signup({ name: name.trim(), email: email.trim(), password });
     if (!res.ok) {
       setError(res.message);
     } else {
@@ -28,8 +29,12 @@ export default function Signup() {
     <div className="card">
       <h2>Sign Up</h2>
       <form onSubmit={handleSubmit} className="form">
-        <label>Username
-          <input value={username} onChange={(e)=>setUsername(e.target.value)} />
+        <label>Name
+          <input value={name} onChange={(e)=>setName(e.target.value)} />
+        </label>
+
+        <label>Email
+          <input value={email} onChange={(e)=>setEmail(e.target.value)} />
         </label>
 
         <label>Password
@@ -43,4 +48,3 @@ export default function Signup() {
     </div>
   );
 }
-

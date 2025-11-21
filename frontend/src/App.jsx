@@ -1,26 +1,22 @@
 import React, { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Header from "./components/Header";
 import Signup from "./components/Signup";
 import Login from "./components/Login";
-import Dashboard from "./components/Dashboard";
 import FolderSidebar from "./components/FolderSidebar";
 import NotesList from "./components/NotesList";
 import NoteEditor from "./components/NoteEditor";
 import "./styles.css";
 
 /**
- * This updated App.jsx:
- * - Displays the FolderSidebar, NotesList, and NoteEditor on the dashboard page,
- *   allowing folder selection and note creation grouped by folder.
- * - Keeps the existing routes for Signup and Login.
+ * DashboardWithFolders:
+ * - Shows FolderSidebar, NoteEditor and NotesList in a two-column layout.
+ * - Manages selectedFolderId and triggers notes refresh when a note is saved.
  */
-
 function DashboardWithFolders() {
-  // The Dashboard page now includes folder management and notes grouping by folders
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [notesChanged, setNotesChanged] = useState(false);
 
-  // Handler to refresh the notes list after creating or updating a note
   const handleNoteSaved = () => {
     setNotesChanged((prev) => !prev);
   };
@@ -38,13 +34,19 @@ function DashboardWithFolders() {
   );
 }
 
+/**
+ * App:
+ * - Adds a root redirect (/) → /login so opening the base URL shows the login page.
+ * - Renders Header above routes so navigation links are visible on all pages.
+ */
 function App() {
   return (
     <div className="app-container">
+      <Header />
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-        {/* Dashboard now uses the new feature layout */}
         <Route path="/dashboard" element={<DashboardWithFolders />} />
       </Routes>
     </div>
