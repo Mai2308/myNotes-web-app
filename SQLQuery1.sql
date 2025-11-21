@@ -9,10 +9,23 @@ CREATE TABLE Users (
     password NVARCHAR(100) NOT NULL
 );
 
+CREATE TABLE Folders (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(100) NOT NULL,
+    userId INT NOT NULL,
+    createdAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE Notes (
     id INT IDENTITY(1,1) PRIMARY KEY,
     title NVARCHAR(100),
     content NVARCHAR(MAX),
     user_id INT,
     FOREIGN KEY (user_id) REFERENCES Users(id)
+    userId INT NOT NULL,
+    folderId INT NULL,
+    createdAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (folderId) REFERENCES Folders(id) ON DELETE SET NULL
 );
