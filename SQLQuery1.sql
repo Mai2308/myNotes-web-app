@@ -24,6 +24,7 @@ CREATE TABLE Notes (
     content NVARCHAR(MAX),
     userId INT NOT NULL,
     folderId INT NULL,
+    isFavourite BIT DEFAULT 0,
     createdAt DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (folderId) REFERENCES Folders(id) ON DELETE SET NULL

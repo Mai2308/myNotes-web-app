@@ -171,6 +171,33 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
     }
   };
 
+  const handleToggleFavourite = async (noteId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/notes/${noteId}/favourite`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessage(data.message);
+        fetchNotes();
+        if (onNoteChange) onNoteChange();
+        setTimeout(() => setMessage(""), 2000);
+      } else {
+        setMessage("❌ Failed to toggle favourite");
+        setTimeout(() => setMessage(""), 2000);
+      }
+    } catch (error) {
+      console.error("Error toggling favourite:", error);
+      setMessage("❌ Error toggling favourite");
+      setTimeout(() => setMessage(""), 2000);
+    }
+  };
+
   const startEditing = (note) => {
     setEditingNote(note);
     setFormData({
@@ -273,6 +300,13 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
               <div className="note-card-header">
                 <h3>{note.title || "Untitled"}</h3>
                 <div className="note-card-actions">
+                  <button
+                    className="btn-icon"
+                    onClick={() => handleToggleFavourite(note.id)}
+                    title={note.isFavourite ? "Remove from favourites" : "Add to favourites"}
+                  >
+                    {note.isFavourite ? "⭐" : "☆"}
+                  </button>
                   <button
                     className="btn-icon"
                     onClick={() => startEditing(note)}
