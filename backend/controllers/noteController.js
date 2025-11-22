@@ -5,13 +5,30 @@ import sanitizeHtml from "sanitize-html";
 export const getNotes = async (req, res) => {
   try {
     const userId = req.user.id;
-    const result = await pool.request()
-      .input("userId", userId)
-      .query(`
-        SELECT * FROM Notes
-        WHERE userId = @userId
-        ORDER BY createdAt DESC
-      `);
+    const { folderId } = req.query;
+    
+    let query = `
+      SELECT n.*, f.name as folderName
+      FROM Notes n
+      LEFT JOIN Folders f ON n.folderId = f.id
+      WHERE n.userId = @userId
+    `;
+    
+    const request = pool.request().input("userId", userId);
+    
+    // Filter by folder if folderId is provided
+    if (folderId) {
+      if (folderId === 'null' || folderId === 'unassigned') {
+        query += ` AND n.folderId IS NULL`;
+      } else {
+        query += ` AND n.folderId = @folderId`;
+        request.input("folderId", folderId);
+      }
+    }
+    
+    query += ` ORDER BY n.createdAt DESC`;
+    
+    const result = await request.query(query);
     res.json(result.recordset);
   } catch (error) {
     console.error("❌ Error getting notes:", error);
@@ -25,7 +42,7 @@ export const createNote = async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    let { title = "", content = "" } = req.body;
+    let { title = "", content = "", folderId } = req.body;
     title = String(title).trim();
     content = String(content || "");
 
@@ -50,9 +67,10 @@ export const createNote = async (req, res) => {
       .input("userId", userId)
       .input("title", title)
       .input("content", clean)
+      .input("folderId", folderId || null)
       .query(`
-        INSERT INTO Notes (userId, title, content, createdAt)
-        VALUES (@userId, @title, @content, GETDATE());
+        INSERT INTO Notes (userId, title, content, folderId, createdAt)
+        VALUES (@userId, @title, @content, @folderId, GETDATE());
         SELECT CAST(SCOPE_IDENTITY() AS INT) AS id, GETDATE() AS createdAt;
       `);
 
@@ -69,17 +87,19 @@ export const updateNote = async (req, res) => {
   try {
     const userId = req.user.id;
     const noteId = req.params.id;
-    const { title, content } = req.body;
+    const { title, content, folderId } = req.body;
 
     await pool.request()
       .input("noteId", noteId)
       .input("userId", userId)
       .input("title", title)
       .input("content", content)
+      .input("folderId", folderId || null)
       .query(`
         UPDATE Notes
         SET title = @title,
-            content = @content
+            content = @content,
+            folderId = @folderId
         WHERE id = @noteId AND userId = @userId
       `);
 
