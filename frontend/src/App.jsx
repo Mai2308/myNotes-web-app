@@ -1,20 +1,64 @@
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import CreateNote from "./components/CreateNote";
-import NotesList from "./components/NotesList";
+import React, { useEffect, useState, useCallback } from "react";
+import { Routes, Route } from "react-router-dom";
+import Home from "./components/Home";
 import EditNote from "./components/EditNote";
+import CreateNote from "./components/CreateNote";
 
-function App() {
+export default function App() {
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotes = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token"); // get token
+      const res = await fetch("http://localhost:5000/api/notes", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // include token
+        },
+      });
+      if (!res.ok) throw new Error(`Failed to fetch notes: ${res.status}`);
+      const data = await res.json();
+      setNotes(data);
+    } catch (err) {
+      console.error("fetchNotes error", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const handleSave = useCallback(
+    async (note) => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:5000/api/notes", {
+          method: note.id ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(note),
+        });
+        if (!res.ok) throw new Error("save failed");
+        await fetchNotes();
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [fetchNotes]
+  );
+
+  if (loading) return <div>Loading...</div>;
+
   return (
-    <div className="App">
-      <Routes>
-        <Route path="/" element={<NotesList />} />
-        <Route path="/create" element={<CreateNote />} />
-        <Route path="/edit/:id" element={<EditNote />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </div>
+    <Routes>
+      <Route path="/" element={<Home notes={notes} onSave={handleSave} />} />
+      <Route path="/create" element={<CreateNote onSave={handleSave} />} />
+      <Route path="/edit/:id" element={<EditNote notes={notes} onSave={handleSave} />} />
+    </Routes>
   );
 }
-
-export default App;

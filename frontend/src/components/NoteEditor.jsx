@@ -79,15 +79,15 @@ const NoteEditor = forwardRef((props, ref) => {
     if (editorRef.current) editorRef.current.innerHTML = next;
   };
 
-  // Highlight function (currently unused, can be wired to UI later)
-  // const setHighlight = (color) => {
-  //   try {
-  //     document.execCommand("hiliteColor", false, color);
-  //   } catch {
-  //     document.execCommand("backColor", false, color);
-  //   }
-  //   if (editorRef.current) pushHistory(editorRef.current.innerHTML);
-  // };
+  const setHighlight = (color) => {
+    try {
+      document.execCommand("hiliteColor", false, color);
+    } catch {
+      document.execCommand("backColor", false, color);
+    }
+    if (editorRef.current) pushHistory(editorRef.current.innerHTML);
+    editorRef.current?.focus();
+  };
 
   const setNoteBackground = (color) => {
     const el = editorRef.current;
@@ -149,7 +149,9 @@ const NoteEditor = forwardRef((props, ref) => {
             <option>Courier New</option>
           </select>
 
-          <input className="toolbar-color" type="color" onChange={(e) => setNoteBackground(e.target.value)} />
+          <input className="toolbar-color" type="color" onChange={(e) => exec("foreColor", e.target.value)} title="Text Color" />
+          <input className="toolbar-color" type="color" onChange={(e) => setHighlight(e.target.value)} title="Highlight Color" />
+          <input className="toolbar-color" type="color" onChange={(e) => setNoteBackground(e.target.value)} title="Background Color" />
           <button className="toolbar-btn" onClick={clearBackground}>Clear BG</button>
         </div>
 
