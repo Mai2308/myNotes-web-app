@@ -1,12 +1,25 @@
 #!/bin/bash
 set -e
 
-# Wait for SQL Server to be ready
+# Wait for SQL Server to be ready with proper health checks
 echo "Waiting for SQL Server to be ready..."
-sleep 30
+RETRY_COUNT=0
+MAX_RETRIES=30
+
+until /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $SA_PASSWORD -C -Q "SELECT 1" &> /dev/null; do
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+        echo "❌ SQL Server did not become ready in time"
+        exit 1
+    fi
+    echo "⏳ Waiting for SQL Server... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+    sleep 2
+done
+
+echo "✅ SQL Server is ready!"
 
 # Run the schema script
-echo "Creating database and tables..."
+echo "📦 Creating database and tables..."
 /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $SA_PASSWORD -C -Q "
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'NotesDB')
 BEGIN
@@ -43,4 +56,4 @@ END
 GO
 "
 
-echo "Database initialization completed!"
+echo "✅ Database initialization completed!"

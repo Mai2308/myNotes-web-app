@@ -85,6 +85,7 @@ const NotesList = () => {
             backgroundColor: "#f9f9f9"
           }}>
             <h3>{note.title || "Untitled"}</h3>
+            {/* Content is sanitized on the backend using sanitize-html before storage */}
             <div dangerouslySetInnerHTML={{ __html: note.content }} />
             <small style={{ color: "#666" }}>
               Created: {new Date(note.createdAt).toLocaleString()}
