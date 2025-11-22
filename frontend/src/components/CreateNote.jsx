@@ -1,22 +1,18 @@
-import React, { useRef, useState } from "react";
-import NoteEditor from "./NoteEditor";
-import "../styles.css";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function CreateNote({ navigateTo = "/notes" }) {
-  const editorRef = useRef();
+export default function CreateNote() {
   const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  // expose getHtml from the editor by using a ref pattern:
-  // (If your NoteEditor doesn't forward a ref, adapt to read innerHTML directly.)
-  const handleSave = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError(null);
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token"); // ensure login stored token
     if (!token) return setError("Not authenticated");
-
-    // read editor HTML
-    const content = document.querySelector(".rich-editor")?.innerHTML ?? "";
 
     setLoading(true);
     try {
@@ -28,14 +24,16 @@ export default function CreateNote({ navigateTo = "/notes" }) {
         },
         body: JSON.stringify({ title, content })
       });
+
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || `Server ${res.status}`);
+        throw new Error(body.message || `Server returned ${res.status}`);
       }
-      // success - navigate or clear
+
+      // created — clear form or redirect
       setTitle("");
-      document.querySelector(".rich-editor").innerHTML = "";
-      window.location.href = navigateTo;
+      setContent("");
+      navigate("/notes"); // adjust route as needed
     } catch (err) {
       setError(err.message);
     } finally {
@@ -44,25 +42,17 @@ export default function CreateNote({ navigateTo = "/notes" }) {
   };
 
   return (
-    <div>
-      <div style={{ marginBottom: 8 }}>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Note title (optional)"
-          maxLength={255}
-          style={{ width: "100%", padding: "8px", fontSize: 16 }}
-        />
+    <form onSubmit={handleSubmit}>
+      {error && <div style={{ color: "red" }}>{error}</div>}
+      <div>
+        <label>Title</label>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={255} />
       </div>
-
-      <NoteEditor />
-
-      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-        <button onClick={handleSave} disabled={loading}>
-          {loading ? "Saving..." : "Save note"}
-        </button>
-        {error && <div style={{ color: "red" }}>{error}</div>}
+      <div>
+        <label>Content</label>
+        <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={6} />
       </div>
-    </div>
+      <button type="submit" disabled={loading}>{loading ? "Saving..." : "Create Note"}</button>
+    </form>
   );
 }
