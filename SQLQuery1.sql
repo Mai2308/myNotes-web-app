@@ -5,14 +5,27 @@ GO
 
 CREATE TABLE Users (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    username NVARCHAR(50) NOT NULL,
-    password NVARCHAR(100) NOT NULL
+    username NVARCHAR(50) NOT NULL UNIQUE,
+    password NVARCHAR(255) NOT NULL,
+    createdAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Folders (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(100) NOT NULL,
+    userId INT NOT NULL,
+    createdAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE Notes (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    title NVARCHAR(100),
+    title NVARCHAR(255),
     content NVARCHAR(MAX),
-    user_id INT,
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    userId INT NOT NULL,
+    folderId INT NULL,
+    isFavourite BIT DEFAULT 0,
+    createdAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (folderId) REFERENCES Folders(id) ON DELETE SET NULL
 );

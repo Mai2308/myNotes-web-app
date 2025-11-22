@@ -2,47 +2,64 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext();
 
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
-  // لما الصفحة تفتح نحمل اليوزر من localStorage لو موجود
+  // load user from localStorage if present
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("auth_user"));
     if (stored) setUser(stored);
   }, []);
 
-  const signup = ({ username, password }) => {
-    // نحفظ اليوزر في localStorage كمثال بسيط
-    const users = JSON.parse(localStorage.getItem("users_db") || "[]");
+  const signup = async ({ name, email, password }) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/users/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { ok: false, message: data?.message || "Signup failed" };
+      }
 
-    // شوف لو اليوزرنيم موجود
-    if (users.some(u => u.username === username)) {
-      return { ok: false, message: "Username already taken" };
+      // Optionally auto-login after signup:
+      const loginRes = await login({ email, password });
+      if (!loginRes.ok) return { ok: false, message: loginRes.message };
+
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, message: "Network/server error" };
     }
-
-    // تخزين باسورد مشفر بطريقة بسيطة (ملحوظة: مش أمنة للإنتاج)
-    const hashed = btoa(password); // فقط للاختبار (Base64) — غير آمن
-    const newUser = { id: Date.now(), username, password: hashed };
-    users.push(newUser);
-    localStorage.setItem("users_db", JSON.stringify(users));
-    localStorage.setItem("auth_user", JSON.stringify({ id: newUser.id, username }));
-    setUser({ id: newUser.id, username });
-    return { ok: true };
   };
 
-  const login = ({ username, password }) => {
-    const users = JSON.parse(localStorage.getItem("users_db") || "[]");
-    const hashed = btoa(password);
-    const found = users.find(u => u.username === username && u.password === hashed);
-    if (!found) return { ok: false, message: "Invalid credentials" };
+  const login = async ({ email, password }) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/users/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { ok: false, message: data?.message || "Login failed" };
+      }
 
-    const session = { id: found.id, username: found.username };
-    localStorage.setItem("auth_user", JSON.stringify(session));
-    setUser(session);
-    return { ok: true };
+      // store token and user
+      if (data.token) localStorage.setItem("auth_token", data.token);
+      const session = data.user || { email };
+      localStorage.setItem("auth_user", JSON.stringify(session));
+      setUser(session);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, message: "Network/server error" };
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user");
     setUser(null);
   };

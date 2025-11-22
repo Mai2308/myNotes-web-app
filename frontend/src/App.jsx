@@ -2,44 +2,19 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import CreateNote from "./components/CreateNote";
 import NotesList from "./components/NotesList";
-import Login from "./components/Login";
+import EditNote from "./components/EditNote";
 
-export default function App() {
+function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/create" replace />} />
-      <Route path="/create" element={<CreateNote />} />
-      <Route path="/notes" element={<NotesList />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="*" element={<div style={{ padding: 20 }}>404 — Not Found</div>} />
-    </Routes>
+    <div className="App">
+      <Routes>
+        <Route path="/" element={<NotesList />} />
+        <Route path="/create" element={<CreateNote />} />
+        <Route path="/edit/:id" element={<EditNote />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
   );
 }
 
-
-
-
-
-
-
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import CreateNote from "./components/CreateNote";
-import NotesList from "./components/NotesList";
-import AllNotesPage from "./pages/AllNotesPage";
-import FavouriteNotesPage from "./pages/FavouriteNotesPage";
-import Login from "./components/Login";
-
-export default function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/create" replace />} />
-      <Route path="/create" element={<CreateNote />} />
-      <Route path="/notes" element={<NotesList />} />
-      <Route path="/notes" element={<AllNotesPage />} />
-      <Route path="/favourites" element={<FavouriteNotesPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="*" element={<div style={{ padding: 20 }}>404 — Not Found</div>} />
-    </Routes>
-  );
-}
+export default App;
