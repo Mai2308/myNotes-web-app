@@ -1,14 +1,9 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
-import { useTheme } from "../context/ThemeContext";
-import ThemeToggle from "./ThemeToggle";
 
-// Use forwardRef to allow parent component to access editor methods
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+
+// CLEANED: Removed theme imports + ThemeToggle
+
+
 const NoteEditor = forwardRef((props, ref) => {
   const editorRef = useRef(null);
   const [history, setHistory] = useState([]);
@@ -17,9 +12,7 @@ const NoteEditor = forwardRef((props, ref) => {
   const username = "";
   const saveKey = "autoSavedNote";
 
-  const { theme } = useTheme();
 
-  // expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     getContent: () => editorRef.current?.innerHTML || "",
     clearContent: () => {
@@ -30,13 +23,7 @@ const NoteEditor = forwardRef((props, ref) => {
   }));
 
   useEffect(() => {
-    const el = editorRef.current;
-    if (!el) return;
-    if (!el.dataset.bg) el.style.backgroundColor = "";
-    el.style.color = "";
-  }, [theme]);
 
-  useEffect(() => {
     const html = editorRef.current?.innerHTML ?? "";
     if (html) setHistory([html]);
   }, []);
@@ -79,21 +66,12 @@ const NoteEditor = forwardRef((props, ref) => {
     if (editorRef.current) editorRef.current.innerHTML = next;
   };
 
-  const setHighlight = (color) => {
-    try {
-      document.execCommand("hiliteColor", false, color);
-    } catch {
-      document.execCommand("backColor", false, color);
-    }
-    if (editorRef.current) pushHistory(editorRef.current.innerHTML);
-  };
 
   const setNoteBackground = (color) => {
     const el = editorRef.current;
     if (!el) return;
     el.style.backgroundColor = color || "";
-    if (color) el.dataset.bg = color;
-    else delete el.dataset.bg;
+
     pushHistory(el.innerHTML);
     el.focus();
   };
@@ -133,13 +111,15 @@ const NoteEditor = forwardRef((props, ref) => {
   return (
     <div>
       {/* Toolbar */}
-      <div className="toolbar" style={{ marginBottom: 10 }}>
-        <div className="toolbar-left" style={{ display: "flex", gap: 5 }}>
-          <button className="toolbar-btn" onClick={() => exec("bold")}><b>B</b></button>
-          <button className="toolbar-btn" onClick={() => exec("italic")}><i>I</i></button>
-          <button className="toolbar-btn" onClick={() => exec("underline")}><u>U</u></button>
 
-          <select className="toolbar-select" onChange={(e) => exec("fontName", e.target.value)} defaultValue="Arial">
+      <div className="toolbar">
+        <div className="toolbar-left">
+          <button onClick={() => exec("bold")}><b>B</b></button>
+          <button onClick={() => exec("italic")}><i>I</i></button>
+          <button onClick={() => exec("underline")}><u>U</u></button>
+
+          <select onChange={(e) => exec("fontName", e.target.value)} defaultValue="Arial">
+
             <option>Arial</option>
             <option>Georgia</option>
             <option>Verdana</option>
@@ -148,14 +128,15 @@ const NoteEditor = forwardRef((props, ref) => {
             <option>Courier New</option>
           </select>
 
-          <input className="toolbar-color" type="color" onChange={(e) => setNoteBackground(e.target.value)} />
-          <button className="toolbar-btn" onClick={clearBackground}>Clear BG</button>
+
+          <input type="color" onChange={(e) => setNoteBackground(e.target.value)} />
+          <button onClick={clearBackground}>Clear BG</button>
         </div>
 
-        <div className="toolbar-right" style={{ display: "flex", gap: 5, marginLeft: "auto" }}>
-          <ThemeToggle />
-          <button className="toolbar-btn" onClick={undo} title="Undo">↩</button>
-          <button className="toolbar-btn" onClick={redo} title="Redo">↪</button>
+        <div className="toolbar-right">
+          <button onClick={undo} title="Undo">↩</button>
+          <button onClick={redo} title="Redo">↪</button>
+
         </div>
       </div>
 
@@ -170,7 +151,8 @@ const NoteEditor = forwardRef((props, ref) => {
 
       {savedMessage && <p>{savedMessage}</p>}
 
-      <div style={{ marginTop: 10, display: "flex", gap: 5 }}>
+      <div className="save-controls">
+
         <button onClick={handleSaveDraft}>💾 Save Draft</button>
         <button onClick={handleLoadDraft}>📂 Load Draft</button>
         <button onClick={handleDelete}>🗑️ Delete</button>
