@@ -32,6 +32,7 @@ const NotesList = ({ notes, onToggleFavourite }) => {
             </button>
           )}
           <h3>{note.title}</h3>
+          {/* Content is sanitized on the server using sanitize-html before storage */}
           <p dangerouslySetInnerHTML={{ __html: note.content }} />
         </div>
       ))}
