@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { API_BASE_URL } from "../config/constants";
 import "../styles.css";
-
-const API_URL = "http://localhost:5000/api";
 
 export default function FolderSidebar({ onFolderSelect, selectedFolderId }) {
   const [folders, setFolders] = useState([]);
@@ -14,7 +13,7 @@ export default function FolderSidebar({ onFolderSelect, selectedFolderId }) {
   const fetchFolders = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/folders`, {
+      const response = await fetch(`${API_BASE_URL}/folders`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -45,7 +44,7 @@ export default function FolderSidebar({ onFolderSelect, selectedFolderId }) {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/folders`, {
+      const response = await fetch(`${API_BASE_URL}/folders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -80,7 +79,7 @@ export default function FolderSidebar({ onFolderSelect, selectedFolderId }) {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/folders/${folderId}`, {
+      const response = await fetch(`${API_BASE_URL}/folders/${folderId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -113,7 +112,7 @@ export default function FolderSidebar({ onFolderSelect, selectedFolderId }) {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/folders/${folderId}`, {
+      const response = await fetch(`${API_BASE_URL}/folders/${folderId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

@@ -1,5 +1,42 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
+/* base variables (light defaults) */
+:root,
+html[data-theme="light"],
+body.light {
+  --bg-color: #ffffff;
+  --panel-bg: #f8fafc;
+  --editor-bg: #ffffff;
+  --text-color: #0f172a;
+  --muted: #6b7280;
+  --toolbar-bg: #ffffff;
+  --btn-bg: linear-gradient(180deg,#ffffff,#f3f6ff);
+  --btn-border: rgba(99,102,241,0.10);
+  --shadow: 0 2px 6px rgba(15,23,42,0.06);
+}
+
+/* dark theme variables (applies when html[data-theme="dark"] OR body.dark) */
+html[data-theme="dark"],
+.theme-dark,
+body.dark {
+  --bg-color: #0b1220;
+  --panel-bg: #0f172a;
+  --editor-bg: #081026;
+  --text-color: #e6eef8;
+  --muted: #000000;
+  --toolbar-bg: #071026;
+  --btn-bg: linear-gradient(180deg,#030407,#010205);
+  --btn-border: rgb(0, 0, 0);
+  --shadow: 0 4px 14px rgba(0,0,0,0.6);
+}
+
+/* apply variables globally */
+html, body {
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+
 body {
   font-family: 'Poppins', sans-serif;
   background: linear-gradient(135deg, #faf0ff9a, #d6e0ff);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { API_BASE_URL, FOLDER_UNASSIGNED } from "../config/constants";
 import "../styles.css";
-
-const API_URL = "http://localhost:5000/api";
 
 export default function NotesList({ selectedFolderId, onNoteChange }) {
   const [notes, setNotes] = useState([]);
@@ -14,7 +13,7 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
   const fetchNotes = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      let url = `${API_URL}/notes`;
+      let url = `${API_BASE_URL}/notes`;
       
       if (selectedFolderId) {
         url += `?folderId=${selectedFolderId}`;
@@ -40,7 +39,7 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
   const fetchFolders = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/folders`, {
+      const response = await fetch(`${API_BASE_URL}/folders`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -70,7 +69,7 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/notes`, {
+      const response = await fetch(`${API_BASE_URL}/notes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -111,7 +110,7 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/notes/${editingNote.id}`, {
+      const response = await fetch(`${API_BASE_URL}/notes/${editingNote.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -149,7 +148,7 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/notes/${noteId}`, {
+      const response = await fetch(`${API_BASE_URL}/notes/${noteId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -193,7 +192,7 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
     setFormData({
       title: "",
       content: "",
-      folderId: selectedFolderId && selectedFolderId !== "unassigned" ? selectedFolderId : null,
+      folderId: selectedFolderId && selectedFolderId !== FOLDER_UNASSIGNED ? selectedFolderId : null,
     });
   };
 
@@ -208,7 +207,7 @@ export default function NotesList({ selectedFolderId, onNoteChange }) {
         <h2>
           {selectedFolderId === null
             ? "📝 All Notes"
-            : selectedFolderId === "unassigned"
+            : selectedFolderId === FOLDER_UNASSIGNED
             ? "📄 Unassigned Notes"
             : `📁 ${notes[0]?.folderName || "Notes"}`}
         </h2>

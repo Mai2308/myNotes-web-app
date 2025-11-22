@@ -1,0 +1,6 @@
+// API Configuration
+export const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
+// Special Folder Identifiers
+export const FOLDER_UNASSIGNED = "unassigned";
+export const FOLDER_NULL = "null";

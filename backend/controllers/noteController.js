@@ -1,5 +1,6 @@
 import { pool } from "../database/db.js";
 import sanitizeHtml from "sanitize-html";
+import { FOLDER_NULL, FOLDER_UNASSIGNED } from "../constants.js";
 
 // ✅ Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
@@ -18,7 +19,7 @@ export const getNotes = async (req, res) => {
     
     // Filter by folder if folderId is provided
     if (folderId) {
-      if (folderId === 'null' || folderId === 'unassigned') {
+      if (folderId === FOLDER_NULL || folderId === FOLDER_UNASSIGNED) {
         query += ` AND n.folderId IS NULL`;
       } else {
         query += ` AND n.folderId = @folderId`;
