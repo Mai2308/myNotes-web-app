@@ -1,4 +1,5 @@
 import { pool } from "../database/db.js";
+import sanitizeHtml from "sanitize-html";
 
 // ✅ Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
@@ -26,19 +27,29 @@ export const createNote = async (req, res) => {
 
     let { title = "", content = "" } = req.body;
     title = String(title).trim();
-    content = String(content).trim();
+    content = String(content || "");
 
-    if (!title && !content) {
-      return res.status(400).json({ message: "Title or content required" });
-    }
-    if (title.length > 255) {
-      return res.status(400).json({ message: "Title too long (max 255 characters)" });
-    }
+    if (!title && !content) return res.status(400).json({ message: "Title or content required" });
+    if (title.length > 255) return res.status(400).json({ message: "Title too long (max 255)" });
+
+    // sanitize: allow basic formatting and inline styles for font/color
+    const clean = sanitizeHtml(content, {
+      allowedTags: ["b","i","u","strong","em","br","p","div","span","ul","ol","li","h1","h2","h3","pre","code"],
+      allowedAttributes: { "*": ["style"] },
+      allowedStyles: {
+        "*": {
+          "font-family": [/^[\w\s,"'-]+$/],
+          "background-color": [/^#?[0-9a-fA-F(),\s.%]+$/],
+          "color": [/^#?[0-9a-fA-F(),\s.%]+$/],
+          "text-decoration": [/^underline$/]
+        }
+      }
+    });
 
     const result = await pool.request()
       .input("userId", userId)
       .input("title", title)
-      .input("content", content)
+      .input("content", clean)
       .query(`
         INSERT INTO Notes (userId, title, content, createdAt)
         VALUES (@userId, @title, @content, GETDATE());
@@ -46,13 +57,9 @@ export const createNote = async (req, res) => {
       `);
 
     const inserted = result.recordset?.[0] ?? null;
-    res.status(201).json({
-      message: "✅ Note created successfully!",
-      id: inserted?.id ?? null,
-      createdAt: inserted?.createdAt ?? null
-    });
+    res.status(201).json({ message: "Note created", id: inserted?.id ?? null, createdAt: inserted?.createdAt ?? null });
   } catch (error) {
-    console.error("❌ Error creating note:", error);
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
