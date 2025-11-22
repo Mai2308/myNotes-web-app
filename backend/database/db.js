@@ -5,10 +5,10 @@ dotenv.config();
 
 // ✅ SQL Server configuration
 const config = {
-  user: process.env.DB_USER || "sa",                     // default SQL Server admin user
-  password: process.env.DB_PASSWORD || "Mynoteswebapp27", // must match Docker setup
+  user: process.env.SQL_USER || "sa",                     // default SQL Server admin user
+  password: process.env.SQL_PASSWORD || "Mynoteswebapp27", // must match Docker setup
   server: process.env.DB_HOST || "localhost",
-  database: process.env.DB_NAME || "NotesApp",
+  database: process.env.SQL_DATABASE || "NotesApp",
   options: {
     encrypt: true,
     trustServerCertificate: true, // needed for local/dev

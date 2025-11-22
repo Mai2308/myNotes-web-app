@@ -148,7 +148,8 @@ const NoteEditor = forwardRef((props, ref) => {
             <option>Courier New</option>
           </select>
 
-          <input className="toolbar-color" type="color" onChange={(e) => setNoteBackground(e.target.value)} />
+          <input className="toolbar-color" type="color" onChange={(e) => setHighlight(e.target.value)} title="Text Highlight Color" />
+          <input className="toolbar-color" type="color" onChange={(e) => setNoteBackground(e.target.value)} title="Background Color" />
           <button className="toolbar-btn" onClick={clearBackground}>Clear BG</button>
         </div>
 
