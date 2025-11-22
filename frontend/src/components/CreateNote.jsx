@@ -1,22 +1,28 @@
-import React, { useRef, useState } from "react";
+import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import NoteEditor from "./NoteEditor";
-import "../styles.css";
 
-export default function CreateNote({ navigateTo = "/notes" }) {
-  const editorRef = useRef();
+export default function CreateNote() {
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  // expose getHtml from the editor by using a ref pattern:
-  // (If your NoteEditor doesn't forward a ref, adapt to read innerHTML directly.)
-  const handleSave = async () => {
+  // We'll use a ref to get content from NoteEditor
+  const editorRef = useRef(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError(null);
-    const token = localStorage.getItem("token");
+
+    const token = localStorage.getItem("token"); // check authentication
     if (!token) return setError("Not authenticated");
 
-    // read editor HTML
-    const content = document.querySelector(".rich-editor")?.innerHTML ?? "";
+    const content = editorRef.current?.getContent?.() || ""; // get content from NoteEditor
+
+    if (!title.trim() && !content.trim()) {
+      return setError("Title or content must not be empty");
+    }
 
     setLoading(true);
     try {
@@ -24,18 +30,20 @@ export default function CreateNote({ navigateTo = "/notes" }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({ title, content })
+        body: JSON.stringify({ title, content }),
       });
+
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || `Server ${res.status}`);
+        throw new Error(body.message || `Server returned ${res.status}`);
       }
-      // success - navigate or clear
+
+      // Successfully created
       setTitle("");
-      document.querySelector(".rich-editor").innerHTML = "";
-      window.location.href = navigateTo;
+      if (editorRef.current?.clearContent) editorRef.current.clearContent();
+      navigate("/notes");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -44,25 +52,33 @@ export default function CreateNote({ navigateTo = "/notes" }) {
   };
 
   return (
-    <div>
-      <div style={{ marginBottom: 8 }}>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Note title (optional)"
-          maxLength={255}
-          style={{ width: "100%", padding: "8px", fontSize: 16 }}
-        />
-      </div>
+    <div style={{ padding: 20 }}>
+      <h1>Create a New Note</h1>
 
-      <NoteEditor />
+      {/* NoteEditor with ref so we can get content */}
+      <NoteEditor ref={editorRef} />
 
-      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-        <button onClick={handleSave} disabled={loading}>
-          {loading ? "Saving..." : "Save note"}
+      <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
+        {error && (
+          <div style={{ color: "red", marginBottom: 10 }}>{error}</div>
+        )}
+
+        <div style={{ marginBottom: 10 }}>
+          <label>Title</label>
+          <br />
+          <input
+            className="note-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title (optional)"
+            maxLength={255}
+          />
+        </div>
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Saving..." : "Create Note"}
         </button>
-        {error && <div style={{ color: "red" }}>{error}</div>}
-      </div>
+      </form>
     </div>
   );
 }

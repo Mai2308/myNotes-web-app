@@ -1,72 +1,68 @@
-import React, { useState, useEffect, useRef } from "react";
-import "../styles.css";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
+import { useTheme } from "../context/ThemeContext";
+import ThemeToggle from "./ThemeToggle";
 
-export default function NoteEditor({ username }) {
+// Use forwardRef to allow parent component to access editor methods
+const NoteEditor = forwardRef((props, ref) => {
   const editorRef = useRef(null);
-  const [savedMessage, setSavedMessage] = useState("");
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
-  const saveKey = username ? `draftNote_${username}` : "draftNote_anonymous";
+  const [savedMessage, setSavedMessage] = useState("");
+  const username = "";
+  const saveKey = "autoSavedNote";
 
-  // load auto-saved or user draft on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("autoSavedNote");
-    const draft = localStorage.getItem(saveKey);
-    const html = draft || saved || "";
-    if (editorRef.current) editorRef.current.innerHTML = html;
-    // initialize history
-    setHistory(html ? [html] : []);
-  }, [saveKey]);
+  const { theme } = useTheme();
 
-  // auto-save while typing (throttled)
+  // expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    getContent: () => editorRef.current?.innerHTML || "",
+    clearContent: () => {
+      if (editorRef.current) editorRef.current.innerHTML = "";
+      setHistory([]);
+      setRedoStack([]);
+    },
+  }));
+
   useEffect(() => {
-    const handler = setInterval(() => {
-      const html = editorRef.current?.innerHTML ?? "";
-      if (html) localStorage.setItem("autoSavedNote", html);
-    }, 2000); // every 2s
-    return () => clearInterval(handler);
+    const el = editorRef.current;
+    if (!el) return;
+    if (!el.dataset.bg) el.style.backgroundColor = "";
+    el.style.color = "";
+  }, [theme]);
+
+  useEffect(() => {
+    const html = editorRef.current?.innerHTML ?? "";
+    if (html) setHistory([html]);
   }, []);
 
   const pushHistory = (snapshot) => {
     setHistory((h) => {
-      const next = [...h, snapshot].slice(-50); // keep last 50
+      const next = [...h, snapshot].slice(-50);
+      setRedoStack([]);
       return next;
     });
-    setRedoStack([]);
   };
 
-  // handle input in contentEditable
   const handleInput = () => {
-    const html = editorRef.current.innerHTML;
-    pushHistory(html);
+    if (!editorRef.current) return;
+    pushHistory(editorRef.current.innerHTML);
   };
 
-  // formatting wrapper using execCommand (works cross-browser)
-  const format = (cmd, value = null) => {
-    document.execCommand(cmd, false, value);
-    // after formatting, push snapshot
-    const html = editorRef.current.innerHTML;
-    pushHistory(html);
-    editorRef.current.focus();
-  };
-
-  const handleFontChange = (e) => {
-    format("fontName", e.target.value);
-  };
-
-  const handleColor = (color) => {
-    // use hiliteColor where available, fall back to backColor
-    try {
-      document.execCommand("hiliteColor", false, color);
-    } catch {
-      document.execCommand("backColor", false, color);
+  const exec = (cmd, val = null) => {
+    document.execCommand(cmd, false, val);
+    if (editorRef.current) {
+      pushHistory(editorRef.current.innerHTML);
+      editorRef.current.focus();
     }
-    const html = editorRef.current.innerHTML;
-    pushHistory(html);
-    editorRef.current.focus();
   };
 
-  const handleUndo = () => {
+  const undo = () => {
     if (history.length <= 1) return;
     const last = history[history.length - 1];
     const prev = history[history.length - 2];
@@ -75,16 +71,37 @@ export default function NoteEditor({ username }) {
     if (editorRef.current) editorRef.current.innerHTML = prev;
   };
 
-  const handleRedo = () => {
-    if (redoStack.length === 0) return;
+  const redo = () => {
+    if (!redoStack.length) return;
     const next = redoStack[0];
     setRedoStack((r) => r.slice(1));
     setHistory((h) => [...h, next]);
     if (editorRef.current) editorRef.current.innerHTML = next;
   };
 
+  const setHighlight = (color) => {
+    try {
+      document.execCommand("hiliteColor", false, color);
+    } catch {
+      document.execCommand("backColor", false, color);
+    }
+    if (editorRef.current) pushHistory(editorRef.current.innerHTML);
+  };
+
+  const setNoteBackground = (color) => {
+    const el = editorRef.current;
+    if (!el) return;
+    el.style.backgroundColor = color || "";
+    if (color) el.dataset.bg = color;
+    else delete el.dataset.bg;
+    pushHistory(el.innerHTML);
+    el.focus();
+  };
+
+  const clearBackground = () => setNoteBackground("");
+
   const handleSaveDraft = () => {
-    const html = editorRef.current.innerHTML;
+    const html = editorRef.current?.innerHTML ?? "";
     localStorage.setItem(saveKey, html);
     setSavedMessage(`📝 Draft saved for ${username || "guest"}!`);
     setTimeout(() => setSavedMessage(""), 1500);
@@ -103,7 +120,7 @@ export default function NoteEditor({ username }) {
   };
 
   const handleDelete = () => {
-    if (!confirm("Delete current note? This will clear the editor.")) return;
+    if (!window.confirm("Delete current note? This will clear the editor.")) return;
     if (editorRef.current) editorRef.current.innerHTML = "";
     localStorage.removeItem(saveKey);
     localStorage.removeItem("autoSavedNote");
@@ -113,20 +130,16 @@ export default function NoteEditor({ username }) {
     setTimeout(() => setSavedMessage(""), 1200);
   };
 
-  // Export plain HTML or text (example helper)
-  const getHtml = () => editorRef.current?.innerHTML ?? "";
-
   return (
     <div>
-      <div className="toolbar">
-        <div className="toolbar-left">
-          <button onClick={() => handleDelete()} title="Delete note">🗑️</button>
-          <button onClick={handleUndo} title="Undo">↩️</button>
-          <button onClick={handleRedo} title="Redo">↪️</button>
-        </div>
+      {/* Toolbar */}
+      <div className="toolbar" style={{ marginBottom: 10 }}>
+        <div className="toolbar-left" style={{ display: "flex", gap: 5 }}>
+          <button className="toolbar-btn" onClick={() => exec("bold")}><b>B</b></button>
+          <button className="toolbar-btn" onClick={() => exec("italic")}><i>I</i></button>
+          <button className="toolbar-btn" onClick={() => exec("underline")}><u>U</u></button>
 
-        <div className="toolbar-center">
-          <select defaultValue="Arial" onChange={handleFontChange} title="Font">
+          <select className="toolbar-select" onChange={(e) => exec("fontName", e.target.value)} defaultValue="Arial">
             <option>Arial</option>
             <option>Georgia</option>
             <option>Verdana</option>
@@ -135,56 +148,35 @@ export default function NoteEditor({ username }) {
             <option>Courier New</option>
           </select>
 
-          <button onClick={() => format("bold")} title="Bold"><b>B</b></button>
-          <button onClick={() => format("italic")} title="Italic"><i>I</i></button>
-          <button onClick={() => format("underline")} title="Underline"><u>U</u></button>
-
-          <label className="color-picker" title="Highlight">
-            🎨
-            <input type="color" onChange={(e) => handleColor(e.target.value)} />
-          </label>
+          <input className="toolbar-color" type="color" onChange={(e) => setNoteBackground(e.target.value)} />
+          <button className="toolbar-btn" onClick={clearBackground}>Clear BG</button>
         </div>
 
-        <div className="toolbar-right">
-          <button onClick={handleSaveDraft} title="Save draft">💾 Save</button>
-          <button onClick={handleLoadDraft} title="Load draft">📂 Load</button>
+        <div className="toolbar-right" style={{ display: "flex", gap: 5, marginLeft: "auto" }}>
+          <ThemeToggle />
+          <button className="toolbar-btn" onClick={undo} title="Undo">↩</button>
+          <button className="toolbar-btn" onClick={redo} title="Redo">↪</button>
         </div>
       </div>
 
+      {/* Editor */}
       <div
         ref={editorRef}
         className="rich-editor"
         contentEditable
         onInput={handleInput}
-        placeholder="Start typing your note..."
         suppressContentEditableWarning={true}
-        style={{
-          minHeight: "140px",
-          padding: "12px",
-          marginTop: "8px",
-          border: "2px solid #c7d2fe",
-          borderRadius: "10px",
-          fontSize: "15px",
-          background: "#fff"
-        }}
       />
 
-      {savedMessage && (
-        <p style={{ color: "green", marginTop: "8px", fontWeight: "bold" }}>
-          {savedMessage}
-        </p>
-      )}
+      {savedMessage && <p>{savedMessage}</p>}
 
-      <p style={{ color: "#555", marginTop: "10px", fontSize: "14px" }}>
-        Saved snippet:{" "}
-        <strong>
-          {(() => {
-            const txt = (editorRef.current?.textContent || "").trim();
-            return txt ? (txt.substring(0, 30) + (txt.length > 30 ? "..." : "")) : "No auto-saved note";
-          })()}
-        </strong>
-      </p>
+      <div style={{ marginTop: 10, display: "flex", gap: 5 }}>
+        <button onClick={handleSaveDraft}>💾 Save Draft</button>
+        <button onClick={handleLoadDraft}>📂 Load Draft</button>
+        <button onClick={handleDelete}>🗑️ Delete</button>
+      </div>
     </div>
   );
-}
+});
 
+export default NoteEditor;

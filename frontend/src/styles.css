@@ -1,5 +1,148 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
+/* base variables (light defaults) */
+:root,
+html[data-theme="light"],
+body.light {
+  --bg-color: #ffffff;
+  --panel-bg: #f8fafc;
+  --editor-bg: #ffffff;
+  --text-color: #0f172a;
+  --muted: #6b7280;
+  --toolbar-bg: #ffffff;
+  --btn-bg: linear-gradient(180deg,#ffffff,#f3f6ff);
+  --btn-border: rgba(99,102,241,0.10);
+  --shadow: 0 2px 6px rgba(15,23,42,0.06);
+}
+
+/* dark theme variables (applies when html[data-theme="dark"] OR body.dark) */
+html[data-theme="dark"],
+.theme-dark,
+body.dark {
+  --bg-color: #0b1220;
+  --panel-bg: #0f172a;
+  --editor-bg: #081026;
+  --text-color: #e6eef8;
+  --muted: #000000;
+  --toolbar-bg: #071026;
+  --btn-bg: linear-gradient(180deg,#030407,#010205);
+  --btn-border: rgb(0, 0, 0);
+  --shadow: 0 4px 14px rgba(0,0,0,0.6);
+}
+
+/* apply variables globally */
+html, body {
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* ensure components use variables (example for editor and toolbar) */
+.toolbar {
+  background: var(--toolbar-bg);
+  color: var(--text-color);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+.rich-editor {
+  background: var(--editor-bg);
+  color: var(--text-color);
+  min-height: 140px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.06);
+  outline: none;
+}
+
+/* toolbar / buttons use variables */
+.toolbar{
+  background: var(--toolbar-bg);
+  padding: 8px;
+  border-radius: 10px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  box-shadow: var(--shadow);
+}
+
+.toolbar button.toolbar-btn{
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  color: var(--text-color);
+  padding:6px 10px;
+  border-radius:10px;
+  box-shadow: var(--shadow);
+  cursor:pointer;
+  font-weight:600;
+}
+
+.toolbar .toolbar-left,
+.toolbar .toolbar-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar button,
+.toolbar .toolbar-btn {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  color: var(--text-color);
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.toolbar-select,
+.toolbar input[type="color"],
+.toolbar .toolbar-select {
+  background: var(--panel-bg);
+  color: var(--text-color);
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 6px;
+  border-radius: 8px;
+}
+
+/* Title input */
+.note-title {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--panel-bg);
+  color: var(--text-color);
+  font-size: 16px;
+}
+
+/* Editor area */
+.rich-editor {
+  background: var(--editor-bg);
+  color: var(--text-color);
+  min-height: 140px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.06);
+  outline: none;
+}
+
+/* placeholder color */
+.rich-editor:empty:before {
+  content: attr(placeholder);
+  color: var(--muted);
+  pointer-events: none;
+  display: block;
+}
+
+/* small adjustments for color-picker label */
+.color-picker span{ color: var(--text-color); font-weight:600; }
+
 body {
   font-family: 'Poppins', sans-serif;
   background: linear-gradient(135deg, #faf0ff9a, #d6e0ff);
@@ -152,7 +295,7 @@ p {
   border-radius:8px;
   margin-bottom:8px;
 }
-.toolbar-left, .toolbar-right { display:flex; gap:6px; align-items:center; }
+.toolbar-left, .toolbar-right { display:flex; gap:8px; align-items:center; }
 .toolbar button { padding:6px 8px; border:1px solid #ddd; border-radius:6px; background:#fff; cursor:pointer; }
 .rich-editor:empty:before { content: attr(placeholder); color:#9aa4b2; pointer-events:none; display:block; }
 .rich-editor { outline:none; min-height:140px; }
@@ -178,3 +321,35 @@ p {
   cursor: pointer;
 }
 
+
+/* small spacing tweak for toolbar groups */
+.toolbar-left, .toolbar-right { display:flex; gap:8px; align-items:center; }
+
+/* DEBUG — force toolbar visible */
+.toolbar {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: #fff !important;
+  color: #111 !important;
+  border: 2px solid rgba(99,102,241,0.25) !important;
+  z-index: 9999 !important;
+  padding: 8px !important;
+}
+
+.toolbar button,
+.toolbar select,
+.color-picker,
+.toolbar input[type="color"] {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: #fff !important;
+  color: #111 !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  z-index: 10000 !important;
+}
+
+.rich-editor {
+  border: 2px dashed rgba(99,102,241,0.2) !important;
+}
