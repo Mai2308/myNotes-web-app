@@ -1,22 +1,46 @@
 import jwt from "jsonwebtoken";
 
-// ✅ Middleware to protect routes
+/**
+ * Express middleware to protect routes.
+ * - Accepts "Authorization: Bearer <token>" (case-insensitive) or a raw token string.
+ * - Verifies the token using process.env.JWT_SECRET (falls back to a default only if not provided).
+ * - Attaches a safe `req.user` object containing { id, email }.
+ */
+const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret";
+
 export const protect = (req, res, next) => {
   try {
-    let token = req.headers.authorization?.split(" ")[1];
+    // Accept Authorization header in either lowercase or capitalized form.
+    const authHeader = req.headers.authorization ?? req.headers.Authorization;
 
-    if (!token) {
+    if (!authHeader) {
       return res.status(401).json({ message: "Not authorized, no token provided" });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret123");
+    // Support both "Bearer <token>" and raw token values.
+    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
 
-    // Attach user info to request object
-    req.user = decoded;
-    next();
-  } catch (error) {
-    console.error("❌ Auth Middleware Error:", error);
-    res.status(401).json({ message: "Token invalid or expired" });
+    if (!token || token === "null") {
+      return res.status(401).json({ message: "Not authorized, token missing" });
+    }
+
+    // Verify token; throws if invalid/expired.
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // Token payload should include either `userId` or `id`
+    const id = decoded?.userId ?? decoded?.id;
+    if (!id) {
+      return res.status(401).json({ message: "Not authorized, invalid token payload" });
+    }
+
+    // Attach a minimal user object to the request (avoid leaking sensitive token data).
+    req.user = { id, email: decoded?.email ?? null };
+
+    return next();
+  } catch (err) {
+    console.error("Auth middleware error:", err);
+    return res.status(401).json({ message: "Token invalid or expired" });
   }
 };
+
+export default protect;
