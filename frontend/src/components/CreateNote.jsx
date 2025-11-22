@@ -1,11 +1,14 @@
+
 import React, { useState } from "react";
 import NoteEditor from "./NoteEditor";
 import "../styles.css";
+
 
 export default function CreateNote() {
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
 
   const handleSave = async () => {
     setError(null);
@@ -13,6 +16,7 @@ export default function CreateNote() {
     if (!token) return setError("Not authenticated");
 
     const content = document.querySelector(".rich-editor")?.innerHTML ?? "";
+
     setLoading(true);
 
     try {
@@ -20,7 +24,9 @@ export default function CreateNote() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+
           Authorization: `Bearer ${token}`,
+
         },
         body: JSON.stringify({ title, content }),
       });
@@ -30,10 +36,13 @@ export default function CreateNote() {
         throw new Error(body.message || `Server ${res.status}`);
       }
 
+
       setTitle("");
       const editor = document.querySelector(".rich-editor");
       if (editor) editor.innerHTML = "";
       window.location.href = "/notes";
+
+     
     } catch (err) {
       setError(err.message);
     } finally {
@@ -42,6 +51,7 @@ export default function CreateNote() {
   };
 
   return (
+
     <div style={{ maxWidth: 900, margin: "18px auto", padding: 12 }}>
       <input
         className="note-title"
@@ -60,6 +70,7 @@ export default function CreateNote() {
         </button>
         {error && <div style={{ color: "red" }}>{error}</div>}
       </div>
+
     </div>
   );
 }

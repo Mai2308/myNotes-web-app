@@ -1,6 +1,9 @@
+
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 
 // CLEANED: Removed theme imports + ThemeToggle
+
+
 const NoteEditor = forwardRef((props, ref) => {
   const editorRef = useRef(null);
   const [history, setHistory] = useState([]);
@@ -8,6 +11,7 @@ const NoteEditor = forwardRef((props, ref) => {
   const [savedMessage, setSavedMessage] = useState("");
   const username = "";
   const saveKey = "autoSavedNote";
+
 
   useImperativeHandle(ref, () => ({
     getContent: () => editorRef.current?.innerHTML || "",
@@ -19,6 +23,7 @@ const NoteEditor = forwardRef((props, ref) => {
   }));
 
   useEffect(() => {
+
     const html = editorRef.current?.innerHTML ?? "";
     if (html) setHistory([html]);
   }, []);
@@ -61,10 +66,12 @@ const NoteEditor = forwardRef((props, ref) => {
     if (editorRef.current) editorRef.current.innerHTML = next;
   };
 
+
   const setNoteBackground = (color) => {
     const el = editorRef.current;
     if (!el) return;
     el.style.backgroundColor = color || "";
+
     pushHistory(el.innerHTML);
     el.focus();
   };
@@ -104,6 +111,7 @@ const NoteEditor = forwardRef((props, ref) => {
   return (
     <div>
       {/* Toolbar */}
+
       <div className="toolbar">
         <div className="toolbar-left">
           <button onClick={() => exec("bold")}><b>B</b></button>
@@ -111,6 +119,7 @@ const NoteEditor = forwardRef((props, ref) => {
           <button onClick={() => exec("underline")}><u>U</u></button>
 
           <select onChange={(e) => exec("fontName", e.target.value)} defaultValue="Arial">
+
             <option>Arial</option>
             <option>Georgia</option>
             <option>Verdana</option>
@@ -119,6 +128,7 @@ const NoteEditor = forwardRef((props, ref) => {
             <option>Courier New</option>
           </select>
 
+
           <input type="color" onChange={(e) => setNoteBackground(e.target.value)} />
           <button onClick={clearBackground}>Clear BG</button>
         </div>
@@ -126,6 +136,7 @@ const NoteEditor = forwardRef((props, ref) => {
         <div className="toolbar-right">
           <button onClick={undo} title="Undo">↩</button>
           <button onClick={redo} title="Redo">↪</button>
+
         </div>
       </div>
 
@@ -141,6 +152,7 @@ const NoteEditor = forwardRef((props, ref) => {
       {savedMessage && <p>{savedMessage}</p>}
 
       <div className="save-controls">
+
         <button onClick={handleSaveDraft}>💾 Save Draft</button>
         <button onClick={handleLoadDraft}>📂 Load Draft</button>
         <button onClick={handleDelete}>🗑️ Delete</button>
