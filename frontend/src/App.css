@@ -1,38 +1,26 @@
-.App {
+/* الهيدر */
+.app-header {
+  width: 100%;
+  padding: 20px 0;
+  background: linear-gradient(90deg, #6e8efb, #a777e3); /* Gradient جذاب */
+  color: #fff;
   text-align: center;
+  font-size: 32px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+/* مساحة محتوى الصفحة عشان الهيدر مايغطيش الفورم */
+body {
+  margin: 0;
+  padding-top: 80px; /* ارتفاع الهيدر */
+  background-color: #6e8efb; /* لون الخلفية كامل */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}

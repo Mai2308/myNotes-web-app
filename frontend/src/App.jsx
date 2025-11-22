@@ -1,23 +1,27 @@
-import React from "react";
 import { Routes, Route } from "react-router-dom";
-import Signup from "./components/Signup";
-import Login from "./components/Login";
-import Dashboard from "./components/Dashboard";
-import "./styles.css";
+import LoginPage from "./Pages/LoginPage";
+import SignupPage from "./Pages/SignupPage";
+import NotebookPage from "./Pages/NotebookPage";
 
-function App() {
+export default function App() {
   return (
-    <div className="app-container">
+    <>
+      <header className="app-header">
+        <h1>Notes Web App</h1>
+      </header>
+
       <Routes>
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/notebook" element={<NotebookPage />} />
       </Routes>
-    </div>
+    </>
   );
 }
 
-export default App;
+
+
+
 
 
 

@@ -3,11 +3,14 @@ import { pool } from "../database/db.js";
 // ✅ Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
   try {
-    const userId = req.user.id; // from authMiddleware
+    const userId = req.user.id;
     const result = await pool.request()
       .input("userId", userId)
-      .query("SELECT * FROM Notes WHERE userId = @userId ORDER BY createdAt DESC");
-
+      .query(`
+        SELECT * FROM Notes
+        WHERE userId = @userId
+        ORDER BY createdAt DESC
+      `);
     res.json(result.recordset);
   } catch (error) {
     console.error("❌ Error getting notes:", error);
@@ -25,7 +28,10 @@ export const createNote = async (req, res) => {
       .input("userId", userId)
       .input("title", title)
       .input("content", content)
-      .query("INSERT INTO Notes (userId, title, content, createdAt) VALUES (@userId, @title, @content, GETDATE())");
+      .query(`
+        INSERT INTO Notes (userId, title, content, createdAt)
+        VALUES (@userId, @title, @content, GETDATE())
+      `);
 
     res.status(201).json({ message: "✅ Note created successfully!" });
   } catch (error) {
@@ -46,7 +52,12 @@ export const updateNote = async (req, res) => {
       .input("userId", userId)
       .input("title", title)
       .input("content", content)
-      .query("UPDATE Notes SET title=@title, content=@content WHERE id=@noteId AND userId=@userId");
+      .query(`
+        UPDATE Notes
+        SET title = @title,
+            content = @content
+        WHERE id = @noteId AND userId = @userId
+      `);
 
     res.json({ message: "✅ Note updated successfully!" });
   } catch (error) {
