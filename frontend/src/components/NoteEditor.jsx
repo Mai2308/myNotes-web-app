@@ -79,14 +79,15 @@ const NoteEditor = forwardRef((props, ref) => {
     if (editorRef.current) editorRef.current.innerHTML = next;
   };
 
-  const setHighlight = (color) => {
-    try {
-      document.execCommand("hiliteColor", false, color);
-    } catch {
-      document.execCommand("backColor", false, color);
-    }
-    if (editorRef.current) pushHistory(editorRef.current.innerHTML);
-  };
+  // Removed unused setHighlight function - can be added back if needed for highlighting functionality
+  // const setHighlight = (color) => {
+  //   try {
+  //     document.execCommand("hiliteColor", false, color);
+  //   } catch {
+  //     document.execCommand("backColor", false, color);
+  //   }
+  //   if (editorRef.current) pushHistory(editorRef.current.innerHTML);
+  // };
 
   const setNoteBackground = (color) => {
     const el = editorRef.current;
