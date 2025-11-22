@@ -16,5 +16,14 @@ COPY . .
 # Expose backend port
 EXPOSE 5000
 
-# Run the server
-CMD ["node", "server.js"]
+# Create a startup script
+RUN echo '#!/bin/sh\n\
+echo "Waiting for database to be ready..."\n\
+sleep 10\n\
+echo "Initializing database..."\n\
+node init-db.js || true\n\
+echo "Starting server..."\n\
+node server.js' > /app/start.sh && chmod +x /app/start.sh
+
+# Run the startup script
+CMD ["/app/start.sh"]
