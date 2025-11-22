@@ -13,16 +13,20 @@
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+body.light .App-header {
+  background-color: #fdfdfd;
+  color: #222;
 }
+
+body.dark .App-header {
+  background-color: #121212;
+  color: #eee;
+}
+
+body.dark button:hover {
+  background-color: #444;
+}
+
 
 .App-link {
   color: #61dafb;
@@ -35,4 +39,84 @@
   to {
     transform: rotate(360deg);
   }
+}
+/* --- Global dark/light mode --- */
+body.light {
+  background-color: #fdfdfd;
+  color: #222;
+}
+
+body.dark {
+  background-color: #121212;
+  color: #eee;
+}
+
+/* --- Toolbar --- */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+  border-radius: 4px;
+  gap: 5px;
+}
+
+body.light .toolbar {
+  background-color: #fff;
+  border: 1px solid #ccc;
+}
+
+body.dark .toolbar {
+  background-color: #1f1f1f;
+  border: 1px solid #444;
+}
+
+/* --- Buttons --- */
+button, select, input[type="color"] {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  color: #222;
+  transition: all 0.2s;
+}
+
+button:hover, select:hover, input[type="color"]:hover {
+  opacity: 0.8;
+}
+
+body.dark button, 
+body.dark select, 
+body.dark input[type="color"] {
+  background-color: #333;
+  border: 1px solid #555;
+  color: #eee;
+}
+
+/* --- Editor --- */
+.rich-editor {
+  min-height: 140px;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  transition: all 0.2s;
+}
+
+body.light .rich-editor {
+  background-color: #fff;
+  color: #222;
+}
+
+body.dark .rich-editor {
+  background-color: #222;
+  color: #eee;
+}
+
+/* Optional: placeholder text for empty editor */
+.rich-editor:empty::before {
+  content: "Write your note here...";
+  color: #888;
+  pointer-events: none;
+  display: block;
 }
