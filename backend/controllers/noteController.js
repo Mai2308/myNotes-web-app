@@ -126,3 +126,61 @@ export const searchNotes = async (req, res) => {
   }
 };
 
+// ✅ Get all favourite notes for the logged-in user
+export const getFavouriteNotes = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await pool.request()
+      .input("userId", userId)
+      .query(`
+        SELECT * FROM Notes
+        WHERE userId = @userId AND isFavourite = 1
+        ORDER BY createdAt DESC
+      `);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("❌ Error getting favourite notes:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ✅ Toggle favourite status of a note
+export const toggleFavourite = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    // First, get the current favourite status
+    const checkResult = await pool.request()
+      .input("noteId", noteId)
+      .input("userId", userId)
+      .query("SELECT isFavourite FROM Notes WHERE id=@noteId AND userId=@userId");
+
+    if (checkResult.recordset.length === 0) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+
+    const currentStatus = checkResult.recordset[0].isFavourite;
+    const newStatus = !currentStatus;
+
+    // Update the favourite status
+    await pool.request()
+      .input("noteId", noteId)
+      .input("userId", userId)
+      .input("isFavourite", newStatus)
+      .query(`
+        UPDATE Notes
+        SET isFavourite = @isFavourite
+        WHERE id = @noteId AND userId = @userId
+      `);
+
+    res.json({ 
+      message: newStatus ? "⭐ Note added to favourites!" : "Note removed from favourites",
+      isFavourite: newStatus 
+    });
+  } catch (error) {
+    console.error("❌ Error toggling favourite:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

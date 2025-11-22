@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS Notes (
   userId INT NOT NULL,
   title NVARCHAR(255) NULL,
   content NVARCHAR(MAX) NULL,
-  createdAt DATETIME DEFAULT GETDATE()
+  createdAt DATETIME DEFAULT GETDATE(),
+  isFavourite BIT DEFAULT 0 -- favourite flag
 );
 
