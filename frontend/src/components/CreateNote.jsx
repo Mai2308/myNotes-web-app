@@ -55,6 +55,11 @@ export default function CreateNote() {
     <div style={{ padding: 20 }}>
       <h1>Create a New Note</h1>
 
+      <div style={{ marginBottom: 20 }}>
+        <button onClick={() => navigate("/notes")}>All Notes</button>
+        <button onClick={() => navigate("/favourites")} style={{ marginLeft: 10 }}>⭐ Favourites</button>
+      </div>
+
       {/* NoteEditor with ref so we can get content */}
       <NoteEditor ref={editorRef} />
 
