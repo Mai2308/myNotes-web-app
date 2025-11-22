@@ -178,6 +178,7 @@ p {
   cursor: pointer;
 }
 
+<<<<<<< HEAD
 /* ...existing code... */
 
 .toolbar button.toolbar-btn {
@@ -223,3 +224,5 @@ p {
 .toolbar-left, .toolbar-right { display:flex; gap:8px; align-items:center; }
 
 /* ...existing code... */
+=======
+>>>>>>> 20b6ca3 (Enhance note creation with HTML sanitization, update auth middleware for improved token handling, and restructure routing in the app)
