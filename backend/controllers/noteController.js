@@ -1,105 +1,71 @@
-import { pool } from "../database/db.js";
 import sanitizeHtml from "sanitize-html";
+import Note from "../models/noteModel.js";
 
-// ✅ Get all notes for the logged-in user
+// Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
   try {
     const userId = req.user.id;
-    const result = await pool.request()
-      .input("userId", userId)
-      .query(`
-        SELECT * FROM Notes
-        WHERE userId = @userId
-        ORDER BY createdAt DESC
-      `);
-    res.json(result.recordset);
+    const notes = await Note.find({ user: userId }).sort({ createdAt: -1 }).exec();
+    res.json(notes);
   } catch (error) {
     console.error("❌ Error getting notes:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// ✅ Create a new note
+// Create a new note
 export const createNote = async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    let { title = "", content = "" } = req.body;
+    let { title = "", content = "", tags = [] } = req.body;
     title = String(title).trim();
     content = String(content || "");
 
     if (!title && !content) return res.status(400).json({ message: "Title or content required" });
     if (title.length > 255) return res.status(400).json({ message: "Title too long (max 255)" });
 
-    // sanitize: allow basic formatting and inline styles for font/color
     const clean = sanitizeHtml(content, {
       allowedTags: ["b","i","u","strong","em","br","p","div","span","ul","ol","li","h1","h2","h3","pre","code"],
       allowedAttributes: { "*": ["style"] },
-      allowedStyles: {
-        "*": {
-          "font-family": [/^[\w\s,"'-]+$/],
-          "background-color": [/^#?[0-9a-fA-F(),\s.%]+$/],
-          "color": [/^#?[0-9a-fA-F(),\s.%]+$/],
-          "text-decoration": [/^underline$/]
-        }
-      }
     });
 
-    const result = await pool.request()
-      .input("userId", userId)
-      .input("title", title)
-      .input("content", clean)
-      .query(`
-        INSERT INTO Notes (userId, title, content, createdAt)
-        VALUES (@userId, @title, @content, GETDATE());
-        SELECT CAST(SCOPE_IDENTITY() AS INT) AS id, GETDATE() AS createdAt;
-      `);
+    const note = new Note({ title, content: clean, tags, user: userId });
+    await note.save();
 
-    const inserted = result.recordset?.[0] ?? null;
-    res.status(201).json({ message: "Note created", id: inserted?.id ?? null, createdAt: inserted?.createdAt ?? null });
+    res.status(201).json({ message: "Note created", note });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// ✅ Update a note
+// Update a note
 export const updateNote = async (req, res) => {
   try {
     const userId = req.user.id;
     const noteId = req.params.id;
-    const { title, content } = req.body;
+    const { title, content, tags } = req.body;
 
-    await pool.request()
-      .input("noteId", noteId)
-      .input("userId", userId)
-      .input("title", title)
-      .input("content", content)
-      .query(`
-        UPDATE Notes
-        SET title = @title,
-            content = @content
-        WHERE id = @noteId AND userId = @userId
-      `);
+    const note = await Note.findOneAndUpdate({ _id: noteId, user: userId }, { title, content, tags }, { new: true }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
 
-    res.json({ message: "✅ Note updated successfully!" });
+    res.json({ message: "✅ Note updated successfully!", note });
   } catch (error) {
     console.error("❌ Error updating note:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// ✅ Delete a note
+// Delete a note
 export const deleteNote = async (req, res) => {
   try {
     const userId = req.user.id;
     const noteId = req.params.id;
 
-    await pool.request()
-      .input("noteId", noteId)
-      .input("userId", userId)
-      .query("DELETE FROM Notes WHERE id=@noteId AND userId=@userId");
+    const result = await Note.findOneAndDelete({ _id: noteId, user: userId }).exec();
+    if (!result) return res.status(404).json({ message: "Note not found or not authorized" });
 
     res.json({ message: "🗑️ Note deleted successfully!" });
   } catch (error) {
@@ -108,18 +74,14 @@ export const deleteNote = async (req, res) => {
   }
 };
 
-// ✅ Search notes by keyword (title only) for the logged-in user
+// Search notes by keyword (title only)
 export const searchNotes = async (req, res) => {
   try {
-    const userId = req.user.id;        
-    const keyword = req.query.q || ""; 
+    const userId = req.user.id;
+    const keyword = req.query.q || "";
 
-    const result = await pool.request()
-      .input("userId", userId)
-      .input("keyword", `%${keyword}%`) 
-      .query("SELECT * FROM Notes WHERE userId=@userId AND title LIKE @keyword ORDER BY createdAt DESC");
-
-    res.json(result.recordset);
+    const notes = await Note.find({ user: userId, title: { $regex: keyword, $options: "i" } }).sort({ createdAt: -1 }).exec();
+    res.json(notes);
   } catch (error) {
     console.error("❌ Error searching notes:", error);
     res.status(500).json({ message: "Server error" });

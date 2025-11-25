@@ -1,50 +1,70 @@
-import React, { useState } from "react";
-import NoteEditor from "./NoteEditor";
+import React, { useState, useRef } from "react";
+import NoteEditor from "../components/NoteEditor";
 import "../styles.css";
+import { createNote as apiCreateNote } from "../api/notesApi";
 
 export default function CreateNote() {
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const editorRef = useRef(null);
 
   const handleSave = async () => {
-    setError(null);
-    const token = localStorage.getItem("token");
-    if (!token) return setError("Not authenticated");
+    const content = editorRef.current?.getContent() ?? "";
 
-    const content = document.querySelector(".rich-editor")?.innerHTML ?? "";
+    if (!title.trim() && !content.trim()) {
+      setError("Title or note content required.");
+      return;
+    }
+
     setLoading(true);
+    setError("");
+    setSuccess("");
+
     try {
-      const res = await fetch("/api/notes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ title, content })
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || `Server ${res.status}`);
+      const token = localStorage.getItem("token");
+      const res = await apiCreateNote({ title: title.trim(), content }, token);
+
+      if (res?.message && res.message.toLowerCase().includes("error")) {
+        throw new Error(res.message);
       }
-      // success
+
+      setSuccess("Note saved successfully!");
       setTitle("");
-      document.querySelector(".rich-editor").innerHTML = "";
-      window.location.href = "/notes";
+      editorRef.current?.clearContent();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to save note");
     } finally {
       setLoading(false);
+      setTimeout(() => setSuccess(""), 2000);
     }
   };
 
   return (
-    <div>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional)" maxLength={255} />
-      <NoteEditor />
-      <div style={{ marginTop: 12 }}>
-        <button onClick={handleSave} disabled={loading}>{loading ? "Saving..." : "Save"}</button>
-        {error && <div style={{ color: "red" }}>{error}</div>}
+    <div className="auth-page center" style={{ padding: 20 }}>
+      <div className="card" style={{ width: "100%", maxWidth: 800 }}>
+        <input
+          className="note-title"
+          placeholder="Title (optional)"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+
+        <NoteEditor ref={editorRef} />
+
+        {error && <div className="alert">{error}</div>}
+        {success && <div className="auth-success">{success}</div>}
+
+        {/* Full-width Save Button */}
+        <button
+          className="btn"
+          onClick={handleSave}
+          disabled={loading}
+          style={{ width: "100%", marginTop: 12 }}
+        >
+          {loading ? "Saving..." : "Save Note"}
+        </button>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { poolConnect } from "./database/db.js"; // ✅ existing DB connection
+import connectMongo from "./src/database/mongo.js"; // MongoDB connection helper
 
 // ✅ Import Routes
 import userRoutes from "./routes/users.js"; // make sure filename matches exactly
@@ -26,10 +26,14 @@ app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
 
 // ✅ Connect to SQL Server
-poolConnect
-  .then(() => console.log("✅ Connected to SQL Server in Docker!"))
-  .catch((err) => console.error("❌ SQL Server connection failed:", err));
-
-// ✅ Start server
+// ✅ Connect to MongoDB then start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
+connectMongo()
+  .then(() => {
+    app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection failed:", err);
+    process.exit(1);
+  });

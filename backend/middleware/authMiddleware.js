@@ -6,8 +6,6 @@ import jwt from "jsonwebtoken";
  * - Verifies the token using process.env.JWT_SECRET (falls back to a default only if not provided).
  * - Attaches a safe `req.user` object containing { id, email }.
  */
-const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret";
-
 export const protect = (req, res, next) => {
   try {
     // Accept Authorization header in either lowercase or capitalized form.
@@ -23,6 +21,9 @@ export const protect = (req, res, next) => {
     if (!token || token === "null") {
       return res.status(401).json({ message: "Not authorized, token missing" });
     }
+
+    // Read the secret at verification time (handles cases where dotenv was loaded after module import)
+    const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret";
 
     // Verify token; throws if invalid/expired.
     const decoded = jwt.verify(token, JWT_SECRET);
