@@ -1,48 +1,65 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { register as apiRegister, login as apiLogin } from "../api/authApi";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
-  // لما الصفحة تفتح نحمل اليوزر من localStorage لو موجود
+  // Load stored session (token + user) on mount
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("auth_user"));
-    if (stored) setUser(stored);
+    try {
+      const token = localStorage.getItem("token");
+      const stored = JSON.parse(localStorage.getItem("auth_user") || "null");
+      if (token && stored) setUser(stored);
+    } catch (err) {
+      console.warn("Failed to load auth from storage", err);
+    }
   }, []);
 
-  const signup = ({ username, password }) => {
-    // نحفظ اليوزر في localStorage كمثال بسيط
-    const users = JSON.parse(localStorage.getItem("users_db") || "[]");
-
-    // شوف لو اليوزرنيم موجود
-    if (users.some(u => u.username === username)) {
-      return { ok: false, message: "Username already taken" };
+  // Signup -> register on backend, then login to obtain token
+  const signup = async ({ name, email, password }) => {
+    try {
+      const payload = { name, email, password };
+      const res = await apiRegister(payload);
+      if (res?.message) {
+        // After successful registration, login to get token
+        const loginRes = await apiLogin({ email, password });
+        if (loginRes?.token) {
+          localStorage.setItem("token", loginRes.token);
+          localStorage.setItem("auth_user", JSON.stringify(loginRes.user || res.user));
+          setUser(loginRes.user || res.user);
+          return { ok: true };
+        }
+        return { ok: false, message: loginRes?.message || "Registration succeeded but login failed" };
+      }
+      return { ok: false, message: res?.message || "Registration failed" };
+    } catch (err) {
+      console.error("Signup error", err);
+      return { ok: false, message: "Signup error" };
     }
-
-    // تخزين باسورد مشفر بطريقة بسيطة (ملحوظة: مش أمنة للإنتاج)
-    const hashed = btoa(password); // فقط للاختبار (Base64) — غير آمن
-    const newUser = { id: Date.now(), username, password: hashed };
-    users.push(newUser);
-    localStorage.setItem("users_db", JSON.stringify(users));
-    localStorage.setItem("auth_user", JSON.stringify({ id: newUser.id, username }));
-    setUser({ id: newUser.id, username });
-    return { ok: true };
   };
 
-  const login = ({ username, password }) => {
-    const users = JSON.parse(localStorage.getItem("users_db") || "[]");
-    const hashed = btoa(password);
-    const found = users.find(u => u.username === username && u.password === hashed);
-    if (!found) return { ok: false, message: "Invalid credentials" };
-
-    const session = { id: found.id, username: found.username };
-    localStorage.setItem("auth_user", JSON.stringify(session));
-    setUser(session);
-    return { ok: true };
+  // Login -> call backend, persist token and user
+  const login = async ({ email, password }) => {
+    try {
+      const payload = { email, password };
+      const res = await apiLogin(payload);
+      if (res?.token) {
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("auth_user", JSON.stringify(res.user));
+        setUser(res.user);
+        return { ok: true };
+      }
+      return { ok: false, message: res?.message || "Login failed" };
+    } catch (err) {
+      console.error("Login error", err);
+      return { ok: false, message: "Login error" };
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem("token");
     localStorage.removeItem("auth_user");
     setUser(null);
   };

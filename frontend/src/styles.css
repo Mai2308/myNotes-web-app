@@ -1,276 +1,499 @@
-/* Cleaned styles.css for CreateNote + NoteEditor */
+@import "./styles/auth.css";
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+:root{
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 
-/* base variables (light defaults) */
-:root,
-html[data-theme="light"],
-body.light {
-  --bg-color: #ffffff;
-  --panel-bg: #f8fafc;
-  --editor-bg: #ffffff;
-  --text-color: #0f172a;
+  /* LIGHT MODE */
+  --bg: linear-gradient(135deg,#fef6fb 0%, #e0f7fa 100%);
+  --card-bg: #ffffff;
+  --text: #0f172a;
   --muted: #6b7280;
-  --toolbar-bg: #ffffff;
-  --btn-bg: linear-gradient(180deg,#ffffff,#f3f6ff);
-  --btn-border: rgba(99,102,241,0.10);
-  --shadow: 0 2px 6px rgba(15,23,42,0.06);
+  --accent: #ff7eb9;
+  --accent-dark: #ff5ca2;
+  --radius: 12px;
+  --shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --input-bg: #fefeff;
+  --input-border: rgba(15,23,42,0.08);
 }
 
-/* dark theme variables (applies when html[data-theme="dark"] OR body.dark) */
-html[data-theme="dark"],
-.theme-dark,
-body.dark {
-  --bg-color: #0b1220;
-  --panel-bg: #0f172a;
-  --editor-bg: #081026;
-  --text-color: #e6eef8;
-  --muted: #000000;
-  --toolbar-bg: #071026;
-  --btn-bg: linear-gradient(180deg,#030407,#010205);
-  --btn-border: rgb(0, 0, 0);
-  --shadow: 0 4px 14px rgba(0,0,0,0.6);
+/* DARK MODE */
+.dark {
+  --bg: linear-gradient(135deg,#0f172a 0%, #1e293b 100%);
+  --card-bg: #1b2536;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #7afcff;
+  --accent-dark: #42d9f4;
+  --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  --input-bg: #243447;
+  --input-border: rgba(255,255,255,0.08);
 }
 
-/* apply variables globally */
-html, body {
-  background: var(--bg-color);
-  color: var(--text-color);
+/* Global */
+html, body, #root {
+  height: 100%;
+  font-family: var(--font-sans);
+  margin: 0;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.45;
+  font-size: 15px;
+  background: var(--bg);
+  transition: background 0.3s ease;
 }
 
-/* ensure components use variables (example for editor and toolbar) */
-.toolbar {
-  background: var(--toolbar-bg);
-  color: var(--text-color);
-  border-radius: 10px;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(0,0,0,0.06);
-}
-.rich-editor {
-  background: var(--editor-bg);
-  color: var(--text-color);
-  min-height: 140px;
-  padding: 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.06);
-  outline: none;
+* { box-sizing: border-box; }
+
+/* Center page and increase width */
+.main-content {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
 }
 
-/* toolbar / buttons use variables */
-.toolbar{
-  background: var(--toolbar-bg);
-  padding: 8px;
-  border-radius: 10px;
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  align-items:center;
-  box-shadow: var(--shadow);
-}
-
-.toolbar button.toolbar-btn{
-  background: var(--btn-bg);
-  border: 1px solid var(--btn-border);
-  color: var(--text-color);
-  padding:6px 10px;
-  border-radius:10px;
-  box-shadow: var(--shadow);
-  cursor:pointer;
-  font-weight:600;
-}
-
-.toolbar .toolbar-left,
-.toolbar .toolbar-right {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.toolbar button,
-.toolbar .toolbar-btn {
-  background: var(--btn-bg);
-  border: 1px solid var(--btn-border);
-  color: var(--text-color);
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.toolbar-select,
-.toolbar input[type="color"],
-.toolbar .toolbar-select {
-  background: var(--panel-bg);
-  color: var(--text-color);
-  border: 1px solid rgba(0,0,0,0.06);
-  padding: 6px;
-  border-radius: 8px;
-}
-
-/* Title input */
+/* Input/Card styling */
 .note-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  padding: 14px 16px;
+  color: var(--text);
   width: 100%;
-  padding: 12px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.note-title:focus {
+  border-color: var(--accent);
+  box-shadow: 0 6px 16px rgba(255,126,185,0.15);
+}
+
+/* Slim, modern toolbar */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 12px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Sleek toolbar buttons — smaller & clean */
+.toolbar button,
+.toolbar-left button,
+.toolbar-right button {
+  padding: 4px 8px;
+  min-width: 32px;
+  height: 30px;
+  font-size: 13px;
+  font-weight: 500;
   border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.08);
-  background: var(--panel-bg);
-  color: var(--text-color);
-  font-size: 16px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: #ffffffa8;
+  color: var(--text);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  box-shadow: none;
 }
 
-/* Editor area */
+.toolbar button:hover {
+  background: #f0f4ff;
+  border-color: rgba(0,0,0,0.2);
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .toolbar button {
+  background: #1f1f1f;
+  color: #e8e8e8;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+html[data-theme="dark"] .toolbar button:hover {
+  background: #2b2b2b;
+  border-color: rgba(255,255,255,0.20);
+}
+
+/* Slim select + color input */
+.toolbar select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+}
+
+.toolbar input[type="color"] {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  border: none;
+}
+
+/* Editor box */
 .rich-editor {
-  background: var(--editor-bg);
-  color: var(--text-color);
-  min-height: 140px;
-  padding: 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.06);
+  min-height: 280px;
+  border-radius: var(--radius);
+  border: 1px solid var(--input-border);
+  padding: 18px;
+  background: var(--input-bg);
+  color: var(--text);
   outline: none;
+  width: 100%;
+  font-size: 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  transition: border-color .15s ease, box-shadow .15s ease;
 }
 
-/* placeholder color */
+/* Placeholder */
 .rich-editor:empty:before {
-  content: attr(placeholder);
+  content: "Write your note here...";
   color: var(--muted);
   pointer-events: none;
   display: block;
 }
 
-/* small adjustments for color-picker label */
-.color-picker span{ color: var(--text-color); font-weight:600; }
-
-body {
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  padding: 0;
-  color: #222;
-  background: linear-gradient(135deg, #faf0ff9a, #d6e0ff);
+/* Bottom save controls */
+.save-controls {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
 }
 
-/* Containers */
-.main-content {
-  max-width: 900px;
-  margin: 30px auto;
-  padding: 0 16px;
-}
-
-.note-title {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.1);
-  background: #f8fafc;
-  font-size: 16px;
-  color: #0f172a;
-}
-
-/* Buttons */
-.btn,
-button {
+/* Small action buttons under editor */
+.save-controls button {
   padding: 10px 14px;
-  border: none;
-  background: #ffffff;
-  color: rgb(0, 0, 0);
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: 0.2s;
-}
-
-.btn:hover,
-button:hover {
-  background: #4e46e53b;
-}
-
-/* Error */
-.error {
-  color: #b91c1c;
-  background: #fee2e2;
-  padding: 10px;
-  border-radius: 6px;
-  border-left: 4px solid #ef4444;
-  font-weight: 600;
-}
-
-/* Toolbar */
-.toolbar {
-
-  display: flex;
-  justify-content: space-between;
-
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  background: #f8fafc;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  border: 1px solid rgba(0,0,0,0.1);
-}
-
-.toolbar-left,
-.toolbar-right {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-
-.toolbar-btn {
-  padding: 6px 10px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.toolbar-btn:hover {
-  background: #eef2ff;
-}
-
-.toolbar-select {
-  padding: 6px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.toolbar-color {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  cursor: pointer;
-  background: transparent;
-}
-
-/* Editor */
-.rich-editor {
-  min-height: 160px;
-  background: white;
-  padding: 14px;
   border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.1);
-  outline: none;
+  background: var(--card-bg);
+  border: 1px solid rgba(0,0,0,0.08);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background .15s ease, transform .1s ease;
 }
 
-.rich-editor:empty:before {
+.save-controls button:hover {
+  background: #f4f5ff;
+  transform: translateY(-2px);
+}
+
+.dark .save-controls button {
+  background: #1f1f1f;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.dark .save-controls button:hover {
+  background: #272727;
+}
+
+/* Success message */
+.auth-success {
+  background: rgba(58, 206, 172, 0.08);
+  color: #2dd4bf;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .main-content { padding: 12px; }
+  .note-title { font-size: 15px; }
+  .toolbar { flex-wrap: wrap; gap: 8px; }
+  .rich-editor { padding: 14px; }
+}
+
+/* ======= Immediate override: slim, centered editor & toolbar ======= */
+
+/* Make page centered and full-width area for editor */
+.auth-page, .main-content {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding: 40px 20px !important;
+  min-height: 100vh !important;
+  gap: 20px !important;
+  box-sizing: border-box !important;
+}
+
+/* Card wrapper: ensure card-like centered container */
+.auth-card, .card, .main-content > .auth-card, .main-content > .card {
+  width: 100% !important;
+  max-width: 960px !important;
+  margin: 0 auto !important;
+  padding: 28px !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.09) !important;
+  background: var(--card-bg) !important;
+  border: 1px solid rgba(0,0,0,0.04) !important;
+  position: relative !important;
+  z-index: 2 !important;
+  box-sizing: border-box !important;
+}
+
+/* Title / spacing */
+.auth-title, .h1, .h2 { margin-bottom: 12px !important; }
+
+/* Note title input — bigger, clean */
+.note-title, .auth-input.note-title {
+  font-size: 16px !important;
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--input-border) !important;
+  background: var(--input-bg) !important;
+  width: 100% !important;
+  box-shadow: none !important;
+}
+
+/* Rich editor: make it spacious and not inset/bulky */
+.rich-editor {
+  min-height: 340px !important;
+  padding: 18px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--input-border) !important;
+  background: var(--input-bg) !important;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.03) !important;
+  font-size: 15px !important;
+  line-height: 1.55 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-bottom: 12px !important;
+}
+
+/* Toolbar: slim, minimal */
+.toolbar {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 6px 8px !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,0.6) !important;
+  border: 1px solid rgba(0,0,0,0.04) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06) !important;
+}
+
+/* Slim, low-profile toolbar buttons */
+.toolbar button,
+.toolbar-left button,
+.toolbar-right button,
+.toolbar .toolbar-btn {
+  padding: 6px 8px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.toolbar button:hover,
+.toolbar-left button:hover,
+.toolbar-right button:hover {
+  background: rgba(0,0,0,0.04) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Toolbar select & color */
+.toolbar-select, .toolbar select, .toolbar input[type="color"] {
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  background: var(--input-bg) !important;
+  height: 34px !important;
+}
+
+/* Save controls row: keep buttons compact and aligned right */
+.save-controls {
+  display: flex !important;
+  gap: 10px !important;
+  justify-content: flex-end !important;
+  margin-top: 14px !important;
+  flex-wrap: wrap !important;
+}
+
+.save-controls button {
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+}
+
+/* Primary save button (right-most) - subtle gradient */
+.save-controls button:last-child,
+.auth-button, .btn {
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark)) !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.12) !important;
+  transform: none !important;
+}
+
+/* Error/Success */
+.auth-error, .error, .alert { margin-top: 10px !important; }
+
+/* Ensure editor & toolbar fill the card width */
+.auth-card .toolbar,
+.auth-card .rich-editor,
+.auth-card .save-controls,
+.card .toolbar,
+.card .rich-editor,
+.card .save-controls {
+  width: 100% !important;
+}
+
+/* Responsive adjustments (narrow screens) */
+@media (max-width: 780px) {
+  .auth-card, .card, .main-content { padding: 18px !important; margin: 16px !important; }
+  .rich-editor { min-height: 200px !important; }
+  .toolbar { gap: 6px !important; padding: 6px !important; }
+  .save-controls { justify-content: center !important; }
+}
+
+/* ---------------------------------------------------------
+   Sleek centered layout
+--------------------------------------------------------- */
+.note-editor-container {
+  max-width: 820px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---------------------------------------------------------
+   Minimal Toolbar
+--------------------------------------------------------- */
+.toolbar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: var(--card-bg);
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.dark .toolbar {
+  background: #1f2937;
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+}
+
+.toolbar button {
+  background: transparent;
+  border: none;
+  height: 26px;
+  width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.toolbar button:hover {
+  background: rgba(0,0,0,0.07);
+}
+
+.dark .toolbar button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(0,0,0,0.12);
+}
+
+.dark .divider {
+  background: rgba(255,255,255,0.15);
+}
+
+/* color picker */
+.color-picker {
+  position: relative;
+  height: 26px;
+  width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-picker input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+}
+
+/* ---------------------------------------------------------
+   Editor
+--------------------------------------------------------- */
+.rich-editor {
+  min-height: 240px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.rich-editor:empty::before {
   content: "Write your note here...";
-  color: #9aa4b2;
-  pointer-events: none;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------
+   Save controls
+--------------------------------------------------------- */
+.save-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.save-controls button {
+  padding: 7px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.save-controls .danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  color: white;
+  font-weight: 600;
+}
+
+.saved-msg {
+  font-size: 13px;
+  color: var(--muted);
 }
 
 
-/* Added button shadows */
-.btn { box-shadow: 0 3px 8px rgba(0,0,0,0.15); }
-.toolbar button, .toolbar .toolbar-btn { box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
 
 
-
-
-  

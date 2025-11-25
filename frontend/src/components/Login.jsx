@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi"; // react-icons
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const { login } = useAuth();
   const nav = useNavigate();
@@ -12,31 +14,61 @@ export default function Login() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
-    const res = login({ username: username.trim(), password });
-    if (!res.ok) {
-      setError(res.message);
-    } else {
-      nav("/dashboard");
-    }
+    (async () => {
+      const res = await login({ email: email.trim(), password });
+      if (!res.ok) setError(res.message);
+      else nav("/dashboard");
+    })();
   };
 
   return (
-    <div className="card">
-      <h2>Log In</h2>
-      <form onSubmit={handleSubmit} className="form">
-        <label>Username
-          <input value={username} onChange={(e)=>setUsername(e.target.value)} />
-        </label>
+    <div className="auth-page">
+      <div className="auth-card">
+        <h2 className="auth-title">Welcome Back</h2>
+        <p className="auth-sub">Log in to continue</p>
 
-        <label>Password
-          <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} />
-        </label>
+        <form onSubmit={handleSubmit} className="auth-form">
 
-        {error && <div className="error">{error}</div>}
+          <label className="auth-label">
+            Email
+            <input
+              type="email"
+              className="auth-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+            <FiMail className="auth-icon" />
+          </label>
 
-        <button type="submit" className="btn">Log In</button>
-      </form>
+          <label className="auth-label">
+            Password
+            <input
+              type={showPass ? "text" : "password"}
+              className="auth-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+            />
+            {showPass ? (
+              <FiEye className="auth-icon" onClick={() => setShowPass(false)} />
+            ) : (
+              <FiEyeOff className="auth-icon" onClick={() => setShowPass(true)} />
+            )}
+          </label>
+
+          {error && <div className="auth-error">{error}</div>}
+
+          <button type="submit" className="auth-button">Log In</button>
+        </form>
+
+        <div className="auth-footer">
+          <span>Don't have an account?</span>
+          <Link className="auth-link" to="/signup">Sign Up</Link>
+        </div>
+      </div>
     </div>
   );
 }
+
 

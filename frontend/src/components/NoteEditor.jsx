@@ -1,17 +1,32 @@
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
-
-// CLEANED: Removed theme imports + ThemeToggle
-
+import {
+  Bold,
+  Italic,
+  Underline,
+  Undo,
+  Redo,
+  Palette,
+  Trash2,
+  Save,
+  Upload,
+} from "lucide-react";
 
 const NoteEditor = forwardRef((props, ref) => {
+  const { onSave } = props || {};
+
   const editorRef = useRef(null);
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [savedMessage, setSavedMessage] = useState("");
   const username = "";
   const saveKey = "autoSavedNote";
-
 
   useImperativeHandle(ref, () => ({
     getContent: () => editorRef.current?.innerHTML || "",
@@ -23,121 +38,136 @@ const NoteEditor = forwardRef((props, ref) => {
   }));
 
   useEffect(() => {
-
     const html = editorRef.current?.innerHTML ?? "";
     if (html) setHistory([html]);
   }, []);
 
   const pushHistory = (snapshot) => {
-    setHistory((h) => {
-      const next = [...h, snapshot].slice(-50);
-      setRedoStack([]);
-      return next;
-    });
+    setHistory((h) => [...h, snapshot].slice(-50));
+    setRedoStack([]);
   };
 
   const handleInput = () => {
-    if (!editorRef.current) return;
-    pushHistory(editorRef.current.innerHTML);
+    const html = editorRef.current?.innerHTML ?? "";
+    pushHistory(html);
   };
 
   const exec = (cmd, val = null) => {
     document.execCommand(cmd, false, val);
-    if (editorRef.current) {
-      pushHistory(editorRef.current.innerHTML);
-      editorRef.current.focus();
-    }
+
+    const html = editorRef.current?.innerHTML ?? "";
+    pushHistory(html);
+    editorRef.current?.focus();
   };
 
   const undo = () => {
     if (history.length <= 1) return;
+
     const last = history[history.length - 1];
     const prev = history[history.length - 2];
+
     setRedoStack((r) => [last, ...r]);
     setHistory((h) => h.slice(0, -1));
-    if (editorRef.current) editorRef.current.innerHTML = prev;
+
+    if (editorRef.current) {
+      editorRef.current.innerHTML = prev.replace(/<!--bg:.*?-->/, "");
+      const bgMatch = prev.match(/<!--bg:(.*?)-->/);
+      if (bgMatch && bgMatch[1]) {
+        editorRef.current.style.setProperty("background-color", bgMatch[1], "important");
+      } else {
+        editorRef.current.style.removeProperty("background-color");
+      }
+    }
   };
 
   const redo = () => {
     if (!redoStack.length) return;
+
     const next = redoStack[0];
     setRedoStack((r) => r.slice(1));
     setHistory((h) => [...h, next]);
-    if (editorRef.current) editorRef.current.innerHTML = next;
-  };
 
+    if (editorRef.current) {
+      editorRef.current.innerHTML = next.replace(/<!--bg:.*?-->/, "");
+      const bgMatch = next.match(/<!--bg:(.*?)-->/);
+      if (bgMatch && bgMatch[1]) {
+        editorRef.current.style.setProperty("background-color", bgMatch[1], "important");
+      } else {
+        editorRef.current.style.removeProperty("background-color");
+      }
+    }
+  };
 
   const setNoteBackground = (color) => {
     const el = editorRef.current;
     if (!el) return;
-    el.style.backgroundColor = color || "";
 
-    pushHistory(el.innerHTML);
+    if (color) {
+      // ensure we override any stylesheet !important rules
+      el.style.setProperty("background-color", color, "important");
+    } else {
+      el.style.removeProperty("background-color");
+    }
+
+    const snapshot =
+      el.innerHTML + `<!--bg:${color || ""}-->`;
+
+    pushHistory(snapshot);
     el.focus();
   };
-
-  const clearBackground = () => setNoteBackground("");
 
   const handleSaveDraft = () => {
     const html = editorRef.current?.innerHTML ?? "";
     localStorage.setItem(saveKey, html);
-    setSavedMessage(`📝 Draft saved for ${username || "guest"}!`);
-    setTimeout(() => setSavedMessage(""), 1500);
+
+    setSavedMessage(`📝 Draft saved!`);
+    setTimeout(() => setSavedMessage(""), 1200);
   };
 
   const handleLoadDraft = () => {
     const draft = localStorage.getItem(saveKey);
-    if (draft) {
-      if (editorRef.current) editorRef.current.innerHTML = draft;
-      pushHistory(draft);
-      setSavedMessage(`📂 Draft loaded for ${username || "guest"}!`);
-    } else {
-      setSavedMessage(`⚠️ No draft found for ${username || "guest"}.`);
-    }
-    setTimeout(() => setSavedMessage(""), 1500);
-  };
 
-  const handleDelete = () => {
-    if (!window.confirm("Delete current note? This will clear the editor.")) return;
-    if (editorRef.current) editorRef.current.innerHTML = "";
-    localStorage.removeItem(saveKey);
-    localStorage.removeItem("autoSavedNote");
-    setHistory([]);
-    setRedoStack([]);
-    setSavedMessage("🗑️ Note cleared.");
+    if (draft) {
+      editorRef.current.innerHTML = draft;
+      pushHistory(draft);
+      setSavedMessage("📂 Draft loaded!");
+    } else {
+      setSavedMessage("⚠️ No draft found.");
+    }
+
     setTimeout(() => setSavedMessage(""), 1200);
   };
 
+  const handleDelete = () => {
+    if (!window.confirm("Delete the current note?")) return;
+
+    editorRef.current.innerHTML = "";
+    editorRef.current.style.removeProperty("background-color");
+    localStorage.removeItem(saveKey);
+    setHistory([]);
+    setRedoStack([]);
+  };
+
   return (
-    <div>
+    <div className="note-editor-container">
+
       {/* Toolbar */}
-
       <div className="toolbar">
-        <div className="toolbar-left">
-          <button onClick={() => exec("bold")}><b>B</b></button>
-          <button onClick={() => exec("italic")}><i>I</i></button>
-          <button onClick={() => exec("underline")}><u>U</u></button>
+        <button onClick={() => exec("bold")}><Bold size={16} /></button>
+        <button onClick={() => exec("italic")}><Italic size={16} /></button>
+        <button onClick={() => exec("underline")}><Underline size={16} /></button>
 
-          <select onChange={(e) => exec("fontName", e.target.value)} defaultValue="Arial">
+        <div className="divider"></div>
 
-            <option>Arial</option>
-            <option>Georgia</option>
-            <option>Verdana</option>
-            <option>Tahoma</option>
-            <option>Times New Roman</option>
-            <option>Courier New</option>
-          </select>
-
-
+        <label className="color-picker">
+          <Palette size={16} />
           <input type="color" onChange={(e) => setNoteBackground(e.target.value)} />
-          <button onClick={clearBackground}>Clear BG</button>
-        </div>
+        </label>
 
-        <div className="toolbar-right">
-          <button onClick={undo} title="Undo">↩</button>
-          <button onClick={redo} title="Redo">↪</button>
+        <div className="divider"></div>
 
-        </div>
+        <button onClick={undo}><Undo size={16} /></button>
+        <button onClick={redo}><Redo size={16} /></button>
       </div>
 
       {/* Editor */}
@@ -146,19 +176,28 @@ const NoteEditor = forwardRef((props, ref) => {
         className="rich-editor"
         contentEditable
         onInput={handleInput}
-        suppressContentEditableWarning={true}
+        suppressContentEditableWarning
       />
 
-      {savedMessage && <p>{savedMessage}</p>}
+      {savedMessage && <p className="saved-msg">{savedMessage}</p>}
 
       <div className="save-controls">
+        <button onClick={handleSaveDraft}><Save size={16} /> Save Draft</button>
+        <button onClick={handleLoadDraft}><Upload size={16} /> Load Draft</button>
+        <button onClick={handleDelete} className="danger"><Trash2 size={16} /> Delete</button>
 
-        <button onClick={handleSaveDraft}>💾 Save Draft</button>
-        <button onClick={handleLoadDraft}>📂 Load Draft</button>
-        <button onClick={handleDelete}>🗑️ Delete</button>
+        {onSave && (
+          <button
+            className="btn-primary"
+            onClick={() => onSave(editorRef.current?.innerHTML || "")}
+          >
+            <Save size={16} /> Save
+          </button>
+        )}
       </div>
     </div>
   );
 });
 
 export default NoteEditor;
+
