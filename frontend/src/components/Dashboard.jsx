@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getNotes, deleteNote } from "../api/notesApi";
 import { useTheme } from "../context/ThemeContext";
+import FolderManager from "./FolderManager";
 
 export default function Dashboard() {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedFolderId, setSelectedFolderId] = useState(null);
   const navigate = useNavigate();
   const { theme } = useTheme(); // light or dark
 
@@ -40,29 +42,46 @@ export default function Dashboard() {
     }
   };
 
+  // Filter notes based on selected folder
+  const filteredNotes = selectedFolderId === null
+    ? notes.filter((n) => !n.folderId) // Show only root notes when "All Notes (Root)" is selected
+    : notes.filter((n) => n.folderId === selectedFolderId);
+
   return (
     <div className="container" style={{ paddingTop: "40px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-       
-      
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "24px" }}>
+        {/* Left sidebar - Folder Manager */}
+        <div>
+          <FolderManager
+            selectedFolderId={selectedFolderId}
+            onSelectFolder={setSelectedFolderId}
+            onFoldersChange={() => {}}
+          />
+        </div>
 
- <button
-  className={theme === "light" ? "btn-create-light" : "btn-create-dark"}
-  onClick={() => navigate("/create")}
->
-  + Create Note
-</button>
-      </div>
+        {/* Right content - Notes */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+            <h2 style={{ margin: 0 }}>
+              {selectedFolderId === null ? "All Notes (Root)" : "Notes in Folder"}
+            </h2>
+            <button
+              className={theme === "light" ? "btn-create-light" : "btn-create-dark"}
+              onClick={() => navigate("/create", { state: { folderId: selectedFolderId } })}
+            >
+              + Create Note
+            </button>
+          </div>
 
       {loading && <p>Loading notes...</p>}
       {error && <div className="alert">{error}</div>}
 
-      {!loading && notes.length === 0 && (
-        <p style={{ color: "var(--muted)" }}>No notes yet. Click "Create Note" to add one.</p>
+      {!loading && filteredNotes.length === 0 && (
+        <p style={{ color: "var(--muted)" }}>No notes in this folder. Click "Create Note" to add one.</p>
       )}
 
       <div className="notes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(250px,1fr))", gap: "16px" }}>
-        {notes.map((note) => (
+        {filteredNotes.map((note) => (
           <div
             key={note._id}
             className="card"
@@ -81,11 +100,24 @@ export default function Dashboard() {
                 maxHeight: "80px",
                 textOverflow: "ellipsis",
               }}
-              dangerouslySetInnerHTML={{ __html: note.body }}
+              dangerouslySetInnerHTML={{ __html: note.content || "" }}
             ></p>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: 12 }}>
               <button
-                onClick={() => handleDelete(note._id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/edit/${note._id}`);
+                }}
+                className="btn"
+                style={{ background: "#2196F3", padding: "6px 12px", fontSize: "13px" }}
+              >
+                Edit
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(note._id);
+                }}
                 className="btn"
                 style={{ background: "crimson", padding: "6px 12px", fontSize: "13px" }}
               >
@@ -94,6 +126,8 @@ export default function Dashboard() {
             </div>
           </div>
         ))}
+      </div>
+        </div>
       </div>
     </div>
   );

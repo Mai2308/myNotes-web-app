@@ -8,6 +8,7 @@ import connectMongo from "./src/database/mongo.js"; // ensure this default-expor
 // Routes
 import userRoutes from "./routes/users.js";
 import noteRoutes from "./routes/notes.js";
+import folderRoutes from "./routes/folders.js";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.get("/", (req, res) => res.send("🚀 Notes App Backend Running!"));
 // Mount API routes (routes should apply protect middleware where needed)
 app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
+app.use("/api/folders", folderRoutes);
 
 // Global 404 handler
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));
