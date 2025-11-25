@@ -493,7 +493,110 @@ html[data-theme="dark"] .toolbar button:hover {
   font-size: 13px;
   color: var(--muted);
 }
+.btn-create-light {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #f8d6ff, #d8e8ff);
+  color: #4a4a4a;
+  border: none;
+  border-radius: 9999px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transition: all 0.25s ease;
+}
 
+.btn-create-light:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  background: linear-gradient(135deg, #f4cfff, #cfe0ff);
+}
 
+.btn-create-dark {
+  padding: 10px 20px;
+  background: #1f1f1f;
+  color: #e5e5e5;
+  border: 1px solid #3a3a3a;
+  border-radius: 9999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 0 transparent;
+}
+
+.btn-create-dark:hover {
+  background: #2a2a2a;
+  border-color: #7c3aed;
+  color: #ffffff;
+  box-shadow: 0 0 8px #7c3aed88;
+  transform: translateY(-1px);
+}
+
+/* Light theme button */
+.btn-light {
+  background: #eae6ff;
+  color: #4a3aff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-light:hover {
+  background: #d8d2ff;
+  transform: translateY(-2px);
+}
+
+/* Dark theme button */
+.btn-dark {
+  background: #3b3b4f;
+  color: #cfcfff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-dark:hover {
+  background: #50506a;
+  transform: translateY(-2px);
+}
+
+/* Light theme delete button */
+.btn-light-danger {
+  background: #ffd6d6;
+  color: #b80000;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-light-danger:hover {
+  background: #ffbdbd;
+  transform: translateY(-2px);
+}
+
+/* Dark theme delete button */
+.btn-dark-danger {
+  background: #5a2d2d;
+  color: #ffb3b3;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-dark-danger:hover {
+  background: #7a3a3a;
+  transform: translateY(-2px);
+}
 
 
