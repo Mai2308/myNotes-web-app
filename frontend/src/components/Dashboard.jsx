@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNotes, deleteNote } from "../api/notesApi";
+import { getNotes, deleteNote, moveNote } from "../api/notesApi";
 import { useTheme } from "../context/ThemeContext";
 import FolderManager from "./FolderManager";
 
@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState(null);
+  const [draggedNote, setDraggedNote] = useState(null);
   const navigate = useNavigate();
   const { theme } = useTheme(); // light or dark
 
@@ -42,6 +43,28 @@ export default function Dashboard() {
     }
   };
 
+  const handleDragStart = (e, note) => {
+    setDraggedNote(note);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/html", e.target);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedNote(null);
+  };
+
+  const handleMoveNote = async (noteId, targetFolderId) => {
+    try {
+      await moveNote(noteId, targetFolderId, token);
+      // Refresh notes to show updated folder assignment
+      const data = await getNotes(token);
+      setNotes(data || []);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to move note.");
+    }
+  };
+
   // Filter notes based on selected folder
   const filteredNotes = selectedFolderId === null
     ? notes.filter((n) => !n.folderId) // Show only root notes when "All Notes (Root)" is selected
@@ -56,6 +79,8 @@ export default function Dashboard() {
             selectedFolderId={selectedFolderId}
             onSelectFolder={setSelectedFolderId}
             onFoldersChange={() => {}}
+            draggedNote={draggedNote}
+            onNoteDrop={handleMoveNote}
           />
         </div>
 
@@ -85,10 +110,14 @@ export default function Dashboard() {
           <div
             key={note._id}
             className="card"
+            draggable="true"
+            onDragStart={(e) => handleDragStart(e, note)}
+            onDragEnd={handleDragEnd}
             style={{
               padding: "16px",
-              cursor: "pointer",
+              cursor: "grab",
               transition: "transform 0.15s ease",
+              opacity: draggedNote?._id === note._id ? 0.5 : 1,
             }}
           >
             <h3 className="h2">{note.title || "Untitled"}</h3>

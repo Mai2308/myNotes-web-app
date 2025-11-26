@@ -10,6 +10,8 @@ import { useTheme } from "../context/ThemeContext";
  *  - onRenameFolder: callback to rename a folder
  *  - onDeleteFolder: callback to delete a folder
  *  - onCreateSubfolder: callback to create a subfolder
+ *  - draggedNote: the note being dragged (if any)
+ *  - onNoteDrop: callback when a note is dropped on a folder
  */
 export default function FolderTree({
   folders = [],
@@ -18,11 +20,14 @@ export default function FolderTree({
   onRenameFolder,
   onDeleteFolder,
   onCreateSubfolder,
+  draggedNote,
+  onNoteDrop,
 }) {
   const { theme } = useTheme();
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  const [dragOverFolderId, setDragOverFolderId] = useState(null);
 
   // Build a tree structure from flat folder list
   const folderTree = useMemo(() => {
@@ -67,6 +72,29 @@ export default function FolderTree({
     cancelRename();
   };
 
+  const handleDragOver = (e, folderId) => {
+    if (!draggedNote) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolderId(folderId);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolderId(null);
+  };
+
+  const handleDrop = (e, folderId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolderId(null);
+    
+    if (draggedNote && onNoteDrop) {
+      onNoteDrop(draggedNote._id, folderId);
+    }
+  };
+
   const renderFolder = (folder, level = 0) => {
     const isExpanded = expandedFolders.has(folder._id);
     const isSelected = selectedFolderId === folder._id;
@@ -77,18 +105,27 @@ export default function FolderTree({
       <div key={folder._id} style={{ marginLeft: level * 20 }}>
         <div
           className={`folder-item ${isSelected ? "selected" : ""}`}
+          onDragOver={(e) => handleDragOver(e, folder._id)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, folder._id)}
           style={{
             display: "flex",
             alignItems: "center",
             padding: "6px 8px",
             cursor: "pointer",
-            backgroundColor: isSelected
+            backgroundColor: dragOverFolderId === folder._id
+              ? theme === "light"
+                ? "#c8e6c9"
+                : "#2e7d32"
+              : isSelected
               ? theme === "light"
                 ? "#e3f2fd"
                 : "#1e3a5f"
               : "transparent",
             borderRadius: "4px",
             marginBottom: "2px",
+            border: dragOverFolderId === folder._id ? "2px dashed #4CAF50" : "2px solid transparent",
+            transition: "all 0.2s ease",
           }}
         >
           {hasChildren && (
@@ -204,20 +241,28 @@ export default function FolderTree({
     <div className="folder-tree">
       <div
         className={`folder-item ${selectedFolderId === null ? "selected" : ""}`}
+        onDragOver={(e) => handleDragOver(e, null)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, null)}
         style={{
           display: "flex",
           alignItems: "center",
           padding: "6px 8px",
           cursor: "pointer",
-          backgroundColor:
-            selectedFolderId === null
-              ? theme === "light"
-                ? "#e3f2fd"
-                : "#1e3a5f"
-              : "transparent",
+          backgroundColor: dragOverFolderId === null
+            ? theme === "light"
+              ? "#c8e6c9"
+              : "#2e7d32"
+            : selectedFolderId === null
+            ? theme === "light"
+              ? "#e3f2fd"
+              : "#1e3a5f"
+            : "transparent",
           borderRadius: "4px",
           marginBottom: "6px",
           fontWeight: "bold",
+          border: dragOverFolderId === null ? "2px dashed #4CAF50" : "2px solid transparent",
+          transition: "all 0.2s ease",
         }}
         onClick={() => onSelectFolder(null)}
       >

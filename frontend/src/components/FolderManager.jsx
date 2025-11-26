@@ -9,8 +9,10 @@ import { useTheme } from "../context/ThemeContext";
  *  - selectedFolderId: currently selected folder
  *  - onSelectFolder: callback when folder is selected
  *  - onFoldersChange: callback when folders are modified (to refresh parent)
+ *  - draggedNote: the note being dragged (if any)
+ *  - onNoteDrop: callback when a note is dropped on a folder
  */
-export default function FolderManager({ selectedFolderId, onSelectFolder, onFoldersChange }) {
+export default function FolderManager({ selectedFolderId, onSelectFolder, onFoldersChange, draggedNote, onNoteDrop }) {
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -206,6 +208,8 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
           onRenameFolder={handleRenameFolder}
           onDeleteFolder={handleDeleteFolder}
           onCreateSubfolder={handleCreateFolder}
+          draggedNote={draggedNote}
+          onNoteDrop={onNoteDrop}
         />
       )}
     </div>
