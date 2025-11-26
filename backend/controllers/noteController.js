@@ -74,17 +74,5 @@ export const deleteNote = async (req, res) => {
   }
 };
 
-// Search notes by keyword (title only)
-export const searchNotes = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const keyword = req.query.q || "";
 
-    const notes = await Note.find({ user: userId, title: { $regex: keyword, $options: "i" } }).sort({ createdAt: -1 }).exec();
-    res.json(notes);
-  } catch (error) {
-    console.error("❌ Error searching notes:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 

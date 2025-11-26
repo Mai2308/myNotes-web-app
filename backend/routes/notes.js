@@ -1,14 +1,11 @@
 import express from "express";
-import { getNotes, createNote, updateNote, deleteNote, searchNotes } from "../controllers/noteController.js";
+import { getNotes, createNote, updateNote, deleteNote } from "../controllers/noteController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // Get all notes for logged-in user
 router.get("/", protect, getNotes);
-
-// Search notes by keyword (title only)
-router.get("/search", protect, searchNotes);
 
 // Create a new note
 router.post("/", protect, createNote);
