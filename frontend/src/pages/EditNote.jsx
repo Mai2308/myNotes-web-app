@@ -36,26 +36,17 @@ export default function EditNote() {
 
         setTitle(note.title || "");
         setFolderId(note.folderId || null);
-        
-        // Set editor content
-        if (editorRef.current && note.content) {
-          editorRef.current.clearContent();
-          setTimeout(() => {
-            if (editorRef.current) {
-              const editorElement = editorRef.current;
-              const contentMethod = editorElement.setContent || editorElement.clearContent;
-              // Directly access the editor div
-              const editorDiv = document.querySelector('.rich-editor');
-              if (editorDiv) {
-                editorDiv.innerHTML = note.content;
-              }
-            }
-          }, 100);
-        }
 
         // Load folders
         const foldersData = await getFolders(token);
         setFolders(foldersData);
+        
+        // Set editor content after a small delay to ensure ref is ready
+        setTimeout(() => {
+          if (editorRef.current && note.content) {
+            editorRef.current.setContent(note.content);
+          }
+        }, 100);
       } catch (err) {
         console.error("Failed to load note", err);
         setError("Failed to load note");
