@@ -30,6 +30,13 @@ const NoteEditor = forwardRef((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     getContent: () => editorRef.current?.innerHTML || "",
+    setContent: (html) => {
+      if (editorRef.current) {
+        editorRef.current.innerHTML = html || "";
+        setHistory([html || ""]);
+        setRedoStack([]);
+      }
+    },
     clearContent: () => {
       if (editorRef.current) editorRef.current.innerHTML = "";
       setHistory([]);

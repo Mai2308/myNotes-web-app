@@ -4,6 +4,7 @@ import Login from "./components/Login";
 import Signup from "./components/Signup";
 import Dashboard from "./components/Dashboard";
 import CreateNote from "./pages/CreateNote";
+import EditNote from "./pages/EditNote";
 import NotesList from "./components/NotesList";
 import Header from "./components/Header";
 import { useAuth } from "./auth/AuthProvider";
@@ -35,6 +36,14 @@ export default function App() {
           element={
             <RequireAuth>
               <CreateNote />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/edit/:id"
+          element={
+            <RequireAuth>
+              <EditNote />
             </RequireAuth>
           }
         />
