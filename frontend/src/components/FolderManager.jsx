@@ -1,0 +1,217 @@
+import React, { useState, useEffect } from "react";
+import { getFolders, createFolder, updateFolder, deleteFolder } from "../api/foldersApi";
+import FolderTree from "./FolderTree";
+import { useTheme } from "../context/ThemeContext";
+
+/**
+ * FolderManager - Manages folder operations and displays folder tree
+ * Props:
+ *  - selectedFolderId: currently selected folder
+ *  - onSelectFolder: callback when folder is selected
+ *  - onFoldersChange: callback when folders are modified (to refresh parent)
+ *  - draggedNote: the note being dragged (if any)
+ *  - onNoteDrop: callback when a note is dropped on a folder
+ */
+export default function FolderManager({ selectedFolderId, onSelectFolder, onFoldersChange, draggedNote, onNoteDrop }) {
+  const [folders, setFolders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderParentId, setNewFolderParentId] = useState(null);
+  const { theme } = useTheme();
+
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    loadFolders();
+  }, []);
+
+  const loadFolders = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await getFolders(token);
+      setFolders(data);
+      if (onFoldersChange) onFoldersChange(data);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load folders.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateFolder = async (parentId = null) => {
+    setShowCreateForm(true);
+    setNewFolderParentId(parentId);
+    setNewFolderName("");
+  };
+
+  const confirmCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      alert("Folder name is required");
+      return;
+    }
+    try {
+      await createFolder({ name: newFolderName.trim(), parentId: newFolderParentId }, token);
+      setShowCreateForm(false);
+      setNewFolderName("");
+      setNewFolderParentId(null);
+      await loadFolders();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to create folder");
+    }
+  };
+
+  const cancelCreateFolder = () => {
+    setShowCreateForm(false);
+    setNewFolderName("");
+    setNewFolderParentId(null);
+  };
+
+  const handleRenameFolder = async (folderId, newName) => {
+    try {
+      await updateFolder(folderId, { name: newName }, token);
+      await loadFolders();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to rename folder");
+    }
+  };
+
+  const handleDeleteFolder = async (folderId) => {
+    try {
+      await deleteFolder(folderId, token);
+      // If deleted folder was selected, reset to root
+      if (selectedFolderId === folderId) {
+        onSelectFolder(null);
+      }
+      await loadFolders();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to delete folder");
+    }
+  };
+
+  return (
+    <div
+      className="folder-manager"
+      style={{
+        padding: "16px",
+        backgroundColor: theme === "light" ? "#f9f9f9" : "#1a1a1a",
+        borderRadius: "8px",
+        minHeight: "300px",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+        <h3 style={{ margin: 0, fontSize: "18px" }}>📂 Folders</h3>
+        <button
+          onClick={() => handleCreateFolder(null)}
+          className="btn"
+          style={{
+            padding: "6px 12px",
+            fontSize: "13px",
+            backgroundColor: theme === "light" ? "#2196F3" : "#1976D2",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          + New Folder
+        </button>
+      </div>
+
+      {loading && <p style={{ fontSize: "14px", color: "var(--muted)" }}>Loading folders...</p>}
+      {error && <div className="alert" style={{ padding: "8px", fontSize: "14px" }}>{error}</div>}
+
+      {showCreateForm && (
+        <div
+          style={{
+            padding: "12px",
+            backgroundColor: theme === "light" ? "#fff" : "#2a2a2a",
+            border: `1px solid ${theme === "light" ? "#ddd" : "#444"}`,
+            borderRadius: "6px",
+            marginBottom: "16px",
+          }}
+        >
+          <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "bold" }}>
+            New Folder Name:
+          </label>
+          <input
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") confirmCreateFolder();
+              if (e.key === "Escape") cancelCreateFolder();
+            }}
+            placeholder="Enter folder name..."
+            autoFocus
+            style={{
+              width: "100%",
+              padding: "8px",
+              fontSize: "14px",
+              border: `1px solid ${theme === "light" ? "#ccc" : "#555"}`,
+              borderRadius: "4px",
+              marginBottom: "8px",
+              backgroundColor: theme === "light" ? "#fff" : "#1a1a1a",
+              color: "var(--text-color)",
+            }}
+          />
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              onClick={confirmCreateFolder}
+              style={{
+                padding: "6px 12px",
+                fontSize: "13px",
+                backgroundColor: "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Create
+            </button>
+            <button
+              onClick={cancelCreateFolder}
+              style={{
+                padding: "6px 12px",
+                fontSize: "13px",
+                backgroundColor: "#666",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!loading && folders.length === 0 && !showCreateForm && (
+        <p style={{ fontSize: "14px", color: "var(--muted)" }}>
+          No folders yet. Click "New Folder" to create one.
+        </p>
+      )}
+
+      {!loading && folders.length > 0 && (
+        <FolderTree
+          folders={folders}
+          selectedFolderId={selectedFolderId}
+          onSelectFolder={onSelectFolder}
+          onRenameFolder={handleRenameFolder}
+          onDeleteFolder={handleDeleteFolder}
+          onCreateSubfolder={handleCreateFolder}
+          draggedNote={draggedNote}
+          onNoteDrop={onNoteDrop}
+        />
+      )}
+    </div>
+  );
+}

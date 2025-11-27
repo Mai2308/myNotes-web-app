@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
+import Folder from "../models/folderModel.js";
 
 // Register a new user (MongoDB)
 export const registerUser = async (req, res) => {
@@ -17,6 +18,15 @@ export const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, password: hashedPassword });
     await user.save();
+
+    // Create default Favorites folder for the new user
+    const favoritesFolder = new Folder({
+      user: user._id,
+      name: "Favorites",
+      parentId: null,
+      isDefault: true
+    });
+    await favoritesFolder.save();
 
     res.status(201).json({ message: "User registered successfully!", user: { id: user._id, name: user.name, email: user.email } });
   } catch (error) {
