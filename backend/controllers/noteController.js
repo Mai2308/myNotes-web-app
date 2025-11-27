@@ -26,9 +26,12 @@ export const toggleFavorite = async (req, res) => {
     const originalNote = await Note.findOne({ _id: noteId, user: userId }).exec();
     if (!originalNote) return res.status(404).json({ message: "Note not found" });
 
-    // Find the user's Favorites folder
-    const favoritesFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Favorites" }).exec();
-    if (!favoritesFolder) return res.status(404).json({ message: "Favorites folder not found" });
+    // Find or create the user's Favorites folder
+    let favoritesFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Favorites" }).exec();
+    if (!favoritesFolder) {
+      favoritesFolder = new Folder({ user: userId, name: "Favorites", parentId: null, isDefault: true });
+      await favoritesFolder.save();
+    }
 
     // Toggle the favorite status
     const newFavoriteStatus = !originalNote.isFavorite;
@@ -38,16 +41,33 @@ export const toggleFavorite = async (req, res) => {
       originalNote.isFavorite = true;
       await originalNote.save();
 
-      // Create a copy of the note in the Favorites folder
-      const favoriteCopy = new Note({
-        title: originalNote.title,
-        content: originalNote.content,
-        tags: originalNote.tags,
+      // Avoid duplicate copies: if a copy already exists pointing to this source, reuse it
+      let favoriteCopy = await Note.findOne({
         user: userId,
         folderId: favoritesFolder._id,
-        isFavorite: true
-      });
-      await favoriteCopy.save();
+        sourceNoteId: originalNote._id,
+      }).exec();
+
+      if (!favoriteCopy) {
+        // Create a copy of the note in the Favorites folder
+        favoriteCopy = new Note({
+          title: originalNote.title,
+          content: originalNote.content,
+          tags: originalNote.tags,
+          user: userId,
+          folderId: favoritesFolder._id,
+          isFavorite: true,
+          sourceNoteId: originalNote._id,
+        });
+        await favoriteCopy.save();
+      } else {
+        // Update existing copy content/title/tags to match latest
+        favoriteCopy.title = originalNote.title;
+        favoriteCopy.content = originalNote.content;
+        favoriteCopy.tags = originalNote.tags;
+        favoriteCopy.isFavorite = true;
+        await favoriteCopy.save();
+      }
 
       res.json({ 
         message: "Note added to favorites", 
@@ -59,12 +79,11 @@ export const toggleFavorite = async (req, res) => {
       originalNote.isFavorite = false;
       await originalNote.save();
 
-      // Delete all copies in Favorites folder with matching title and content
+      // Delete the copy in Favorites by source link
       await Note.deleteMany({
         user: userId,
         folderId: favoritesFolder._id,
-        title: originalNote.title,
-        content: originalNote.content
+        sourceNoteId: originalNote._id,
       }).exec();
 
       res.json({ 
