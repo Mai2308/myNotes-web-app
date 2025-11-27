@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNotes, deleteNote, moveNote } from "../api/notesApi";
+import { getNotes, deleteNote, moveNote, toggleFavorite } from "../api/notesApi";
 import { useTheme } from "../context/ThemeContext";
 import FolderManager from "./FolderManager";
 
@@ -62,6 +62,18 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
       alert(err.message || "Failed to move note.");
+    }
+  };
+
+  const handleToggleFavorite = async (noteId, isFavorite) => {
+    try {
+      await toggleFavorite(noteId, token);
+      // Refresh notes to update favorite status
+      const data = await getNotes(token);
+      setNotes(data || []);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to toggle favorite.");
     }
   };
 
@@ -132,6 +144,24 @@ export default function Dashboard() {
               dangerouslySetInnerHTML={{ __html: note.content || "" }}
             ></p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: 12 }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleFavorite(note._id, note.isFavorite);
+                }}
+                className="btn"
+                style={{ 
+                  background: note.isFavorite ? "#FFD700" : "#888", 
+                  padding: "6px 12px", 
+                  fontSize: "13px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px"
+                }}
+                title={note.isFavorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                {note.isFavorite ? "★" : "☆"}
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();

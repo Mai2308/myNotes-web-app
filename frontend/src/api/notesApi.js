@@ -64,3 +64,16 @@ export const deleteNote = async (id, token) => {
   });
   return await res.json();
 };
+
+// Toggle favorite status of a note
+export const toggleFavorite = async (id, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/favorite`, {
+    method: "POST",
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to toggle favorite");
+  }
+  return await res.json();
+};

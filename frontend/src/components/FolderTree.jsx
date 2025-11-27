@@ -164,14 +164,21 @@ export default function FolderTree({
           ) : (
             <span
               onClick={() => onSelectFolder(folder._id)}
-              style={{ flex: 1, fontSize: "14px" }}
+              style={{ 
+                flex: 1, 
+                fontSize: "14px",
+                fontWeight: folder.isDefault && folder.name === "Favorites" ? "bold" : "normal",
+                color: folder.isDefault && folder.name === "Favorites" 
+                  ? theme === "light" ? "#FFD700" : "#FFD700" 
+                  : "inherit"
+              }}
               title={folder.name}
             >
-              📁 {folder.name}
+              {folder.isDefault && folder.name === "Favorites" ? "⭐" : "📁"} {folder.name}
             </span>
           )}
 
-          {!isEditing && (
+          {!isEditing && !folder.isDefault && (
             <div className="folder-actions" style={{ display: "flex", gap: "4px", marginLeft: "8px" }}>
               <button
                 onClick={(e) => {
