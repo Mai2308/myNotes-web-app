@@ -7,9 +7,6 @@ const router = express.Router();
 // Get all notes for logged-in user (optional folderId filter via ?folderId=)
 router.get("/", protect, getNotes);
 
-// Search notes by keyword (title only)
-router.get("/search", protect, searchNotes);
-
 // Create a new note
 router.post("/", protect, createNote);
 
