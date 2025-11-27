@@ -1,5 +1,5 @@
 import express from "express";
-import { getNotes, createNote, updateNote, deleteNote, searchNotes, moveNote } from "../controllers/noteController.js";
+import { getNotes, createNote, updateNote, deleteNote, searchNotes, moveNote, toggleFavorite } from "../controllers/noteController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -18,6 +18,9 @@ router.put("/:id", protect, updateNote);
 
 // Move a note to a folder
 router.patch("/:id/move", protect, moveNote);
+
+// Toggle favorite status
+router.post("/:id/favorite", protect, toggleFavorite);
 
 // Delete a note
 router.delete("/:id", protect, deleteNote);

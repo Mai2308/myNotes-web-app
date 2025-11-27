@@ -11,7 +11,69 @@ export const getNotes = async (req, res) => {
     const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
     res.json(notes);
   } catch (error) {
-    console.error("❌ Error getting notes:", error);
+    console.error("❌ Error searching notes:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Toggle favorite status - creates a copy in Favorites folder
+export const toggleFavorite = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    // Find the original note
+    const originalNote = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!originalNote) return res.status(404).json({ message: "Note not found" });
+
+    // Find the user's Favorites folder
+    const favoritesFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Favorites" }).exec();
+    if (!favoritesFolder) return res.status(404).json({ message: "Favorites folder not found" });
+
+    // Toggle the favorite status
+    const newFavoriteStatus = !originalNote.isFavorite;
+
+    if (newFavoriteStatus) {
+      // Mark as favorite and create a copy in Favorites folder
+      originalNote.isFavorite = true;
+      await originalNote.save();
+
+      // Create a copy of the note in the Favorites folder
+      const favoriteCopy = new Note({
+        title: originalNote.title,
+        content: originalNote.content,
+        tags: originalNote.tags,
+        user: userId,
+        folderId: favoritesFolder._id,
+        isFavorite: true
+      });
+      await favoriteCopy.save();
+
+      res.json({ 
+        message: "Note added to favorites", 
+        note: originalNote, 
+        favoriteCopy: favoriteCopy 
+      });
+    } else {
+      // Unfavorite: mark original as not favorite and delete the copy in Favorites
+      originalNote.isFavorite = false;
+      await originalNote.save();
+
+      // Delete all copies in Favorites folder with matching title and content
+      await Note.deleteMany({
+        user: userId,
+        folderId: favoritesFolder._id,
+        title: originalNote.title,
+        content: originalNote.content
+      }).exec();
+
+      res.json({ 
+        message: "Note removed from favorites", 
+        note: originalNote 
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error toggling favorite:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

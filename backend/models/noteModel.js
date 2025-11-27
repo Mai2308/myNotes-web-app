@@ -7,6 +7,7 @@ const NoteSchema = new mongoose.Schema(
     tags: [{ type: String }],
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     folderId: { type: mongoose.Schema.Types.ObjectId, ref: "Folder", default: null }, // new
+    isFavorite: { type: Boolean, default: false }, // track if note is favorited
   },
   { timestamps: true }
 );
