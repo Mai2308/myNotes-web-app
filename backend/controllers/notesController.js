@@ -4,8 +4,10 @@ import { pool } from "../database/db.js";
 export const getNotes = async (req, res) => {
   try {
     const userId = req.user.id;
+    const search = req.query.search || "";
     const result = await pool.request()
       .input("userId", userId)
+      .input("search", `%${search}%`)
       .query(`
         SELECT * FROM Notes
         WHERE userId = @userId
