@@ -221,3 +221,128 @@ export const searchNotes = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Convert a note to checklist mode
+export const convertToChecklist = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    // Parse content into checklist items (split by lines)
+    const lines = note.content
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    const checklistItems = lines.map((line, index) => ({
+      text: line,
+      completed: false,
+      order: index
+    }));
+
+    note.isChecklist = true;
+    note.checklistItems = checklistItems;
+    await note.save();
+
+    res.json({ message: "Note converted to checklist", note });
+  } catch (error) {
+    console.error("❌ Error converting to checklist:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Convert a checklist back to regular note
+export const convertToRegularNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    // Convert checklist items back to content
+    if (note.isChecklist && note.checklistItems.length > 0) {
+      const sortedItems = note.checklistItems.sort((a, b) => a.order - b.order);
+      const content = sortedItems.map(item => item.text).join('\n');
+      note.content = content;
+    }
+
+    note.isChecklist = false;
+    note.checklistItems = [];
+    await note.save();
+
+    res.json({ message: "Checklist converted to regular note", note });
+  } catch (error) {
+    console.error("❌ Error converting to regular note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update checklist items (add, edit, delete, reorder)
+export const updateChecklistItems = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { checklistItems } = req.body;
+
+    if (!Array.isArray(checklistItems)) {
+      return res.status(400).json({ message: "checklistItems must be an array" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+    if (!note.isChecklist) return res.status(400).json({ message: "Note is not in checklist mode" });
+
+    // Validate and set checklist items
+    const validatedItems = checklistItems.map((item, index) => ({
+      text: String(item.text || "").trim(),
+      completed: Boolean(item.completed),
+      order: typeof item.order === 'number' ? item.order : index
+    })).filter(item => item.text.length > 0);
+
+    note.checklistItems = validatedItems;
+    await note.save();
+
+    res.json({ message: "Checklist items updated", note });
+  } catch (error) {
+    console.error("❌ Error updating checklist items:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Toggle completion status of a specific checklist item
+export const toggleChecklistItem = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { itemIndex } = req.body;
+
+    if (typeof itemIndex !== 'number' || itemIndex < 0) {
+      return res.status(400).json({ message: "Valid itemIndex is required" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+    if (!note.isChecklist) return res.status(400).json({ message: "Note is not in checklist mode" });
+    if (itemIndex >= note.checklistItems.length) {
+      return res.status(400).json({ message: "Item index out of bounds" });
+    }
+
+    // Toggle the completed status
+    note.checklistItems[itemIndex].completed = !note.checklistItems[itemIndex].completed;
+    await note.save();
+
+    res.json({ 
+      message: "Checklist item toggled", 
+      note,
+      toggledItem: note.checklistItems[itemIndex]
+    });
+  } catch (error) {
+    console.error("❌ Error toggling checklist item:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

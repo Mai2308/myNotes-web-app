@@ -70,3 +70,57 @@ export const toggleFavorite = async (id, token) => {
   }
   return await res.json();
 };
+
+// Convert a note to checklist mode
+export const convertToChecklist = async (id, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/checklist/convert`, {
+    method: "POST",
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to convert to checklist");
+  }
+  return await res.json();
+};
+
+// Convert a checklist back to regular note
+export const convertToRegularNote = async (id, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/checklist/revert`, {
+    method: "POST",
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to convert to regular note");
+  }
+  return await res.json();
+};
+
+// Update checklist items
+export const updateChecklistItems = async (id, checklistItems, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/checklist/items`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ checklistItems }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to update checklist items");
+  }
+  return await res.json();
+};
+
+// Toggle completion status of a checklist item
+export const toggleChecklistItem = async (id, itemIndex, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/checklist/toggle`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ itemIndex }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to toggle checklist item");
+  }
+  return await res.json();
+};
