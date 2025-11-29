@@ -124,3 +124,31 @@ export const toggleChecklistItem = async (id, itemIndex, token) => {
   }
   return await res.json();
 };
+
+// Add an emoji to a note's emoji list (metadata)
+export const addEmojiToNote = async (id, emoji, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/emojis`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ emoji })
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to add emoji");
+  }
+  return await res.json();
+};
+
+// Remove an emoji from a note's emoji list (metadata)
+export const removeEmojiFromNote = async (id, emoji, token) => {
+  const enc = encodeURIComponent(emoji);
+  const res = await fetch(`${BASE}/api/notes/${id}/emojis/${enc}`, {
+    method: "DELETE",
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to remove emoji");
+  }
+  return await res.json();
+};

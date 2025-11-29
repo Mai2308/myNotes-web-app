@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import NoteEditor from "../components/NoteEditor";
+import { addEmojiToNote, removeEmojiFromNote } from "../api/notesApi";
 import ChecklistEditor from "../components/ChecklistEditor";
 import "../styles.css";
 import { 
@@ -26,6 +27,7 @@ export default function EditNote() {
   const [isChecklist, setIsChecklist] = useState(false);
   const [checklistItems, setChecklistItems] = useState([]);
   const [converting, setConverting] = useState(false);
+  const [emojis, setEmojis] = useState([]);
   const editorRef = useRef(null);
 
   const token = localStorage.getItem("token");
@@ -49,6 +51,7 @@ export default function EditNote() {
         setFolderId(note.folderId || null);
         setIsChecklist(note.isChecklist || false);
         setChecklistItems(note.checklistItems || []);
+        setEmojis(note.emojis || []);
 
         // Load folders
         const foldersData = await getFolders(token);
@@ -166,6 +169,16 @@ export default function EditNote() {
     setChecklistItems(items);
   };
 
+  const handleRemoveEmoji = async (emoji) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await removeEmojiFromNote(id, emoji, token);
+      setEmojis(res.note?.emojis || emojis.filter(e => e !== emoji));
+    } catch (err) {
+      console.error("Failed to remove emoji", err);
+    }
+  };
+
   // Build folder options with hierarchy
   const buildFolderOptions = () => {
     const buildTree = (parentId, depth = 0) => {
@@ -270,11 +283,41 @@ export default function EditNote() {
             onChange={handleChecklistChange}
           />
         ) : (
-          <NoteEditor ref={editorRef} />
+          <NoteEditor ref={editorRef} noteId={id} />
         )}
 
         {error && <div className="alert">{error}</div>}
         {success && <div className="auth-success">{success}</div>}
+
+        {/* Selected emojis for this note */}
+        {!isChecklist && (
+          <div style={{ marginTop: 12 }}>
+            <label style={{ fontSize: 14, fontWeight: "bold", marginBottom: 6, display: "block" }}>Emojis:</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {(emojis || []).length === 0 ? (
+                <span style={{ opacity: 0.7 }}>No emojis yet. Use the picker to add.</span>
+              ) : (
+                emojis.map((e, idx) => (
+                  <button
+                    key={`${e}-${idx}`}
+                    onClick={() => handleRemoveEmoji(e)}
+                    title={`Remove ${e}`}
+                    style={{
+                      fontSize: 18,
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      background: "#374151",
+                      border: "1px solid var(--border-color)",
+                      cursor: "pointer"
+                    }}
+                  >
+                    {e} ✕
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: "12px", marginTop: 12 }}>
           <button

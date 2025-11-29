@@ -1,4 +1,14 @@
 # Getting Started with Create React App
+## Emoji Picker
+
+- Open any note in `Create` or `Edit` pages.
+- Use the smile icon in the editor toolbar to open the emoji picker.
+- Click an emoji to insert at the current cursor position.
+- In Edit Note, selected emojis are also saved as note metadata for quick visual tags. Click an emoji chip to remove it.
+
+Backend endpoints used:
+- `GET /api/emojis` for the curated catalog.
+- `POST /api/notes/:id/emojis` and `DELETE /api/notes/:id/emojis/:emoji` to sync emoji tags.
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
