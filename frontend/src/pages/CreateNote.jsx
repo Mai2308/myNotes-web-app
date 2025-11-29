@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import NoteEditor from "../components/NoteEditor";
+import ChecklistEditor from "../components/ChecklistEditor";
 import "../styles.css";
-import { createNote as apiCreateNote } from "../api/notesApi";
+import { createNote as apiCreateNote, convertToChecklist, updateChecklistItems } from "../api/notesApi";
 import { getFolders } from "../api/foldersApi";
+import { ListTodo, FileText } from "lucide-react";
 
 export default function CreateNote() {
   const [title, setTitle] = useState("");
@@ -12,6 +14,8 @@ export default function CreateNote() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isChecklist, setIsChecklist] = useState(false);
+  const [checklistItems, setChecklistItems] = useState([]);
   const editorRef = useRef(null);
   const location = useLocation();
 
@@ -37,32 +41,56 @@ export default function CreateNote() {
   }, []);
 
   const handleSave = async () => {
-    const content = editorRef.current?.getContent() ?? "";
-
-    if (!title.trim() && !content.trim()) {
-      setError("Title or note content required.");
-      return;
-    }
-
     setLoading(true);
     setError("");
     setSuccess("");
 
     try {
       const token = localStorage.getItem("token");
-      const res = await apiCreateNote({ 
-        title: title.trim(), 
-        content,
-        folderId: folderId || null 
-      }, token);
 
-      if (res?.message && res.message.toLowerCase().includes("error")) {
-        throw new Error(res.message);
+      if (isChecklist) {
+        if (checklistItems.length === 0) {
+          setError("Add at least one checklist item.");
+          setLoading(false);
+          return;
+        }
+
+        // Compose plain text content from checklist items for initial note creation
+        const contentFromItems = checklistItems.map(i => i.text).join("\n");
+
+        const createRes = await apiCreateNote({
+          title: title.trim() || "Untitled Checklist",
+          content: contentFromItems,
+          folderId: folderId || null,
+        }, token);
+
+        const noteId = createRes?.note?._id;
+        if (!noteId) throw new Error("Failed to create note");
+
+        // Convert the new note to checklist mode, then set items (to preserve completed/order)
+        await convertToChecklist(noteId, token);
+        await updateChecklistItems(noteId, checklistItems, token);
+
+      } else {
+        const content = editorRef.current?.getContent() ?? "";
+        if (!title.trim() && !content.trim()) {
+          setError("Title or note content required.");
+          setLoading(false);
+          return;
+        }
+
+        await apiCreateNote({
+          title: title.trim(),
+          content,
+          folderId: folderId || null,
+        }, token);
       }
 
       setSuccess("Note saved successfully!");
       setTitle("");
       setFolderId(null);
+      setChecklistItems([]);
+      setIsChecklist(false);
       editorRef.current?.clearContent();
     } catch (err) {
       setError(err.message || "Failed to save note");
@@ -125,7 +153,38 @@ export default function CreateNote() {
           </select>
         </div>
 
-        <NoteEditor ref={editorRef} />
+        {/* Mode Toggle Button */}
+        <div style={{ marginBottom: "16px" }}>
+          <button
+            className="btn mode-toggle-btn"
+            onClick={() => setIsChecklist(v => !v)}
+            disabled={loading}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: isChecklist ? "#6366f1" : "#10b981",
+              width: "100%"
+            }}
+          >
+            {isChecklist ? (
+              <>
+                <FileText size={18} /> Create as Regular Note
+              </>
+            ) : (
+              <>
+                <ListTodo size={18} /> Create as Checklist
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Editor */}
+        {isChecklist ? (
+          <ChecklistEditor items={checklistItems} onChange={setChecklistItems} />
+        ) : (
+          <NoteEditor ref={editorRef} />
+        )}
 
         {error && <div className="alert">{error}</div>}
         {success && <div className="auth-success">{success}</div>}
