@@ -6,13 +6,6 @@ function authHeaders(token) {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-// Search notes by keyword
-export const searchNotes = async (keyword, token) => {
-  const res = await fetch(`${BASE}/api/notes/search?q=${encodeURIComponent(keyword)}`, {
-    headers: { ...authHeaders(token) },
-  });
-  return await res.json();
-};
 
 // Get all notes
 export const getNotes = async (token) => {
