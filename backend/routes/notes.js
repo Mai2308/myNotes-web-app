@@ -13,6 +13,7 @@ import {
   toggleChecklistItem
 } from "../controllers/noteController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import { addEmojiToNote, removeEmojiFromNote } from "../controllers/noteController.js";
 
 const router = express.Router();
 
@@ -36,6 +37,10 @@ router.post("/:id/checklist/convert", protect, convertToChecklist);
 router.post("/:id/checklist/revert", protect, convertToRegularNote);
 router.put("/:id/checklist/items", protect, updateChecklistItems);
 router.patch("/:id/checklist/toggle", protect, toggleChecklistItem);
+
+// Emoji metadata operations
+router.post("/:id/emojis", protect, addEmojiToNote);
+router.delete("/:id/emojis/:emoji", protect, removeEmojiFromNote);
 
 // Delete a note
 router.delete("/:id", protect, deleteNote);

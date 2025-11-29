@@ -361,3 +361,54 @@ export const toggleChecklistItem = async (req, res) => {
   }
 };
 
+// Add an emoji to a note's emoji list (metadata)
+export const addEmojiToNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { emoji } = req.body;
+
+    if (!emoji || typeof emoji !== "string") {
+      return res.status(400).json({ message: "emoji is required as a string" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    note.emojis = Array.isArray(note.emojis) ? note.emojis : [];
+    if (!note.emojis.includes(emoji)) {
+      note.emojis.push(emoji);
+      await note.save();
+    }
+
+    res.json({ message: "Emoji added to note", note });
+  } catch (error) {
+    console.error("❌ Error adding emoji to note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Remove an emoji from a note's emoji list (metadata)
+export const removeEmojiFromNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { emoji } = req.params;
+
+    if (!emoji || typeof emoji !== "string") {
+      return res.status(400).json({ message: "emoji param is required" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    note.emojis = (note.emojis || []).filter(e => e !== emoji);
+    await note.save();
+
+    res.json({ message: "Emoji removed from note", note });
+  } catch (error) {
+    console.error("❌ Error removing emoji from note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
