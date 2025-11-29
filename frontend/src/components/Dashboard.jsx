@@ -133,16 +133,28 @@ export default function Dashboard() {
             }}
           >
             <h3 className="h2">{note.title || "Untitled"}</h3>
-            <p
-              style={{
-                fontSize: "14px",
-                color: "var(--muted)",
-                overflow: "hidden",
-                maxHeight: "80px",
-                textOverflow: "ellipsis",
-              }}
-              dangerouslySetInnerHTML={{ __html: note.content || "" }}
-            ></p>
+            {note.isChecklist ? (
+              <div style={{ fontSize: "14px", color: "var(--muted)", marginTop: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <span>📋</span>
+                  <span style={{ fontWeight: "600" }}>Checklist</span>
+                </div>
+                <div style={{ fontSize: "13px" }}>
+                  {note.checklistItems?.filter(item => item.completed).length || 0} / {note.checklistItems?.length || 0} completed
+                </div>
+              </div>
+            ) : (
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "var(--muted)",
+                  overflow: "hidden",
+                  maxHeight: "80px",
+                  textOverflow: "ellipsis",
+                }}
+                dangerouslySetInnerHTML={{ __html: note.content || "" }}
+              ></p>
+            )}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: 12 }}>
               <button
                 onClick={(e) => {

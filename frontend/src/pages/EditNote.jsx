@@ -71,11 +71,6 @@ export default function EditNote() {
   }, [id, token]);
 
   const handleUpdate = async () => {
-    if (!title.trim() && !isChecklist) {
-      setError("Title is required.");
-      return;
-    }
-
     setSaving(true);
     setError("");
     setSuccess("");
@@ -89,7 +84,7 @@ export default function EditNote() {
         await updateNote(
           id,
           {
-            title: title.trim(),
+            title: title.trim() || "Untitled Checklist",
             folderId: folderId || null,
           },
           token
@@ -97,8 +92,8 @@ export default function EditNote() {
       } else {
         const content = editorRef.current?.getContent() ?? "";
         
-        if (!content.trim()) {
-          setError("Note content required.");
+        if (!title.trim() && !content.trim()) {
+          setError("Title or note content required.");
           setSaving(false);
           return;
         }

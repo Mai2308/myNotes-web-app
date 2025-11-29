@@ -232,8 +232,23 @@ export const convertToChecklist = async (req, res) => {
     if (!note) return res.status(404).json({ message: "Note not found" });
 
     // Parse content into checklist items (split by lines)
-    const lines = note.content
-      .split(/\r?\n/)
+    const content = note.content || "";
+    
+    // Strip HTML tags and get plain text, handle different HTML structures
+    let plainText = content
+      .replace(/<br\s*\/?>/gi, '\n')  // Convert br tags to newlines
+      .replace(/<\/p>/gi, '\n')        // Convert closing p tags to newlines
+      .replace(/<\/div>/gi, '\n')      // Convert closing div tags to newlines
+      .replace(/<\/li>/gi, '\n')       // Convert closing li tags to newlines
+      .replace(/<[^>]*>/g, '')         // Remove all other HTML tags
+      .replace(/&nbsp;/g, ' ')         // Replace nbsp with space
+      .replace(/&amp;/g, '&')          // Replace amp
+      .replace(/&lt;/g, '<')           // Replace lt
+      .replace(/&gt;/g, '>')           // Replace gt
+      .trim();
+    
+    const lines = plainText
+      .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0);
 
