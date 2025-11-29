@@ -8,21 +8,48 @@ const CATALOG = [
     id: "status",
     label: "Status",
     emojis: [
-      "📌","⭐","🔥","✅","⚠️","❗","🕒","🔒","📎","📖"
+      { emoji: "📌", name: "pin pushpin" },
+      { emoji: "⭐", name: "star favorite" },
+      { emoji: "🔥", name: "fire hot" },
+      { emoji: "✅", name: "check done complete" },
+      { emoji: "⚠️", name: "warning alert" },
+      { emoji: "❗", name: "exclamation important" },
+      { emoji: "🕒", name: "clock time" },
+      { emoji: "🔒", name: "lock secure private" },
+      { emoji: "📎", name: "paperclip attach" },
+      { emoji: "📖", name: "book read" }
     ]
   },
   {
     id: "moods",
     label: "Moods",
     emojis: [
-      "😀","🙂","😐","😕","😢","😡","😴","🤔","🤩","🥳"
+      { emoji: "😀", name: "happy smile grin" },
+      { emoji: "🙂", name: "smile slight" },
+      { emoji: "😐", name: "neutral meh" },
+      { emoji: "😕", name: "confused worried" },
+      { emoji: "😢", name: "sad cry tear" },
+      { emoji: "😡", name: "angry mad" },
+      { emoji: "😴", name: "sleep tired" },
+      { emoji: "🤔", name: "thinking hmm" },
+      { emoji: "🤩", name: "excited wow star" },
+      { emoji: "🥳", name: "party celebrate" }
     ]
   },
   {
     id: "topics",
     label: "Topics",
     emojis: [
-      "🧠","💡","📚","🛠️","🧪","🗂️","📝","🎯","📈","🧭"
+      { emoji: "🧠", name: "brain think smart" },
+      { emoji: "💡", name: "idea bulb light" },
+      { emoji: "📚", name: "books study learn" },
+      { emoji: "🛠️", name: "tools work build" },
+      { emoji: "🧪", name: "test science lab" },
+      { emoji: "🗂️", name: "organize files folder" },
+      { emoji: "📝", name: "note write memo" },
+      { emoji: "🎯", name: "target goal aim" },
+      { emoji: "📈", name: "chart growth up" },
+      { emoji: "🧭", name: "compass direction navigate" }
     ]
   }
 ];
@@ -39,7 +66,11 @@ router.get("/search", (req, res) => {
 
   const filtered = CATALOG.map(cat => ({
     ...cat,
-    emojis: cat.emojis.filter(e => e.toLowerCase().includes(q) || cat.label.toLowerCase().includes(q))
+    emojis: cat.emojis.filter(e => 
+      e.emoji.toLowerCase().includes(q) || 
+      e.name.toLowerCase().includes(q) || 
+      cat.label.toLowerCase().includes(q)
+    )
   })).filter(cat => cat.emojis.length > 0);
 
   res.json({ categories: filtered });

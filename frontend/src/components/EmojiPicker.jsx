@@ -2,23 +2,80 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getEmojiCatalog, searchEmojis } from "../api/emojisApi";
 import { Smile, Search } from "lucide-react";
 
+// Fallback emoji catalog if API fails
+const FALLBACK_CATALOG = [
+  {
+    id: "status",
+    label: "Status",
+    emojis: [
+      { emoji: "📌", name: "pin pushpin" },
+      { emoji: "⭐", name: "star favorite" },
+      { emoji: "🔥", name: "fire hot" },
+      { emoji: "✅", name: "check done complete" },
+      { emoji: "⚠️", name: "warning alert" },
+      { emoji: "❗", name: "exclamation important" },
+      { emoji: "🕒", name: "clock time" },
+      { emoji: "🔒", name: "lock secure private" },
+      { emoji: "📎", name: "paperclip attach" },
+      { emoji: "📖", name: "book read" }
+    ]
+  },
+  {
+    id: "moods",
+    label: "Moods",
+    emojis: [
+      { emoji: "😀", name: "happy smile grin" },
+      { emoji: "🙂", name: "smile slight" },
+      { emoji: "😐", name: "neutral meh" },
+      { emoji: "😕", name: "confused worried" },
+      { emoji: "😢", name: "sad cry tear" },
+      { emoji: "😡", name: "angry mad" },
+      { emoji: "😴", name: "sleep tired" },
+      { emoji: "🤔", name: "thinking hmm" },
+      { emoji: "🤩", name: "excited wow star" },
+      { emoji: "🥳", name: "party celebrate" }
+    ]
+  },
+  {
+    id: "topics",
+    label: "Topics",
+    emojis: [
+      { emoji: "🧠", name: "brain think smart" },
+      { emoji: "💡", name: "idea bulb light" },
+      { emoji: "📚", name: "books study learn" },
+      { emoji: "🛠️", name: "tools work build" },
+      { emoji: "🧪", name: "test science lab" },
+      { emoji: "🗂️", name: "organize files folder" },
+      { emoji: "📝", name: "note write memo" },
+      { emoji: "🎯", name: "target goal aim" },
+      { emoji: "📈", name: "chart growth up" },
+      { emoji: "🧭", name: "compass direction navigate" }
+    ]
+  }
+];
+
 export default function EmojiPicker({ onPick, compact = false }) {
-  const [categories, setCategories] = useState([]);
-  const [activeCat, setActiveCat] = useState(null);
+  const [categories, setCategories] = useState(FALLBACK_CATALOG);
+  const [originalCategories, setOriginalCategories] = useState(FALLBACK_CATALOG);
+  const [activeCat, setActiveCat] = useState(FALLBACK_CATALOG[0]?.id || null);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
         const data = await getEmojiCatalog();
-        setCategories(data.categories || []);
-        setActiveCat((data.categories || [])[0]?.id || null);
+        setCategories(data.categories || FALLBACK_CATALOG);
+        setOriginalCategories(data.categories || FALLBACK_CATALOG);
+        setActiveCat((data.categories || FALLBACK_CATALOG)[0]?.id || null);
       } catch (e) {
-        setError(e.message || "Failed to load emojis");
+        console.warn("Failed to load emoji catalog from API, using fallback:", e);
+        // Keep fallback catalog, no error shown to user
+        setCategories(FALLBACK_CATALOG);
+        setOriginalCategories(FALLBACK_CATALOG);
+        setActiveCat(FALLBACK_CATALOG[0]?.id || null);
       } finally {
         setLoading(false);
       }
@@ -28,22 +85,28 @@ export default function EmojiPicker({ onPick, compact = false }) {
 
   const visibleEmojis = useMemo(() => {
     if (!q) {
+      // Show current category when not searching
       const cat = categories.find(c => c.id === activeCat) || categories[0];
       return cat ? cat.emojis : [];
     }
-    // When searching, flatten categories and filter
-    return (categories.flatMap(c => c.emojis)).filter(e => e.toLowerCase().includes(q.toLowerCase()));
+    // When searching, show all matching emojis from all categories
+    const searchLower = q.toLowerCase().trim();
+    const allEmojis = categories.flatMap(c => c.emojis);
+    
+    return allEmojis.filter(e => {
+      if (typeof e === 'string') {
+        return e.includes(searchLower);
+      }
+      // Object format with emoji and name
+      const emojiChar = e.emoji || '';
+      const emojiName = e.name || '';
+      return emojiChar.includes(searchLower) || emojiName.toLowerCase().includes(searchLower);
+    });
   }, [categories, activeCat, q]);
 
-  const handleSearch = async (value) => {
+  const handleSearch = (value) => {
     setQ(value);
-    if (!value) return; // resets to category view
-    try {
-      const data = await searchEmojis(value);
-      setCategories(data.categories || []);
-    } catch (e) {
-      // ignore errors, keep current
-    }
+    // No need to filter categories - visibleEmojis handles it
   };
 
   const toggleOpen = () => setOpen(o => !o);
@@ -88,17 +151,22 @@ export default function EmojiPicker({ onPick, compact = false }) {
           </div>
 
           {!q && (
-            <div className="emoji-tabs" style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+            <div className="emoji-tabs" style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
               {categories.map(cat => (
                 <button
                   key={cat.id}
                   className="btn"
                   onClick={() => setActiveCat(cat.id)}
                   style={{
-                    padding: "6px 10px",
-                    background: activeCat === cat.id ? "#4b5563" : "#374151",
-                    borderRadius: 6,
-                    fontSize: 12
+                    padding: "8px 14px",
+                    background: activeCat === cat.id ? "#3b82f6" : "#6b7280",
+                    color: "#ffffff",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
                   }}
                 >
                   {cat.label}
@@ -108,9 +176,7 @@ export default function EmojiPicker({ onPick, compact = false }) {
           )}
 
           {loading ? (
-            <div style={{ padding: 12 }}>Loading emojis...</div>
-          ) : error ? (
-            <div className="alert">{error}</div>
+            <div style={{ padding: 12, textAlign: "center" }}>Loading...</div>
           ) : (
             <div className="emoji-grid" style={{
               display: "grid",
@@ -119,25 +185,29 @@ export default function EmojiPicker({ onPick, compact = false }) {
               maxHeight: 220,
               overflowY: "auto"
             }}>
-              {visibleEmojis.map((e, idx) => (
-                <button
-                  key={idx}
-                  className="emoji-cell"
-                  onClick={() => { onPick && onPick(e); setOpen(false); }}
-                  title={e}
-                  style={{
-                    fontSize: compact ? 18 : 20,
-                    lineHeight: 1,
-                    padding: compact ? 6 : 8,
-                    background: "transparent",
-                    border: "1px solid transparent",
-                    borderRadius: 6,
-                    cursor: "pointer"
-                  }}
-                >
-                  {e}
-                </button>
-              ))}
+              {visibleEmojis.map((e, idx) => {
+                const emojiChar = typeof e === 'string' ? e : e.emoji;
+                const emojiName = typeof e === 'object' && e.name ? e.name : emojiChar;
+                return (
+                  <button
+                    key={idx}
+                    className="emoji-cell"
+                    onClick={() => { onPick && onPick(emojiChar); setOpen(false); }}
+                    title={emojiName}
+                    style={{
+                      fontSize: compact ? 18 : 20,
+                      lineHeight: 1,
+                      padding: compact ? 6 : 8,
+                      background: "transparent",
+                      border: "1px solid transparent",
+                      borderRadius: 6,
+                      cursor: "pointer"
+                    }}
+                  >
+                    {emojiChar}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

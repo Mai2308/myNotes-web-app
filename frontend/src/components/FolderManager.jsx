@@ -23,10 +23,6 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
 
   const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    loadFolders();
-  }, []);
-
   const loadFolders = async () => {
     setLoading(true);
     setError("");
@@ -41,6 +37,11 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadFolders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateFolder = async (parentId = null) => {
     setShowCreateForm(true);

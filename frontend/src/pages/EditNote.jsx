@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import NoteEditor from "../components/NoteEditor";
-import { addEmojiToNote, removeEmojiFromNote } from "../api/notesApi";
+import { removeEmojiFromNote } from "../api/notesApi";
 import ChecklistEditor from "../components/ChecklistEditor";
 import "../styles.css";
 import { 
