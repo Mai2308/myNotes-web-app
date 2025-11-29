@@ -1,9 +1,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import NoteEditor from "../components/NoteEditor";
+import ChecklistEditor from "../components/ChecklistEditor";
 import "../styles.css";
-import { updateNote, getNotes } from "../api/notesApi";
+import { 
+  updateNote, 
+  getNotes, 
+  convertToChecklist, 
+  convertToRegularNote,
+  updateChecklistItems 
+} from "../api/notesApi";
 import { getFolders } from "../api/foldersApi";
+import { ListTodo, FileText } from "lucide-react";
 
 export default function EditNote() {
   const { id } = useParams();
@@ -15,6 +23,9 @@ export default function EditNote() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isChecklist, setIsChecklist] = useState(false);
+  const [checklistItems, setChecklistItems] = useState([]);
+  const [converting, setConverting] = useState(false);
   const editorRef = useRef(null);
 
   const token = localStorage.getItem("token");
@@ -36,6 +47,8 @@ export default function EditNote() {
 
         setTitle(note.title || "");
         setFolderId(note.folderId || null);
+        setIsChecklist(note.isChecklist || false);
+        setChecklistItems(note.checklistItems || []);
 
         // Load folders
         const foldersData = await getFolders(token);
@@ -43,7 +56,7 @@ export default function EditNote() {
         
         // Set editor content after a small delay to ensure ref is ready
         setTimeout(() => {
-          if (editorRef.current && note.content) {
+          if (editorRef.current && note.content && !note.isChecklist) {
             editorRef.current.setContent(note.content);
           }
         }, 100);
@@ -58,10 +71,8 @@ export default function EditNote() {
   }, [id, token]);
 
   const handleUpdate = async () => {
-    const content = editorRef.current?.getContent() ?? "";
-
-    if (!title.trim() && !content.trim()) {
-      setError("Title or note content required.");
+    if (!title.trim() && !isChecklist) {
+      setError("Title is required.");
       return;
     }
 
@@ -70,15 +81,38 @@ export default function EditNote() {
     setSuccess("");
 
     try {
-      await updateNote(
-        id,
-        {
-          title: title.trim(),
-          content,
-          folderId: folderId || null,
-        },
-        token
-      );
+      if (isChecklist) {
+        // Update checklist items first
+        await updateChecklistItems(id, checklistItems, token);
+        
+        // Then update title and folder
+        await updateNote(
+          id,
+          {
+            title: title.trim(),
+            folderId: folderId || null,
+          },
+          token
+        );
+      } else {
+        const content = editorRef.current?.getContent() ?? "";
+        
+        if (!content.trim()) {
+          setError("Note content required.");
+          setSaving(false);
+          return;
+        }
+
+        await updateNote(
+          id,
+          {
+            title: title.trim(),
+            content,
+            folderId: folderId || null,
+          },
+          token
+        );
+      }
 
       setSuccess("Note updated successfully!");
       setTimeout(() => {
@@ -89,6 +123,52 @@ export default function EditNote() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleConvertToChecklist = async () => {
+    setConverting(true);
+    setError("");
+    
+    try {
+      const result = await convertToChecklist(id, token);
+      setIsChecklist(true);
+      setChecklistItems(result.note.checklistItems || []);
+      setSuccess("Converted to checklist mode!");
+      setTimeout(() => setSuccess(""), 2000);
+    } catch (err) {
+      setError(err.message || "Failed to convert to checklist");
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleConvertToNote = async () => {
+    setConverting(true);
+    setError("");
+    
+    try {
+      const result = await convertToRegularNote(id, token);
+      setIsChecklist(false);
+      setChecklistItems([]);
+      
+      // Reload content in editor
+      setTimeout(() => {
+        if (editorRef.current && result.note.content) {
+          editorRef.current.setContent(result.note.content);
+        }
+      }, 100);
+      
+      setSuccess("Converted to regular note!");
+      setTimeout(() => setSuccess(""), 2000);
+    } catch (err) {
+      setError(err.message || "Failed to convert to regular note");
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleChecklistChange = (items) => {
+    setChecklistItems(items);
   };
 
   // Build folder options with hierarchy
@@ -161,7 +241,42 @@ export default function EditNote() {
           </select>
         </div>
 
-        <NoteEditor ref={editorRef} />
+        {/* Mode Toggle Button */}
+        <div style={{ marginBottom: "16px" }}>
+          <button
+            className="btn mode-toggle-btn"
+            onClick={isChecklist ? handleConvertToNote : handleConvertToChecklist}
+            disabled={converting}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: isChecklist ? "#6366f1" : "#10b981",
+            }}
+          >
+            {isChecklist ? (
+              <>
+                <FileText size={18} />
+                {converting ? "Converting..." : "Convert to Regular Note"}
+              </>
+            ) : (
+              <>
+                <ListTodo size={18} />
+                {converting ? "Converting..." : "Convert to Checklist"}
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Render either NoteEditor or ChecklistEditor based on mode */}
+        {isChecklist ? (
+          <ChecklistEditor 
+            items={checklistItems} 
+            onChange={handleChecklistChange}
+          />
+        ) : (
+          <NoteEditor ref={editorRef} />
+        )}
 
         {error && <div className="alert">{error}</div>}
         {success && <div className="auth-success">{success}</div>}
