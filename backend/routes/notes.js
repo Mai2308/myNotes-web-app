@@ -10,7 +10,10 @@ import {
   convertToChecklist,
   convertToRegularNote,
   updateChecklistItems,
-  toggleChecklistItem
+  toggleChecklistItem,
+  setNoteLock,
+  verifyNoteLock,
+  removeNoteLock
 } from "../controllers/noteController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { addEmojiToNote, removeEmojiFromNote } from "../controllers/noteController.js";
@@ -41,6 +44,11 @@ router.patch("/:id/checklist/toggle", protect, toggleChecklistItem);
 // Emoji metadata operations
 router.post("/:id/emojis", protect, addEmojiToNote);
 router.delete("/:id/emojis/:emoji", protect, removeEmojiFromNote);
+
+// Lock operations
+router.post("/:id/lock", protect, setNoteLock);
+router.post("/:id/unlock", protect, verifyNoteLock);
+router.delete("/:id/lock", protect, removeNoteLock);
 
 // Delete a note
 router.delete("/:id", protect, deleteNote);

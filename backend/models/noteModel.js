@@ -17,7 +17,11 @@ const NoteSchema = new mongoose.Schema(
       text: { type: String, required: true },
       completed: { type: Boolean, default: false },
       order: { type: Number, required: true }
-    }]
+    }],
+    // Lock feature fields
+    isLocked: { type: Boolean, default: false }, // whether this note is locked
+    lockPassword: { type: String, default: null }, // hashed password for lock
+    lockType: { type: String, enum: ['password', 'biometric', null], default: null } // type of lock
   },
   { timestamps: true }
 );
