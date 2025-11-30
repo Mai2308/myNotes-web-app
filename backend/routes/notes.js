@@ -22,4 +22,7 @@ router.post("/:id/favorite", protect, toggleFavorite);
 // Delete a note
 router.delete("/:id", protect, deleteNote);
 
+// 🔍 SEARCH ROUTE
+router.get("/search", protect, searchNotes);
+
 export default router;
