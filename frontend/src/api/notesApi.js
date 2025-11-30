@@ -152,3 +152,55 @@ export const removeEmojiFromNote = async (id, emoji, token) => {
   }
   return await res.json();
 };
+
+// Lock a note with password or biometric
+export const lockNote = async (id, lockType, password, token) => {
+  const body = { lockType };
+  if (lockType === "password" && password) {
+    body.password = password;
+  }
+  const res = await fetch(`${BASE}/api/notes/${id}/lock`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to lock note");
+  }
+  return await res.json();
+};
+
+// Unlock a note with password or biometric
+export const unlockNote = async (id, password, biometricVerified, token) => {
+  const body = {};
+  if (password) body.password = password;
+  if (biometricVerified) body.biometricVerified = true;
+  const res = await fetch(`${BASE}/api/notes/${id}/unlock`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to unlock note");
+  }
+  return await res.json();
+};
+
+// Remove lock from a note
+export const removeLock = async (id, password, biometricVerified, token) => {
+  const body = {};
+  if (password) body.password = password;
+  if (biometricVerified) body.biometricVerified = true;
+  const res = await fetch(`${BASE}/api/notes/${id}/lock`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to remove lock");
+  }
+  return await res.json();
+};

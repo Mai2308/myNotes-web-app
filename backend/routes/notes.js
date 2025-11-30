@@ -46,7 +46,12 @@ router.post("/:id/emojis", protect, addEmojiToNote);
 router.delete("/:id/emojis/:emoji", protect, removeEmojiFromNote);
 
 // Lock operations
-router.post("/:id/lock", protect, setNoteLock);
+router.post("/:id/lock", (req, res, next) => {
+  console.log("🚀 POST /api/notes/:id/lock route hit");
+  console.log("   Note ID from params:", req.params.id);
+  console.log("   Request body:", req.body);
+  next();
+}, protect, setNoteLock);
 router.post("/:id/unlock", protect, verifyNoteLock);
 router.delete("/:id/lock", protect, removeNoteLock);
 

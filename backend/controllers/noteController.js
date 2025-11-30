@@ -473,6 +473,13 @@ export const setNoteLock = async (req, res) => {
     const noteId = req.params.id;
     const { password, lockType = 'password' } = req.body;
 
+    console.log("🔒 Lock request received");
+    console.log("   User ID:", userId);
+    console.log("   Note ID:", noteId);
+    console.log("   Lock Type:", lockType);
+    console.log("   Password provided:", password ? "Yes" : "No");
+    console.log("   Request body:", req.body);
+
     if (!['password', 'biometric'].includes(lockType)) {
       return res.status(400).json({ message: "lockType must be 'password' or 'biometric'" });
     }
@@ -482,11 +489,31 @@ export const setNoteLock = async (req, res) => {
     }
 
     const note = await Note.findOne({ _id: noteId, user: userId }).exec();
-    if (!note) return res.status(404).json({ message: "Note not found" });
+    console.log("🔍 Note search result:");
+    console.log("   Found:", note ? "Yes" : "No");
+    if (note) {
+      console.log("   Note ID:", note._id);
+      console.log("   Note Title:", note.title);
+      console.log("   Note User:", note.user);
+    }
+    if (!note) {
+      console.log("❌ Note not found - returning 404");
+      return res.status(404).json({ message: "Note not found" });
+    }
 
     if (note.isLocked) {
       return res.status(400).json({ message: "Note is already locked" });
     }
+
+    // Find or create the user's Locked Notes folder
+    let lockedFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Locked Notes" }).exec();
+    if (!lockedFolder) {
+      lockedFolder = new Folder({ user: userId, name: "Locked Notes", parentId: null, isDefault: true });
+      await lockedFolder.save();
+    }
+
+    // Store original folder ID before moving
+    note.originalFolderId = note.folderId;
 
     // Hash password if password type
     let hashedPassword = null;
@@ -498,10 +525,11 @@ export const setNoteLock = async (req, res) => {
     note.isLocked = true;
     note.lockPassword = hashedPassword;
     note.lockType = lockType;
+    note.folderId = lockedFolder._id; // Move to Locked Notes folder
     await note.save();
 
     res.json({ 
-      message: "Note locked successfully", 
+      message: "Note locked successfully and moved to Locked Notes folder", 
       note: {
         ...note.toObject(),
         lockPassword: undefined // Don't send password hash to client
@@ -589,13 +617,18 @@ export const removeNoteLock = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // Restore original folder before unlocking
+    const originalFolderId = note.originalFolderId || null;
+
     note.isLocked = false;
     note.lockPassword = null;
     note.lockType = null;
+    note.folderId = originalFolderId; // Move back to original folder
+    note.originalFolderId = null; // Clear the stored original folder
     await note.save();
 
     res.json({ 
-      message: "Note lock removed successfully", 
+      message: "Note lock removed successfully and moved back to original folder", 
       note: {
         ...note.toObject(),
         lockPassword: undefined

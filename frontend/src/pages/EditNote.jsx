@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import NoteEditor from "../components/NoteEditor";
-import { removeEmojiFromNote } from "../api/notesApi";
+import { removeEmojiFromNote, unlockNote } from "../api/notesApi";
 import ChecklistEditor from "../components/ChecklistEditor";
+import UnlockNoteModal from "../components/UnlockNoteModal";
 import "../styles.css";
 import { 
   updateNote, 
@@ -12,7 +13,7 @@ import {
   updateChecklistItems 
 } from "../api/notesApi";
 import { getFolders } from "../api/foldersApi";
-import { ListTodo, FileText } from "lucide-react";
+import { ListTodo, FileText, Lock } from "lucide-react";
 
 export default function EditNote() {
   const { id } = useParams();
@@ -28,6 +29,10 @@ export default function EditNote() {
   const [checklistItems, setChecklistItems] = useState([]);
   const [converting, setConverting] = useState(false);
   const [emojis, setEmojis] = useState([]);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockType, setLockType] = useState(null);
+  const [unlockModalOpen, setUnlockModalOpen] = useState(false);
+  const [noteUnlocked, setNoteUnlocked] = useState(false);
   const editorRef = useRef(null);
 
   const token = localStorage.getItem("token");
@@ -52,6 +57,15 @@ export default function EditNote() {
         setIsChecklist(note.isChecklist || false);
         setChecklistItems(note.checklistItems || []);
         setEmojis(note.emojis || []);
+        setIsLocked(note.isLocked || false);
+        setLockType(note.lockType || null);
+
+        // If note is locked, show unlock modal immediately
+        if (note.isLocked && !note.content) {
+          setUnlockModalOpen(true);
+          setLoading(false);
+          return;
+        }
 
         // Load folders
         const foldersData = await getFolders(token);
@@ -179,6 +193,34 @@ export default function EditNote() {
     }
   };
 
+  const handleUnlock = async (password, biometricVerified) => {
+    try {
+      const result = await unlockNote(id, password, biometricVerified, token);
+      if (result.unlocked && result.note) {
+        setNoteUnlocked(true);
+        setIsChecklist(result.note.isChecklist || false);
+        setChecklistItems(result.note.checklistItems || []);
+        
+        // Load folders if not loaded
+        if (folders.length === 0) {
+          const foldersData = await getFolders(token);
+          setFolders(foldersData);
+        }
+
+        // Set content in editor
+        setTimeout(() => {
+          if (editorRef.current && result.note.content && !result.note.isChecklist) {
+            editorRef.current.setContent(result.note.content);
+          }
+        }, 100);
+        
+        setUnlockModalOpen(false);
+      }
+    } catch (err) {
+      throw err;
+    }
+  };
+
   // Build folder options with hierarchy
   const buildFolderOptions = () => {
     const buildTree = (parentId, depth = 0) => {
@@ -199,6 +241,46 @@ export default function EditNote() {
     return (
       <div className="auth-page center" style={{ padding: 20 }}>
         <p>Loading note...</p>
+      </div>
+    );
+  }
+
+  // If note is locked and not unlocked yet, show locked message
+  if (isLocked && !noteUnlocked) {
+    return (
+      <div className="auth-page center" style={{ padding: 20 }}>
+        <div className="card" style={{ width: "100%", maxWidth: 600, textAlign: "center", padding: "40px" }}>
+          <Lock size={64} color="#ff9800" style={{ margin: "0 auto 20px" }} />
+          <h2>This Note is Locked</h2>
+          <p style={{ color: "var(--muted)", margin: "16px 0 24px" }}>
+            This note is protected. Unlock it to view and edit the content.
+          </p>
+          <button
+            onClick={() => setUnlockModalOpen(true)}
+            className="btn"
+            style={{ background: "#4CAF50", padding: "12px 24px" }}
+          >
+            Unlock Note
+          </button>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="btn"
+            style={{ background: "#888", padding: "12px 24px", marginLeft: "12px" }}
+          >
+            Back to Dashboard
+          </button>
+        </div>
+
+        <UnlockNoteModal
+          isOpen={unlockModalOpen}
+          onClose={() => {
+            setUnlockModalOpen(false);
+            navigate("/dashboard");
+          }}
+          onUnlock={handleUnlock}
+          noteName={title}
+          lockType={lockType}
+        />
       </div>
     );
   }

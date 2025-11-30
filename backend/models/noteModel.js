@@ -21,7 +21,8 @@ const NoteSchema = new mongoose.Schema(
     // Lock feature fields
     isLocked: { type: Boolean, default: false }, // whether this note is locked
     lockPassword: { type: String, default: null }, // hashed password for lock
-    lockType: { type: String, enum: ['password', 'biometric', null], default: null } // type of lock
+    lockType: { type: String, enum: ['password', 'biometric', null], default: null }, // type of lock
+    originalFolderId: { type: mongoose.Schema.Types.ObjectId, ref: "Folder", default: null } // folder before locking
   },
   { timestamps: true }
 );
