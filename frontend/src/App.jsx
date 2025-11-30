@@ -24,7 +24,7 @@ export default function App() {
 
       <Routes>
         {/* Home page only when user visits "/" */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Navigate to="/login" />} />
 
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
