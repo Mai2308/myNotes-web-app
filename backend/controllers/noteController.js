@@ -1,16 +1,17 @@
 import sanitizeHtml from "sanitize-html";
 import Note from "../models/noteModel.js";
-import Folder from "../models/folderModel.js"; // new
+import Folder from "../models/folderModel.js";
 // Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
   try {
     const userId = req.user.id;
     const { folderId } = req.query; // optional filter
     const filter = { user: userId };
-    if (folderId) {
+    if (folderId !== undefined) {
+      // Explicit folderId query: return notes in that folder (null for root)
       filter.folderId = folderId === "null" ? null : folderId;
     } else {
-      // Exclude notes inside password-protected folders from general listing
+      // No folderId query: exclude notes inside password-protected folders from general listing
       const protectedFolders = await Folder.find({ user: userId, isProtected: true }).select("_id").lean();
       const protectedIds = protectedFolders.map(f => f._id);
       if (protectedIds.length > 0) {
@@ -150,14 +151,8 @@ export const updateNote = async (req, res) => {
     const noteId = req.params.id;
     const { title, content, tags, folderId } = req.body;
 
-    // First find the note to check if it's locked
     const note = await Note.findOne({ _id: noteId, user: userId }).exec();
     if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
-
-    // Prevent editing locked notes
-    if (note.isLocked) {
-      return res.status(403).json({ message: "Cannot edit locked note. Please unlock it first." });
-    }
 
     // If folderId present, validate
     if (typeof folderId !== "undefined" && folderId !== null) {
@@ -212,16 +207,8 @@ export const deleteNote = async (req, res) => {
     const userId = req.user.id;
     const noteId = req.params.id;
 
-    // First find the note to check if it's locked
-    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
-    if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
-
-    // Prevent deleting locked notes
-    if (note.isLocked) {
-      return res.status(403).json({ message: "Cannot delete locked note. Please unlock it first." });
-    }
-
     const result = await Note.findOneAndDelete({ _id: noteId, user: userId }).exec();
+    if (!result) return res.status(404).json({ message: "Note not found or not authorized" });
 
     res.json({ message: "🗑️ Note deleted successfully!" });
   } catch (error) {
@@ -256,11 +243,6 @@ export const convertToChecklist = async (req, res) => {
 
     const note = await Note.findOne({ _id: noteId, user: userId }).exec();
     if (!note) return res.status(404).json({ message: "Note not found" });
-
-    // Prevent converting locked notes
-    if (note.isLocked) {
-      return res.status(403).json({ message: "Cannot convert locked note. Please unlock it first." });
-    }
 
     // Parse content into checklist items (split by lines)
     const content = note.content || "";
@@ -309,11 +291,6 @@ export const convertToRegularNote = async (req, res) => {
     const note = await Note.findOne({ _id: noteId, user: userId }).exec();
     if (!note) return res.status(404).json({ message: "Note not found" });
 
-    // Prevent converting locked notes
-    if (note.isLocked) {
-      return res.status(403).json({ message: "Cannot convert locked note. Please unlock it first." });
-    }
-
     // Convert checklist items back to content
     if (note.isChecklist && note.checklistItems.length > 0) {
       const sortedItems = note.checklistItems.sort((a, b) => a.order - b.order);
@@ -345,11 +322,6 @@ export const updateChecklistItems = async (req, res) => {
 
     const note = await Note.findOne({ _id: noteId, user: userId }).exec();
     if (!note) return res.status(404).json({ message: "Note not found" });
-
-    // Prevent updating locked notes
-    if (note.isLocked) {
-      return res.status(403).json({ message: "Cannot update locked note. Please unlock it first." });
-    }
 
     if (!note.isChecklist) return res.status(400).json({ message: "Note is not in checklist mode" });
 
@@ -383,11 +355,6 @@ export const toggleChecklistItem = async (req, res) => {
 
     const note = await Note.findOne({ _id: noteId, user: userId }).exec();
     if (!note) return res.status(404).json({ message: "Note not found" });
-
-    // Prevent toggling locked notes
-    if (note.isLocked) {
-      return res.status(403).json({ message: "Cannot modify locked note. Please unlock it first." });
-    }
 
     if (!note.isChecklist) return res.status(400).json({ message: "Note is not in checklist mode" });
     if (itemIndex >= note.checklistItems.length) {
@@ -461,101 +428,4 @@ export const removeEmojiFromNote = async (req, res) => {
 };
 
 
-// Verify note lock with password or biometric
-export const verifyNoteLock = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const noteId = req.params.id;
-    const { password, biometricVerified = false } = req.body;
 
-    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
-    if (!note) return res.status(404).json({ message: "Note not found" });
-
-    if (!note.isLocked) {
-      return res.status(400).json({ message: "Note is not locked" });
-    }
-
-    let isValid = false;
-
-    if (note.lockType === 'password') {
-      if (!password) {
-        return res.status(400).json({ message: "Password is required" });
-      }
-      isValid = await bcrypt.compare(password, note.lockPassword);
-    } else if (note.lockType === 'biometric') {
-      // In a real implementation, biometric verification would be done on the client
-      // and the server would validate a token or signature
-      isValid = biometricVerified === true;
-    }
-
-    if (!isValid) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // Return the full note with content
-    res.json({ 
-      message: "Note unlocked successfully", 
-      note: {
-        ...note.toObject(),
-        lockPassword: undefined // Don't send password hash to client
-      },
-      unlocked: true
-    });
-  } catch (error) {
-    console.error("❌ Error verifying note lock:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Remove lock from a note
-export const removeNoteLock = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const noteId = req.params.id;
-    const { password, biometricVerified = false } = req.body;
-
-    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
-    if (!note) return res.status(404).json({ message: "Note not found" });
-
-    if (!note.isLocked) {
-      return res.status(400).json({ message: "Note is not locked" });
-    }
-
-    // Verify credentials before unlocking
-    let isValid = false;
-
-    if (note.lockType === 'password') {
-      if (!password) {
-        return res.status(400).json({ message: "Password is required to remove lock" });
-      }
-      isValid = await bcrypt.compare(password, note.lockPassword);
-    } else if (note.lockType === 'biometric') {
-      isValid = biometricVerified === true;
-    }
-
-    if (!isValid) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // Restore original folder before unlocking
-    const originalFolderId = note.originalFolderId || null;
-
-    note.isLocked = false;
-    note.lockPassword = null;
-    note.lockType = null;
-    note.folderId = originalFolderId; // Move back to original folder
-    note.originalFolderId = null; // Clear the stored original folder
-    await note.save();
-
-    res.json({ 
-      message: "Note lock removed successfully and moved back to original folder", 
-      note: {
-        ...note.toObject(),
-        lockPassword: undefined
-      }
-    });
-  } catch (error) {
-    console.error("❌ Error removing note lock:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};

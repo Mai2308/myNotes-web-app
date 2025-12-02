@@ -20,24 +20,7 @@ export default function Dashboard() {
 
   const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    async function fetchNotes() {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await getNotes(token);
-        setNotes(data || []);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load notes.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchNotes();
-  }, [token]);
-
-  // When selected folder changes, if it's protected, prompt and fetch just that folder's notes
+  // When selected folder changes or on mount, fetch appropriate notes
   useEffect(() => {
     const run = async () => {
       if (selectedFolderId === null) {
@@ -100,7 +83,8 @@ export default function Dashboard() {
       }
     };
     run();
-  }, [selectedFolderId, folders, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFolderId, token]);
 
   const handleDragStart = (e, note) => {
     setDraggedNote(note);
