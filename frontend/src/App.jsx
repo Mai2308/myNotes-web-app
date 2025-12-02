@@ -9,6 +9,7 @@ import NotesList from "./components/NotesList";
 import Header from "./components/Header";
 import Calendar from "./components/Calendar";
 import { useAuth } from "./auth/AuthProvider";
+import VoiceRecorder from "./components/VoiceRecorder";
 
 function RequireAuth({ children }) {
   const { user } = useAuth();
@@ -64,6 +65,14 @@ export default function App() {
             </RequireAuth>
           }
         />
+        <Route
+  path="/voice"
+  element={
+    <RequireAuth>
+      <VoiceRecorder />
+    </RequireAuth>
+  }
+/>
         <Route path="*" element={<div style={{ padding: 20 }}>404 — Not Found</div>} />
       </Routes>
     </>
