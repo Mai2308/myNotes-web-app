@@ -11,9 +11,6 @@ import {
   convertToRegularNote,
   updateChecklistItems,
   toggleChecklistItem,
-  setNoteLock,
-  verifyNoteLock,
-  removeNoteLock
 } from "../controllers/noteController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { addEmojiToNote, removeEmojiFromNote } from "../controllers/noteController.js";
@@ -45,15 +42,6 @@ router.patch("/:id/checklist/toggle", protect, toggleChecklistItem);
 router.post("/:id/emojis", protect, addEmojiToNote);
 router.delete("/:id/emojis/:emoji", protect, removeEmojiFromNote);
 
-// Lock operations
-router.post("/:id/lock", (req, res, next) => {
-  console.log("🚀 POST /api/notes/:id/lock route hit");
-  console.log("   Note ID from params:", req.params.id);
-  console.log("   Request body:", req.body);
-  next();
-}, protect, setNoteLock);
-router.post("/:id/unlock", protect, verifyNoteLock);
-router.delete("/:id/lock", protect, removeNoteLock);
 
 // Delete a note
 router.delete("/:id", protect, deleteNote);

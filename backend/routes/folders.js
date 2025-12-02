@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import Folder from "../models/folderModel.js";
+import bcrypt from "bcryptjs";
 import Note from "../models/noteModel.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -41,7 +42,8 @@ async function wouldCreateCycle(folderId, candidateParentId) {
 router.get("/", protect, async (req, res) => {
   try {
     const userId = req.user.id;
-    const folders = await Folder.find({ user: userId }).sort({ name: 1 }).lean();
+    // Exclude passwordHash from response
+    const folders = await Folder.find({ user: userId }).sort({ name: 1 }).select("-passwordHash").lean();
     res.json(folders);
   } catch (err) {
     console.error("GET /api/folders error", err);
@@ -63,11 +65,21 @@ router.get("/:id", protect, async (req, res) => {
     if (!folder) return res.status(404).json({ message: "Folder not found." });
 
     if (req.query.includeNotes === "true") {
+      // If folder is protected, require password via header or query
+      if (folder.isProtected) {
+        const supplied = req.headers["x-folder-password"] || req.query.password;
+        if (!supplied) return res.status(403).json({ message: "Folder password required" });
+        const ok = await bcrypt.compare(String(supplied), folder.passwordHash || "");
+        if (!ok) return res.status(403).json({ message: "Invalid folder password" });
+      }
+
       const notes = await Note.find({ folderId: folder._id, user: userId }).lean();
-      return res.json({ folder, notes });
+      const { passwordHash, ...folderSafe } = folder;
+      return res.json({ folder: folderSafe, notes });
     }
 
-    res.json(folder);
+    const { passwordHash, ...folderSafe } = folder;
+    res.json(folderSafe);
   } catch (err) {
     console.error("GET /api/folders/:id error", err);
     res.status(err.status || 500).json({ message: err.message || "Server error" });
@@ -136,7 +148,8 @@ router.patch("/:id", protect, async (req, res) => {
     }
 
     await folder.save();
-    res.json(folder);
+    const { passwordHash, ...folderSafe } = folder.toObject();
+    res.json(folderSafe);
   } catch (err) {
     console.error("PATCH /api/folders/:id error", err);
     res.status(err.status || 500).json({ message: err.message || "Server error" });
@@ -168,6 +181,56 @@ router.delete("/:id", protect, async (req, res) => {
     res.json({ message: "Folder deleted" });
   } catch (err) {
     console.error("DELETE /api/folders/:id error", err);
+    res.status(err.status || 500).json({ message: err.message || "Server error" });
+  }
+});
+
+/**
+ * POST /api/folders/:id/protect
+ * Body: { password }
+ * Sets or updates a folder password and marks it protected
+ */
+router.post("/:id/protect", protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { password } = req.body || {};
+    if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid folder id" });
+    if (!password || typeof password !== "string" || password.length < 4) {
+      return res.status(400).json({ message: "Password must be at least 4 characters" });
+    }
+    const folder = await Folder.findOne({ _id: id, user: userId });
+    if (!folder) return res.status(404).json({ message: "Folder not found." });
+    const salt = await bcrypt.genSalt(10);
+    folder.passwordHash = await bcrypt.hash(password, salt);
+    folder.isProtected = true;
+    await folder.save();
+    const { passwordHash, ...folderSafe } = folder.toObject();
+    res.json({ message: "Folder protected", folder: folderSafe });
+  } catch (err) {
+    console.error("POST /api/folders/:id/protect error", err);
+    res.status(err.status || 500).json({ message: err.message || "Server error" });
+  }
+});
+
+/**
+ * DELETE /api/folders/:id/protect
+ * Removes protection from folder
+ */
+router.delete("/:id/protect", protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid folder id" });
+    const folder = await Folder.findOne({ _id: id, user: userId });
+    if (!folder) return res.status(404).json({ message: "Folder not found." });
+    folder.isProtected = false;
+    folder.passwordHash = null;
+    await folder.save();
+    const { passwordHash, ...folderSafe } = folder.toObject();
+    res.json({ message: "Folder protection removed", folder: folderSafe });
+  } catch (err) {
+    console.error("DELETE /api/folders/:id/protect error", err);
     res.status(err.status || 500).json({ message: err.message || "Server error" });
   }
 });

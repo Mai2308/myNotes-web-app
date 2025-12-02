@@ -166,8 +166,8 @@ html[data-theme="dark"] .toolbar button:hover {
 }
 
 /* Small action buttons under editor */
-.save-controls button {
-  padding: 10px 14px;
+
+.editor-action-btn {
   border-radius: 10px;
   background: var(--card-bg);
   border: 1px solid rgba(0,0,0,0.08);

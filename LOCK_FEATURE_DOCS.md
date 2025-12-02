@@ -1,7 +1,3 @@
-# Lock Note Feature Documentation
-
-## Overview
-The lock note feature allows users to secure sensitive notes with password or biometric authentication. Locked notes are automatically organized into a dedicated "Locked Notes" folder for better security and organization.
 
 ## Features
 

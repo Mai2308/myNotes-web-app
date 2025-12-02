@@ -170,9 +170,7 @@ export default function FolderTree({
                 fontSize: "14px",
                 fontWeight: folder.isDefault ? "bold" : "normal",
                 color: folder.isDefault && folder.name === "Favorites" 
-                  ? theme === "light" ? "#FFD700" : "#FFD700" 
-                  : folder.isDefault && folder.name === "Locked Notes"
-                  ? theme === "light" ? "#e53935" : "#ef5350"
+                  ? (theme === "light" ? "#FFD700" : "#FFD700")
                   : "inherit",
                 display: "flex",
                 alignItems: "center",
@@ -182,7 +180,7 @@ export default function FolderTree({
             >
               {folder.isDefault && folder.name === "Favorites" ? (
                 "⭐"
-              ) : folder.isDefault && folder.name === "Locked Notes" ? (
+              ) : folder.isProtected ? (
                 <Lock size={14} />
               ) : (
                 "📁"
@@ -191,7 +189,7 @@ export default function FolderTree({
             </span>
           )}
 
-          {!isEditing && !folder.isDefault && (
+          {!isEditing && (!folder.isDefault || folder.name === "Locked Notes") && (
             <div className="folder-actions" style={{ display: "flex", gap: "4px", marginLeft: "8px" }}>
               <button
                 onClick={(e) => {

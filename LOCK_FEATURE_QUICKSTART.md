@@ -1,4 +1,4 @@
-# Lock Note Feature - Quick Start Guide
+# (Removed) Lock Note Feature
 
 ## 🚀 Getting Started
 

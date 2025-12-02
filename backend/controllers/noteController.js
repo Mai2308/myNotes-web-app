@@ -1,5 +1,4 @@
 import sanitizeHtml from "sanitize-html";
-import bcrypt from "bcryptjs";
 import Note from "../models/noteModel.js";
 import Folder from "../models/folderModel.js"; // new
 // Get all notes for the logged-in user
@@ -8,24 +7,19 @@ export const getNotes = async (req, res) => {
     const userId = req.user.id;
     const { folderId } = req.query; // optional filter
     const filter = { user: userId };
-    if (folderId) filter.folderId = folderId === "null" ? null : folderId;
-    const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
-    
-    // Hide content for locked notes
-    const sanitizedNotes = notes.map(note => {
-      const noteObj = note.toObject();
-      if (noteObj.isLocked) {
-        // Remove sensitive content from locked notes
-        noteObj.content = null;
-        noteObj.checklistItems = [];
-        noteObj.lockPassword = undefined;
-      } else {
-        noteObj.lockPassword = undefined;
+    if (folderId) {
+      filter.folderId = folderId === "null" ? null : folderId;
+    } else {
+      // Exclude notes inside password-protected folders from general listing
+      const protectedFolders = await Folder.find({ user: userId, isProtected: true }).select("_id").lean();
+      const protectedIds = protectedFolders.map(f => f._id);
+      if (protectedIds.length > 0) {
+        filter.folderId = { $nin: protectedIds };
       }
-      return noteObj;
-    });
-    
-    res.json(sanitizedNotes);
+    }
+    const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
+    const result = notes.map(n => n.toObject());
+    res.json(result);
   } catch (error) {
     console.error("❌ Error searching notes:", error);
     res.status(500).json({ message: "Server error" });
@@ -466,80 +460,6 @@ export const removeEmojiFromNote = async (req, res) => {
   }
 };
 
-// Lock a note with password or biometric
-export const setNoteLock = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const noteId = req.params.id;
-    const { password, lockType = 'password' } = req.body;
-
-    console.log("🔒 Lock request received");
-    console.log("   User ID:", userId);
-    console.log("   Note ID:", noteId);
-    console.log("   Lock Type:", lockType);
-    console.log("   Password provided:", password ? "Yes" : "No");
-    console.log("   Request body:", req.body);
-
-    if (!['password', 'biometric'].includes(lockType)) {
-      return res.status(400).json({ message: "lockType must be 'password' or 'biometric'" });
-    }
-
-    if (lockType === 'password' && (!password || typeof password !== 'string' || password.length < 4)) {
-      return res.status(400).json({ message: "Password must be at least 4 characters" });
-    }
-
-    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
-    console.log("🔍 Note search result:");
-    console.log("   Found:", note ? "Yes" : "No");
-    if (note) {
-      console.log("   Note ID:", note._id);
-      console.log("   Note Title:", note.title);
-      console.log("   Note User:", note.user);
-    }
-    if (!note) {
-      console.log("❌ Note not found - returning 404");
-      return res.status(404).json({ message: "Note not found" });
-    }
-
-    if (note.isLocked) {
-      return res.status(400).json({ message: "Note is already locked" });
-    }
-
-    // Find or create the user's Locked Notes folder
-    let lockedFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Locked Notes" }).exec();
-    if (!lockedFolder) {
-      lockedFolder = new Folder({ user: userId, name: "Locked Notes", parentId: null, isDefault: true });
-      await lockedFolder.save();
-    }
-
-    // Store original folder ID before moving
-    note.originalFolderId = note.folderId;
-
-    // Hash password if password type
-    let hashedPassword = null;
-    if (lockType === 'password') {
-      const salt = await bcrypt.genSalt(10);
-      hashedPassword = await bcrypt.hash(password, salt);
-    }
-
-    note.isLocked = true;
-    note.lockPassword = hashedPassword;
-    note.lockType = lockType;
-    note.folderId = lockedFolder._id; // Move to Locked Notes folder
-    await note.save();
-
-    res.json({ 
-      message: "Note locked successfully and moved to Locked Notes folder", 
-      note: {
-        ...note.toObject(),
-        lockPassword: undefined // Don't send password hash to client
-      }
-    });
-  } catch (error) {
-    console.error("❌ Error locking note:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 
 // Verify note lock with password or biometric
 export const verifyNoteLock = async (req, res) => {
