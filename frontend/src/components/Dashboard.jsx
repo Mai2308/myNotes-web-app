@@ -16,7 +16,7 @@ export default function Dashboard() {
   const [protectedCache, setProtectedCache] = useState({}); // folderId -> true when verified this session
   
   const navigate = useNavigate();
-  const { theme } = useTheme(); // light or dark
+  const { theme } = useTheme();
 
   const token = localStorage.getItem("token");
 
@@ -89,7 +89,6 @@ export default function Dashboard() {
   const handleDragStart = (e, note) => {
     setDraggedNote(note);
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/html", e.target);
   };
 
   const handleDragEnd = () => {
@@ -99,7 +98,6 @@ export default function Dashboard() {
   const handleMoveNote = async (noteId, targetFolderId) => {
     try {
       await moveNote(noteId, targetFolderId, token);
-      // Refresh notes to show updated folder assignment
       const data = await getNotes(token);
       setNotes(data || []);
     } catch (err) {
@@ -108,10 +106,9 @@ export default function Dashboard() {
     }
   };
 
-  const handleToggleFavorite = async (noteId, isFavorite) => {
+  const handleToggleFavorite = async (noteId) => {
     try {
       await toggleFavorite(noteId, token);
-      // Refresh notes to update favorite status
       const data = await getNotes(token);
       setNotes(data || []);
     } catch (err) {
@@ -145,7 +142,8 @@ export default function Dashboard() {
   return (
     <div className="container" style={{ paddingTop: "40px" }}>
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "24px" }}>
-        {/* Left sidebar - Folder Manager */}
+
+        {/* Sidebar */}
         <div>
           <FolderManager
             selectedFolderId={selectedFolderId}
@@ -156,8 +154,10 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Right content - Notes */}
+        {/* Notes Area */}
         <div>
+
+          {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
             <h2 style={{ margin: 0 }}>
               {selectedFolderId === null ? "All Notes (Root)" : "Notes in Folder"}
