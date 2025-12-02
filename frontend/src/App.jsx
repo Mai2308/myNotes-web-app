@@ -7,6 +7,7 @@ import CreateNote from "./pages/CreateNote";
 import EditNote from "./pages/EditNote";
 import NotesList from "./components/NotesList";
 import Header from "./components/Header";
+import Calendar from "./components/Calendar";
 import { useAuth } from "./auth/AuthProvider";
 
 function RequireAuth({ children }) {
@@ -55,16 +56,16 @@ export default function App() {
             </RequireAuth>
           }
         />
+        <Route
+          path="/calendar"
+          element={
+            <RequireAuth>
+              <Calendar />
+            </RequireAuth>
+          }
+        />
         <Route path="*" element={<div style={{ padding: 20 }}>404 — Not Found</div>} />
       </Routes>
     </>
   );
-}
-
-
-
-
-
-
-
-
+} 
