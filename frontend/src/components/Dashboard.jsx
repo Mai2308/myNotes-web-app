@@ -3,8 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { getNotes, deleteNote, moveNote, toggleFavorite } from "../api/notesApi";
 import { useTheme } from "../context/ThemeContext";
 import FolderManager from "./FolderManager";
+import { useView } from "../context/ViewContext";
+import SortMenu from "../components/viewOptions/SortMenu";
+import ViewLayoutSelector from "../components/viewOptions/ViewLayoutSelector";
 
 export default function Dashboard() {
+  const { sort, setSort , viewType} = useView();   // ⬅ تم تصحيح layout → viewType
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -17,12 +21,13 @@ export default function Dashboard() {
 
   const token = localStorage.getItem("token");
 
+  /** Load notes whenever sort OR token changes */
   useEffect(() => {
     async function fetchNotes() {
       setLoading(true);
       setError("");
       try {
-        const data = await getNotes(token);
+        const data = await getNotes(token, sort); // ⬅ sort مع الـ API
         setNotes(data || []);
       } catch (err) {
         console.error(err);
@@ -32,7 +37,7 @@ export default function Dashboard() {
       }
     }
     fetchNotes();
-  }, [token]);
+  }, [sort]);
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this note?")) return;
@@ -50,14 +55,12 @@ export default function Dashboard() {
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDragEnd = () => {
-    setDraggedNote(null);
-  };
+  const handleDragEnd = () => setDraggedNote(null);
 
   const handleMoveNote = async (noteId, targetFolderId) => {
     try {
       await moveNote(noteId, targetFolderId, token);
-      const data = await getNotes(token);
+      const data = await getNotes(token, sort);
       setNotes(data || []);
     } catch (err) {
       console.error(err);
@@ -68,7 +71,7 @@ export default function Dashboard() {
   const handleToggleFavorite = async (noteId) => {
     try {
       await toggleFavorite(noteId, token);
-      const data = await getNotes(token);
+      const data = await getNotes(token, sort);
       setNotes(data || []);
     } catch (err) {
       console.error(err);
@@ -76,23 +79,16 @@ export default function Dashboard() {
     }
   };
 
-  // ⭐⭐ البحث في عنوان ومحتوى النوت + الفلترة حسب الفولدر
+  
   const filteredNotes = notes
     .filter((n) =>
       selectedFolderId === null ? !n.folderId : n.folderId === selectedFolderId
     )
     .filter((n) => {
       const q = searchQuery.toLowerCase();
-
       const titleMatch = n.title?.toLowerCase().includes(q);
-
-      // إزالة HTML من الـ content
-      const contentText = n.content
-        ?.replace(/<[^>]+>/g, "")
-        .toLowerCase();
-
+      const contentText = n.content?.replace(/<[^>]+>/g, "").toLowerCase();
       const contentMatch = contentText.includes(q);
-
       return titleMatch || contentMatch;
     });
 
@@ -101,23 +97,33 @@ export default function Dashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "24px" }}>
 
         {/* Sidebar */}
-        <div>
-          <FolderManager
-            selectedFolderId={selectedFolderId}
-            onSelectFolder={setSelectedFolderId}
-            draggedNote={draggedNote}
-            onNoteDrop={handleMoveNote}
-          />
-        </div>
+        <FolderManager
+          selectedFolderId={selectedFolderId}
+          onSelectFolder={setSelectedFolderId}
+          draggedNote={draggedNote}
+          onNoteDrop={handleMoveNote}
+        />
 
         {/* Notes Area */}
         <div>
+
+          {/* Sorting + Layout */}
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px"
+          }}>
+            <SortMenu />
+            <ViewLayoutSelector />
+          </div>
 
           {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
             <h2 style={{ margin: 0 }}>
               {selectedFolderId === null ? "All Notes (Root)" : "Notes in Folder"}
             </h2>
+
             <button
               className={theme === "light" ? "btn-create-light" : "btn-create-dark"}
               onClick={() => navigate("/create", { state: { folderId: selectedFolderId } })}
@@ -126,7 +132,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* 🔍 Search Box */}
+          {/* Search */}
           <input
             type="text"
             placeholder="Search notes..."
@@ -149,13 +155,18 @@ export default function Dashboard() {
             <p style={{ color: "var(--muted)" }}>No notes found.</p>
           )}
 
-          {/* Notes Grid */}
-          <div className="notes-grid" style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill,minmax(250px,1fr))",
-            gap: "16px"
-          }}>
-
+          {/* Notes */}
+          <div
+            className={viewType === "grid" ? "notes-grid" : "notes-list"} // ⬅ استخدام viewType
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                viewType === "grid"
+                  ? "repeat(auto-fill, minmax(250px, 1fr))"
+                  : "1fr",
+              gap: "16px",
+            }}
+          >
             {filteredNotes.map((note) => (
               <div
                 key={note._id}
@@ -166,11 +177,10 @@ export default function Dashboard() {
                 style={{
                   padding: "16px",
                   cursor: "grab",
-                  transition: "transform 0.15s ease",
                   opacity: draggedNote?._id === note._id ? 0.5 : 1,
                 }}
               >
-                <h3 className="h2">{note.title || "Untitled"}</h3>
+                <h3>{note.title || "Untitled"}</h3>
 
                 <p
                   style={{
@@ -178,7 +188,6 @@ export default function Dashboard() {
                     color: "var(--muted)",
                     overflow: "hidden",
                     maxHeight: "80px",
-                    textOverflow: "ellipsis",
                   }}
                   dangerouslySetInnerHTML={{ __html: note.content || "" }}
                 ></p>
@@ -210,7 +219,7 @@ export default function Dashboard() {
                       navigate(`/edit/${note._id}`);
                     }}
                     className="btn"
-                    style={{ background: "#2196F3", padding: "6px 12px", fontSize: "13px" }}
+                    style={{ background: "#2196F3" }}
                   >
                     Edit
                   </button>
@@ -221,7 +230,7 @@ export default function Dashboard() {
                       handleDelete(note._id);
                     }}
                     className="btn"
-                    style={{ background: "crimson", padding: "6px 12px", fontSize: "13px" }}
+                    style={{ background: "crimson" }}
                   >
                     Delete
                   </button>
@@ -235,3 +244,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+

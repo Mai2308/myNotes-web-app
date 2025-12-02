@@ -5,6 +5,7 @@ import App from "./App";
 import "./styles.css";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./auth/AuthProvider";
+import { ViewProvider } from "./context/ViewContext";
 
 const container = document.getElementById("root");
 const root = createRoot(container);
@@ -12,9 +13,11 @@ const root = createRoot(container);
 root.render(
   <ThemeProvider>
     <AuthProvider>
+      <ViewProvider>
       <BrowserRouter>
         <App />
       </BrowserRouter>
+      </ViewProvider>
     </AuthProvider>
   </ThemeProvider>
 );

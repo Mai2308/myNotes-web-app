@@ -189,3 +189,42 @@ body.dark .folder-item[data-drop-target="true"] {
   cursor: grabbing;
   opacity: 0.7;
 }
+
+/* === LIST VIEW FIX — make list cards dark blue like grid === */
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: transparent !important;
+  padding: 0;
+}
+
+.notes-list .card {
+  background-color: #0A1733 !important; /* نفس الكحلي اللي ظاهر في الصور */
+  color: #fff !important;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+  width: 100% !important;
+}
+
+/* ضبط النص جوا الكارد */
+.notes-list .card h3 {
+  color: #fff !important;
+}
+
+.notes-list .card p {
+  color: #cdd6f4 !important;
+}
+
+/* أزرار (Edit – Delete – Favorite) */
+.notes-list .card .btn {
+  color: #fff !important;
+  border: none;
+}
+
+.notes-list .card button:hover {
+  opacity: 0.85;
+}
+

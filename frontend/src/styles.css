@@ -599,4 +599,25 @@ html[data-theme="dark"] .toolbar button:hover {
   transform: translateY(-2px);
 }
 
+/* خلفية ثابتة للصفحة بالكامل في الوضع الداكن */
+body.dark {
+  background-color: #0a1a2f !important;   /* كحلي غامق */
+  color: #eee;
+  min-height: 100vh;
+}
+
+/* خلي أي Scroll يمتد بنفس الخلفية */
+body.dark, html {
+  background-color: #0a1a2f !important;
+}
+
+/* خلي صفحات الـ dashboard والـ list ياخدوا نفس الخلفية */
+.dashboard-page,
+.notes-list-container,
+.notes-grid,
+.notes-list {
+  background-color: transparent !important;
+}
+
+
 
