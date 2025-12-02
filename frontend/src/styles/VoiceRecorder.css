@@ -1,0 +1,185 @@
+.voice-recorder-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-width: 700px;
+  margin: 20px auto;
+}
+
+.recorder-panel {
+  background: #F9FAFB;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.recorder-panel h3 {
+  margin: 0 0 15px 0;
+  color: #111827;
+  font-size: 18px;
+}
+
+.title-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.title-input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.recording-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.timer {
+  font-size: 28px;
+  font-weight: bold;
+  color: #EF4444;
+  min-width: 80px;
+  text-align: center;
+  font-family: "Courier New", monospace;
+}
+
+.record-btn,
+.stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.record-btn {
+  background: #EF4444;
+  color: white;
+}
+
+.record-btn:hover {
+  background: #DC2626;
+  transform: scale(1.05);
+}
+
+.stop-btn {
+  background: #6B7280;
+  color: white;
+}
+
+.stop-btn:hover {
+  background: #4B5563;
+  transform: scale(1.05);
+}
+
+.recordings-list {
+  margin-top: 30px;
+}
+
+.recordings-list h3 {
+  margin: 0 0 15px 0;
+  color: #111827;
+  font-size: 18px;
+}
+
+.no-recordings {
+  text-align: center;
+  color: #6B7280;
+  padding: 30px;
+  background: #F9FAFB;
+  border-radius: 8px;
+}
+
+.recording-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #F3F4F6;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.recording-info {
+  flex: 1;
+  min-width: 150px;
+}
+
+.recording-info h4 {
+  margin: 0;
+  color: #111827;
+  font-size: 16px;
+}
+
+.recording-info p {
+  margin: 5px 0 0 0;
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.recording-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.audio-player {
+  width: 250px;
+  height: 32px;
+  border-radius: 4px;
+}
+
+.delete-btn {
+  background: #EF4444;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.delete-btn:hover {
+  background: #DC2626;
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .voice-recorder-container {
+    padding: 15px;
+  }
+
+  .recording-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .audio-player {
+    width: 100%;
+  }
+
+  .timer {
+    font-size: 24px;
+  }
+}
