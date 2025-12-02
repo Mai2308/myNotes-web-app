@@ -10,6 +10,7 @@ import userRoutes from "./routes/users.js";
 import noteRoutes from "./routes/notes.js";
 import folderRoutes from "./routes/folders.js";
 import calendarRoutes from "./routes/calendar.js";
+import voiceRoutes from "./routes/voice.js";
 
 dotenv.config();
 
@@ -31,6 +32,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/calendar", calendarRoutes);
+app.use("/api/voice", voiceRoutes);
+app.use("/uploads", express.static("public/uploads"));
 
 // Global 404 handler
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));
