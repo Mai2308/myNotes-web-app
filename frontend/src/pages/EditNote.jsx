@@ -272,7 +272,7 @@ export default function EditNote() {
             {isChecklist ? (
               <>
                 <FileText size={18} />
-                {converting ? "Converting..." : "Convert to Regular Note"}
+                {converting ? "Converting..." : "Text"}
               </>
             ) : (
               <>
