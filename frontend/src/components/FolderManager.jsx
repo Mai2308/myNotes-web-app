@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { getFolders, createFolder, updateFolder, deleteFolder } from "../api/foldersApi";
 import FolderTree from "./FolderTree";
 import { useTheme } from "../context/ThemeContext";
@@ -36,7 +36,11 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, onFoldersChange]);
+
+  useEffect(() => {
+    loadFolders();
+  }, [loadFolders]);
 
   useEffect(() => {
     loadFolders();
