@@ -215,20 +215,38 @@ export const deleteNote = async (req, res) => {
   }
 };
 
-// Search notes by keyword (title only)
+// Search notes (title + content + tags)
 export const searchNotes = async (req, res) => {
   try {
     const userId = req.user.id;
-    const keyword = req.query.q || "";
+    const keyword = req.query.q?.trim() || "";
     const { folderId } = req.query;
 
-    const filter = { user: userId, title: { $regex: keyword, $options: "i" } };
+    if (!keyword) {
+      const filter = { user: userId };
+      if (folderId) filter.folderId = folderId === "null" ? null : folderId;
+
+      const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
+      return res.json(notes);
+    }
+
+    const filter = {
+      user: userId,
+      $or: [
+        { title: { $regex: keyword, $options: "i" } },
+        { content: { $regex: keyword, $options: "i" } },
+        { tags: { $elemMatch: { $regex: keyword, $options: "i" } } }
+      ]
+    };
+
     if (folderId) filter.folderId = folderId === "null" ? null : folderId;
 
     const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
     res.json(notes);
+
   } catch (error) {
     console.error("❌ Error searching notes:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
