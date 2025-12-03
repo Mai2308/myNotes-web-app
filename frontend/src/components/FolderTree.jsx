@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useTheme } from "../context/ThemeContext";
+import { Lock } from "lucide-react";
 
 /**
  * FolderTree - Display folders in a hierarchical tree structure
@@ -167,18 +168,28 @@ export default function FolderTree({
               style={{ 
                 flex: 1, 
                 fontSize: "14px",
-                fontWeight: folder.isDefault && folder.name === "Favorites" ? "bold" : "normal",
+                fontWeight: folder.isDefault ? "bold" : "normal",
                 color: folder.isDefault && folder.name === "Favorites" 
-                  ? theme === "light" ? "#FFD700" : "#FFD700" 
-                  : "inherit"
+                  ? (theme === "light" ? "#FFD700" : "#FFD700")
+                  : "inherit",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px"
               }}
               title={folder.name}
             >
-              {folder.isDefault && folder.name === "Favorites" ? "⭐" : "📁"} {folder.name}
+              {folder.isDefault && folder.name === "Favorites" ? (
+                "⭐"
+              ) : folder.isProtected ? (
+                <Lock size={14} />
+              ) : (
+                "📁"
+              )}{" "}
+              {folder.name}
             </span>
           )}
 
-          {!isEditing && !folder.isDefault && (
+          {!isEditing && (!folder.isDefault || folder.name === "Locked Notes") && (
             <div className="folder-actions" style={{ display: "flex", gap: "4px", marginLeft: "8px" }}>
               <button
                 onClick={(e) => {

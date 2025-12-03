@@ -1,15 +1,26 @@
 import sanitizeHtml from "sanitize-html";
 import Note from "../models/noteModel.js";
-import Folder from "../models/folderModel.js"; // new
+import Folder from "../models/folderModel.js";
 // Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
   try {
     const userId = req.user.id;
     const { folderId } = req.query; // optional filter
     const filter = { user: userId };
-    if (folderId) filter.folderId = folderId === "null" ? null : folderId;
+    if (folderId !== undefined) {
+      // Explicit folderId query: return notes in that folder (null for root)
+      filter.folderId = folderId === "null" ? null : folderId;
+    } else {
+      // No folderId query: exclude notes inside password-protected folders from general listing
+      const protectedFolders = await Folder.find({ user: userId, isProtected: true }).select("_id").lean();
+      const protectedIds = protectedFolders.map(f => f._id);
+      if (protectedIds.length > 0) {
+        filter.folderId = { $nin: protectedIds };
+      }
+    }
     const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
-    res.json(notes);
+    const result = notes.map(n => n.toObject());
+    res.json(result);
   } catch (error) {
     console.error("❌ Error searching notes:", error);
     res.status(500).json({ message: "Server error" });
@@ -151,6 +162,9 @@ export const updateNote = async (req, res) => {
     const noteId = req.params.id;
     const { title, content, tags, folderId } = req.body;
 
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
+
     // If folderId present, validate
     if (typeof folderId !== "undefined" && folderId !== null) {
       const folder = await Folder.findOne({ _id: folderId, user: userId }).exec();
@@ -163,10 +177,9 @@ export const updateNote = async (req, res) => {
     if (typeof tags !== "undefined") update.tags = tags;
     if (typeof folderId !== "undefined") update.folderId = folderId;
 
-    const note = await Note.findOneAndUpdate({ _id: noteId, user: userId }, update, { new: true }).exec();
-    if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
+    const updatedNote = await Note.findOneAndUpdate({ _id: noteId, user: userId }, update, { new: true }).exec();
 
-    res.json({ message: "✅ Note updated successfully!", note });
+    res.json({ message: "✅ Note updated successfully!", note: updatedNote });
   } catch (error) {
     console.error("❌ Error updating note:", error);
     res.status(500).json({ message: "Server error" });
@@ -249,4 +262,198 @@ export const searchNotes = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Convert a note to checklist mode
+export const convertToChecklist = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    // Parse content into checklist items (split by lines)
+    const content = note.content || "";
+    
+    // Strip HTML tags and get plain text, handle different HTML structures
+    let plainText = content
+      .replace(/<br\s*\/?>/gi, '\n')  // Convert br tags to newlines
+      .replace(/<\/p>/gi, '\n')        // Convert closing p tags to newlines
+      .replace(/<\/div>/gi, '\n')      // Convert closing div tags to newlines
+      .replace(/<\/li>/gi, '\n')       // Convert closing li tags to newlines
+      .replace(/<[^>]*>/g, '')         // Remove all other HTML tags
+      .replace(/&nbsp;/g, ' ')         // Replace nbsp with space
+      .replace(/&amp;/g, '&')          // Replace amp
+      .replace(/&lt;/g, '<')           // Replace lt
+      .replace(/&gt;/g, '>')           // Replace gt
+      .trim();
+    
+    const lines = plainText
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    const checklistItems = lines.map((line, index) => ({
+      text: line,
+      completed: false,
+      order: index
+    }));
+
+    note.isChecklist = true;
+    note.checklistItems = checklistItems;
+    await note.save();
+
+    res.json({ message: "Note converted to checklist", note });
+  } catch (error) {
+    console.error("❌ Error converting to checklist:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Convert a checklist back to regular note
+export const convertToRegularNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    // Convert checklist items back to content
+    if (note.isChecklist && note.checklistItems.length > 0) {
+      const sortedItems = note.checklistItems.sort((a, b) => a.order - b.order);
+      const content = sortedItems.map(item => item.text).join('\n');
+      note.content = content;
+    }
+
+    note.isChecklist = false;
+    note.checklistItems = [];
+    await note.save();
+
+    res.json({ message: "Checklist converted to regular note", note });
+  } catch (error) {
+    console.error("❌ Error converting to regular note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update checklist items (add, edit, delete, reorder)
+export const updateChecklistItems = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { checklistItems } = req.body;
+
+    if (!Array.isArray(checklistItems)) {
+      return res.status(400).json({ message: "checklistItems must be an array" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    if (!note.isChecklist) return res.status(400).json({ message: "Note is not in checklist mode" });
+
+    // Validate and set checklist items
+    const validatedItems = checklistItems.map((item, index) => ({
+      text: String(item.text || "").trim(),
+      completed: Boolean(item.completed),
+      order: typeof item.order === 'number' ? item.order : index
+    })).filter(item => item.text.length > 0);
+
+    note.checklistItems = validatedItems;
+    await note.save();
+
+    res.json({ message: "Checklist items updated", note });
+  } catch (error) {
+    console.error("❌ Error updating checklist items:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Toggle completion status of a specific checklist item
+export const toggleChecklistItem = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { itemIndex } = req.body;
+
+    if (typeof itemIndex !== 'number' || itemIndex < 0) {
+      return res.status(400).json({ message: "Valid itemIndex is required" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    if (!note.isChecklist) return res.status(400).json({ message: "Note is not in checklist mode" });
+    if (itemIndex >= note.checklistItems.length) {
+      return res.status(400).json({ message: "Item index out of bounds" });
+    }
+
+    // Toggle the completed status
+    note.checklistItems[itemIndex].completed = !note.checklistItems[itemIndex].completed;
+    await note.save();
+
+    res.json({ 
+      message: "Checklist item toggled", 
+      note,
+      toggledItem: note.checklistItems[itemIndex]
+    });
+  } catch (error) {
+    console.error("❌ Error toggling checklist item:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Add an emoji to a note's emoji list (metadata)
+export const addEmojiToNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { emoji } = req.body;
+
+    if (!emoji || typeof emoji !== "string") {
+      return res.status(400).json({ message: "emoji is required as a string" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    note.emojis = Array.isArray(note.emojis) ? note.emojis : [];
+    if (!note.emojis.includes(emoji)) {
+      note.emojis.push(emoji);
+      await note.save();
+    }
+
+    res.json({ message: "Emoji added to note", note });
+  } catch (error) {
+    console.error("❌ Error adding emoji to note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Remove an emoji from a note's emoji list (metadata)
+export const removeEmojiFromNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { emoji } = req.params;
+
+    if (!emoji || typeof emoji !== "string") {
+      return res.status(400).json({ message: "emoji param is required" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    note.emojis = (note.emojis || []).filter(e => e !== emoji);
+    await note.save();
+
+    res.json({ message: "Emoji removed from note", note });
+  } catch (error) {
+    console.error("❌ Error removing emoji from note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 

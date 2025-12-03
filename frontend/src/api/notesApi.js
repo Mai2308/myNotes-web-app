@@ -13,6 +13,17 @@ export const getNotes = async (token) => {
   return await res.json();
 };
 
+// Get notes filtered by folderId (use "null" to fetch root notes)
+export const getNotesByFolder = async (folderId, token) => {
+  const q = typeof folderId === "string" ? encodeURIComponent(folderId) : "null";
+  const res = await fetch(`${BASE}/api/notes?folderId=${q}`, { headers: { ...authHeaders(token) } });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to fetch notes by folder");
+  }
+  return await res.json();
+};
+
 // Create a new note
 export const createNote = async (note, token) => {
   // note = { title: string, content: string, tags: [], folderId?: string | null }
@@ -70,3 +81,93 @@ export const toggleFavorite = async (id, token) => {
   }
   return await res.json();
 };
+
+// Convert a note to checklist mode
+export const convertToChecklist = async (id, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/checklist/convert`, {
+    method: "POST",
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to convert to checklist");
+  }
+  return await res.json();
+};
+
+// Convert a checklist back to regular note
+export const convertToRegularNote = async (id, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/checklist/revert`, {
+    method: "POST",
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to convert to regular note");
+  }
+  return await res.json();
+};
+
+// Update checklist items
+export const updateChecklistItems = async (id, checklistItems, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/checklist/items`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ checklistItems }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to update checklist items");
+  }
+  return await res.json();
+};
+
+// Toggle completion status of a checklist item
+export const toggleChecklistItem = async (id, itemIndex, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/checklist/toggle`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ itemIndex }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to toggle checklist item");
+  }
+  return await res.json();
+};
+
+// Add an emoji to a note's emoji list (metadata)
+export const addEmojiToNote = async (id, emoji, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/emojis`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ emoji })
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to add emoji");
+  }
+  return await res.json();
+};
+
+// Remove an emoji from a note's emoji list (metadata)
+export const removeEmojiFromNote = async (id, emoji, token) => {
+  const enc = encodeURIComponent(emoji);
+  const res = await fetch(`${BASE}/api/notes/${id}/emojis/${enc}`, {
+    method: "DELETE",
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to remove emoji");
+  }
+  return await res.json();
+};
+
+// Lock feature removed
+
+// Unlock a note with password or biometric
+// Removed unlockNote function
+// Removed lockNote function
+
+// Lock feature removed

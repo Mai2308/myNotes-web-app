@@ -1,6 +1,19 @@
 import express from "express";
-import { getNotes, createNote, updateNote, deleteNote, searchNotes, moveNote, toggleFavorite } from "../controllers/noteController.js";
+import { 
+  getNotes, 
+  createNote, 
+  updateNote, 
+  deleteNote, 
+  searchNotes, 
+  moveNote, 
+  toggleFavorite,
+  convertToChecklist,
+  convertToRegularNote,
+  updateChecklistItems,
+  toggleChecklistItem,
+} from "../controllers/noteController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import { addEmojiToNote, removeEmojiFromNote } from "../controllers/noteController.js";
 
 const router = express.Router();
 
@@ -21,6 +34,17 @@ router.patch("/:id/move", protect, moveNote);
 
 // Toggle favorite status
 router.post("/:id/favorite", protect, toggleFavorite);
+
+// Checklist operations
+router.post("/:id/checklist/convert", protect, convertToChecklist);
+router.post("/:id/checklist/revert", protect, convertToRegularNote);
+router.put("/:id/checklist/items", protect, updateChecklistItems);
+router.patch("/:id/checklist/toggle", protect, toggleChecklistItem);
+
+// Emoji metadata operations
+router.post("/:id/emojis", protect, addEmojiToNote);
+router.delete("/:id/emojis/:emoji", protect, removeEmojiFromNote);
+
 
 // Delete a note
 router.delete("/:id", protect, deleteNote);

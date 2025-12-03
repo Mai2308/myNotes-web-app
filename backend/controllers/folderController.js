@@ -28,7 +28,22 @@ export const createFolder = async (req, res, next) => {
 export const listFolders = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    // Optionally return nested structure in frontend; here return flat list
+    
+    // Ensure Locked Notes default folder exists
+    let lockedFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Locked Notes" });
+    if (!lockedFolder) {
+      lockedFolder = new Folder({ user: userId, name: "Locked Notes", parentId: null, isDefault: true });
+      await lockedFolder.save();
+    }
+
+    // Ensure Favorites default folder exists
+    let favoritesFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Favorites" });
+    if (!favoritesFolder) {
+      favoritesFolder = new Folder({ user: userId, name: "Favorites", parentId: null, isDefault: true });
+      await favoritesFolder.save();
+    }
+
+    // Return all folders
     const folders = await Folder.find({ user: userId }).sort({ createdAt: -1 });
     res.json(folders);
   } catch (err) {

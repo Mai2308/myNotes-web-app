@@ -42,6 +42,11 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
     loadFolders();
   }, [loadFolders]);
 
+  useEffect(() => {
+    loadFolders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleCreateFolder = async (parentId = null) => {
     setShowCreateForm(true);
     setNewFolderParentId(parentId);
