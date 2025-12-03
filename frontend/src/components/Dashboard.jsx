@@ -67,9 +67,59 @@ export default function Dashboard() {
 
   const handleToggleFavorite = async (noteId) => {
     try {
-      await toggleFavorite(noteId, token);
-      const data = await getNotes(token);
-      setNotes(data || []);
+      // Find the note being toggled to determine if it's a copy or original
+      const clickedNote = notes.find(n => n._id === noteId);
+      const isClickingOnCopy = clickedNote?.sourceNoteId;
+      const originalNoteId = isClickingOnCopy ? clickedNote.sourceNoteId : noteId;
+      const isFavorite = clickedNote?.isFavorite;
+      
+      const response = await toggleFavorite(noteId, token);
+      
+      // Update notes list based on the response
+      setNotes(prevNotes => {
+        let updatedNotes = prevNotes;
+
+        if (!isFavorite) {
+          // Favoriting: Update the original note's isFavorite status
+          updatedNotes = prevNotes.map(note => {
+            if (note._id === originalNoteId) {
+              return { ...note, isFavorite: true };
+            }
+            return note;
+          });
+
+          // Add the favorite copy if it was created and doesn't exist
+          if (response.favoriteCopy) {
+            const copyExists = updatedNotes.some(note => note._id === response.favoriteCopy._id);
+            if (!copyExists) {
+              updatedNotes = [...updatedNotes, response.favoriteCopy];
+            }
+          }
+        } else {
+          // Unfavoriting: Remove the copy from the list and update original's status
+          updatedNotes = prevNotes
+            .filter(note => {
+              // Remove the favorite copy (the one in Favorites folder with sourceNoteId)
+              if (note.sourceNoteId === originalNoteId) {
+                return false;
+              }
+              // Remove the clicked copy itself if it's a copy
+              if (isClickingOnCopy && note._id === noteId) {
+                return false;
+              }
+              return true;
+            })
+            .map(note => {
+              // Update the original note's isFavorite status
+              if (note._id === originalNoteId) {
+                return { ...note, isFavorite: false };
+              }
+              return note;
+            });
+        }
+
+        return updatedNotes;
+      });
     } catch (err) {
       console.error(err);
       alert(err.message || "Failed to toggle favorite.");

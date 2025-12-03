@@ -22,9 +22,20 @@ export const toggleFavorite = async (req, res) => {
     const userId = req.user.id;
     const noteId = req.params.id;
 
-    // Find the original note
-    const originalNote = await Note.findOne({ _id: noteId, user: userId }).exec();
-    if (!originalNote) return res.status(404).json({ message: "Note not found" });
+    // Find the note being toggled
+    const clickedNote = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!clickedNote) return res.status(404).json({ message: "Note not found" });
+
+    // Determine if this is a copy or the original note
+    let originalNote;
+    if (clickedNote.sourceNoteId) {
+      // User clicked on a copy in Favorites - find the original
+      originalNote = await Note.findOne({ _id: clickedNote.sourceNoteId, user: userId }).exec();
+      if (!originalNote) return res.status(404).json({ message: "Original note not found" });
+    } else {
+      // User clicked on the original note
+      originalNote = clickedNote;
+    }
 
     // Find or create the user's Favorites folder
     let favoritesFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Favorites" }).exec();

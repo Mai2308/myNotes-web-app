@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi"; // react-icons
+import { FiMail, FiEye, FiEyeOff } from "react-icons/fi"; // react-icons
 
 export default function Login() {
   const [email, setEmail] = useState("");
