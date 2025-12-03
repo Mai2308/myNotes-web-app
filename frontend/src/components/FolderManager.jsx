@@ -23,7 +23,7 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
 
   const token = localStorage.getItem("token");
 
-  const loadFolders = async () => {
+  const loadFolders = useCallback(async () => {
     setLoading(true);
     setError("");
     try {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getEmojiCatalog, searchEmojis } from "../api/emojisApi";
+import { getEmojiCatalog } from "../api/emojisApi";
 import { Smile, Search } from "lucide-react";
 
 // Fallback emoji catalog if API fails
@@ -56,7 +56,7 @@ const FALLBACK_CATALOG = [
 
 export default function EmojiPicker({ onPick, compact = false }) {
   const [categories, setCategories] = useState(FALLBACK_CATALOG);
-  const [originalCategories, setOriginalCategories] = useState(FALLBACK_CATALOG);
+  
   const [activeCat, setActiveCat] = useState(FALLBACK_CATALOG[0]?.id || null);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -68,13 +68,11 @@ export default function EmojiPicker({ onPick, compact = false }) {
       try {
         const data = await getEmojiCatalog();
         setCategories(data.categories || FALLBACK_CATALOG);
-        setOriginalCategories(data.categories || FALLBACK_CATALOG);
         setActiveCat((data.categories || FALLBACK_CATALOG)[0]?.id || null);
       } catch (e) {
         console.warn("Failed to load emoji catalog from API, using fallback:", e);
         // Keep fallback catalog, no error shown to user
         setCategories(FALLBACK_CATALOG);
-        setOriginalCategories(FALLBACK_CATALOG);
         setActiveCat(FALLBACK_CATALOG[0]?.id || null);
       } finally {
         setLoading(false);

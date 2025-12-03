@@ -6,7 +6,7 @@ export default function ChecklistEditor({ items = [], onChange }) {
   const [checklistItems, setChecklistItems] = useState(items);
   const [newItemText, setNewItemText] = useState("");
   const [draggedIndex, setDraggedIndex] = useState(null);
-  const [activeInputIndex, setActiveInputIndex] = useState(null);
+  
   const newItemInputRef = useRef(null);
   const itemInputRefs = useRef({});
 
@@ -118,7 +118,8 @@ export default function ChecklistEditor({ items = [], onChange }) {
       } else {
         setNewItemText(newItemText + emoji);
       }
-      setActiveInputIndex(null);
+      
+      
     } else {
       // Add to existing item
       const input = itemInputRefs.current[index];
@@ -137,7 +138,8 @@ export default function ChecklistEditor({ items = [], onChange }) {
         const item = checklistItems[index];
         handleEditItem(index, item.text + emoji);
       }
-      setActiveInputIndex(null);
+      
+      
     }
   };
 
@@ -152,7 +154,6 @@ export default function ChecklistEditor({ items = [], onChange }) {
           value={newItemText}
           onChange={(e) => setNewItemText(e.target.value)}
           onKeyPress={handleKeyPress}
-          onFocus={() => setActiveInputIndex(null)}
           className="checklist-input"
         />
         <div style={{ position: "relative", display: "inline-block" }}>
@@ -198,7 +199,6 @@ export default function ChecklistEditor({ items = [], onChange }) {
                 type="text"
                 value={item.text}
                 onChange={(e) => handleEditItem(index, e.target.value)}
-                onFocus={() => setActiveInputIndex(index)}
                 className="checklist-item-text"
               />
               
