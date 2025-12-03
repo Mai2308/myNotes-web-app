@@ -151,7 +151,7 @@ export default function EmojiPicker({ onPick, compact = false }) {
           </div>
 
           {!q && (
-            <div className="emoji-tabs" style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <div className="emoji-tabs" style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
               {categories.map(cat => (
                 <button
                   key={cat.id}
