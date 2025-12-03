@@ -2,19 +2,71 @@ import sanitizeHtml from "sanitize-html";
 import Note from "../models/noteModel.js";
 import Folder from "../models/folderModel.js"; // new
 // Get all notes for the logged-in user
+// FINAL getNotes with sorting + folder filter + search
+// ==========================
+// ⭐ FINAL GET NOTES
+// ==========================
 export const getNotes = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { folderId } = req.query; // optional filter
+
+    // Filters & Query
+    const {
+      folderId,
+      q = "",
+      sort = "createdAt_desc"
+    } = req.query;
+
     const filter = { user: userId };
-    if (folderId) filter.folderId = folderId === "null" ? null : folderId;
-    const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
+
+    // Folder filter
+    if (folderId) {
+      filter.folderId = folderId === "null" ? null : folderId;
+    }
+
+    // Search filter
+    if (q.trim()) {
+      const keyword = q.trim();
+      filter.$or = [
+        { title: { $regex: keyword, $options: "i" } },
+        { content: { $regex: keyword, $options: "i" } },
+        { tags: { $elemMatch: { $regex: keyword, $options: "i" } } }
+      ];
+    }
+
+    // Sorting
+    let sortOption = {};
+
+    switch (sort) {
+      case "createdAt_desc":
+        sortOption = { createdAt: -1 };
+        break;
+      case "createdAt_asc":
+        sortOption = { createdAt: 1 };
+        break;
+      case "title_asc":
+        sortOption = { title: 1 };
+        break;
+      case "title_desc":
+        sortOption = { title: -1 };
+        break;
+      case "favorite":
+        sortOption = { isFavorite: -1, createdAt: -1 };
+        break;
+      default:
+        sortOption = { createdAt: -1 };
+    }
+
+    const notes = await Note.find(filter).sort(sortOption).exec();
+
     res.json(notes);
+
   } catch (error) {
-    console.error("❌ Error searching notes:", error);
+    console.error("❌ Error getting notes:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Toggle favorite status - creates a copy in Favorites folder
 export const toggleFavorite = async (req, res) => {
@@ -238,4 +290,6 @@ export const searchNotes = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
 
