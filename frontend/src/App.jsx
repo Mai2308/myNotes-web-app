@@ -8,6 +8,7 @@ import EditNote from "./pages/EditNote";
 import NotesList from "./components/NotesList";
 import Header from "./components/Header";
 import { useAuth } from "./auth/AuthProvider";
+import NotesPage from "./pages/NotesPage";
 
 function RequireAuth({ children }) {
   const { user } = useAuth();
@@ -19,10 +20,14 @@ export default function App() {
   return (
     <>
       <Header />
+
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Home page only when user visits "/" */}
+        <Route path="/" element={<Navigate to="/login" />} />
+
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+
         <Route
           path="/dashboard"
           element={
@@ -31,6 +36,7 @@ export default function App() {
             </RequireAuth>
           }
         />
+
         <Route
           path="/create"
           element={
@@ -39,6 +45,16 @@ export default function App() {
             </RequireAuth>
           }
         />
+
+        <Route
+          path="/notespage"
+          element={
+            <RequireAuth>
+              <NotesPage />
+            </RequireAuth>
+          }
+        />
+
         <Route
           path="/edit/:id"
           element={
@@ -47,6 +63,7 @@ export default function App() {
             </RequireAuth>
           }
         />
+
         <Route
           path="/notes"
           element={
@@ -55,11 +72,16 @@ export default function App() {
             </RequireAuth>
           }
         />
+
+        {/* 404 */}
         <Route path="*" element={<div style={{ padding: 20 }}>404 — Not Found</div>} />
       </Routes>
     </>
   );
 }
+
+
+
 
 
 
