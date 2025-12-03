@@ -71,6 +71,7 @@ export default function Dashboard() {
       const clickedNote = notes.find(n => n._id === noteId);
       const isClickingOnCopy = clickedNote?.sourceNoteId;
       const originalNoteId = isClickingOnCopy ? clickedNote.sourceNoteId : noteId;
+      const isFavorite = clickedNote?.isFavorite;
       
       const response = await toggleFavorite(noteId, token);
       
