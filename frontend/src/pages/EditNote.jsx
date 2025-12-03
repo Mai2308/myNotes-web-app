@@ -277,7 +277,7 @@ export default function EditNote() {
             ) : (
               <>
                 <ListTodo size={18} />
-                {converting ? "Converting..." : "Convert to Checklist"}
+                {converting ? "Converting..." : "Checklist"}
               </>
             )}
           </button>

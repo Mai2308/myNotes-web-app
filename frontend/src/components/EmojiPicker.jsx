@@ -150,26 +150,36 @@ export default function EmojiPicker({ onPick, compact = false }) {
 
           {!q && (
             <div className="emoji-tabs" style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  className="btn"
-                  onClick={() => setActiveCat(cat.id)}
-                  style={{
-                    padding: "8px 14px",
-                    background: activeCat === cat.id ? "#3b82f6" : "#6b7280",
-                    color: "#ffffff",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 500,
-                    border: "none",
-                    cursor: "pointer",
-                    transition: "all 0.2s"
-                  }}
-                >
-                  {cat.label}
-                </button>
-              ))}
+              {categories.map(cat => {
+                const symbolById = {
+                  status: "📌",
+                  moods: "🙂",
+                  topics: "🧠",
+                };
+                const displaySymbol = symbolById[cat.id] || cat.label;
+
+                return (
+                  <button
+                    key={cat.id}
+                    className="btn"
+                    onClick={() => setActiveCat(cat.id)}
+                    style={{
+                      padding: "8px 14px",
+                      background: activeCat === cat.id ? "#3b82f6" : "#6b7280",
+                      color: "#ffffff",
+                      borderRadius: 8,
+                      fontSize: 16,
+                      fontWeight: 500,
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      lineHeight: 1
+                    }}
+                  >
+                    {displaySymbol}
+                  </button>
+                );
+              })}
             </div>
           )}
 
