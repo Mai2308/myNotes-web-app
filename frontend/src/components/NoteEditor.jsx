@@ -25,7 +25,6 @@ const NoteEditor = forwardRef((props, ref) => {
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [savedMessage, setSavedMessage] = useState("");
-  const username = "";
   const saveKey = "autoSavedNote";
 
   useImperativeHandle(ref, () => ({
