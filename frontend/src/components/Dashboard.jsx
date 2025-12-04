@@ -4,6 +4,7 @@ import { getNotes, getNotesByFolder, deleteNote, moveNote, toggleFavorite } from
 import { useTheme } from "../context/ThemeContext";
 import { getFolder } from "../api/foldersApi";
 import FolderManager from "./FolderManager";
+import SearchBar from "./SearchBar";
 
 
 export default function Dashboard() {
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const [draggedNote, setDraggedNote] = useState(null);
   const [folders, setFolders] = useState([]);
   const [protectedCache, setProtectedCache] = useState({}); // folderId -> true when verified this session
+  const [searchTerm, setSearchTerm] = useState("");
   
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -184,10 +186,19 @@ export default function Dashboard() {
     navigate(`/edit/${note._id}`);
   };
 
-  // Filter notes based on selected folder
-  const filteredNotes = selectedFolderId === null
+  // Filter notes based on selected folder + search term
+  let filteredNotes = selectedFolderId === null
     ? notes.filter((n) => !n.folderId) // Show only root notes when "All Notes (Root)" is selected
     : notes.filter((n) => n.folderId === selectedFolderId);
+
+  if (searchTerm && searchTerm.trim()) {
+    const q = searchTerm.toLowerCase();
+    filteredNotes = filteredNotes.filter((n) => {
+      const title = String(n.title || "").toLowerCase();
+      const content = String(n.content || n.context || "").toLowerCase();
+      return title.includes(q) || content.includes(q);
+    });
+  }
 
   return (
     <div className="container" style={{ paddingTop: "40px" }}>
@@ -208,16 +219,23 @@ export default function Dashboard() {
         <div>
 
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20, alignItems: "center", gap: 12 }}>
             <h2 style={{ margin: 0 }}>
               {selectedFolderId === null ? "All Notes (Root)" : "Notes in Folder"}
             </h2>
-            <button
-              className={theme === "light" ? "btn-create-light" : "btn-create-dark"}
-              onClick={() => navigate("/create", { state: { folderId: selectedFolderId } })}
-            >
-              + Create Note
-            </button>
+            {/* Search bar */}
+            <div style={{ width: 320 }}>
+              <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+            </div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className={theme === "light" ? "btn-create-light" : "btn-create-dark"}
+                onClick={() => navigate("/create", { state: { folderId: selectedFolderId } })}
+              >
+                + Create Note
+              </button>
+            </div>
           </div>
 
       {loading && <p>Loading notes...</p>}
