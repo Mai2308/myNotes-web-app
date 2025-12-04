@@ -8,6 +8,7 @@ import EditNote from "./pages/EditNote";
 import NotesList from "./components/NotesList";
 import Header from "./components/Header";
 import { useAuth } from "./auth/AuthProvider";
+import Calendar from "./components/Calendar";
 
 function RequireAuth({ children }) {
   const { user } = useAuth();
