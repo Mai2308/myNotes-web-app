@@ -924,3 +924,61 @@ html[data-theme="dark"] .toolbar button:hover {
   z-index: -1;
   opacity: 0.1;
 }
+/* =============================
+   Modern Search Bar
+============================= */
+
+.searchbar-container {
+  position: relative;
+  width: 100%;
+  max-width: 350px;
+}
+
+.searchbar-input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  color: var(--text);
+  font-size: 15px;
+  transition: 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+}
+
+.searchbar-input::placeholder {
+  color: var(--muted);
+}
+
+.searchbar-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,126,185,0.15);
+  outline: none;
+}
+
+/* Search icon */
+.searchbar-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 18px;
+  width: 18px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* Dark mode matching styles */
+.dark .searchbar-input {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.dark .searchbar-input:focus {
+  box-shadow: 0 0 0 3px rgba(122,252,255,0.2);
+}
+
+.dark .searchbar-icon {
+  color: var(--muted);
+}
