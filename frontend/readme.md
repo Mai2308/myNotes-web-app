@@ -2,6 +2,11 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Locked Notes (app feature)
+- A default folder named "Locked Notes" always exists. The first time you open it you must set a password (min 4 chars); afterward you enter that password to view its contents.
+- Use the "Lock" button on a note card to move it into the Locked Notes folder.
+- To view locked notes, select the Locked Notes folder in the sidebar and enter the password when prompted.
+
 ## Available Scripts
 
 In the project directory, you can run:

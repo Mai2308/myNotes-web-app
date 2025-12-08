@@ -1,6 +1,11 @@
 import sanitizeHtml from "sanitize-html";
+import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import Note from "../models/noteModel.js";
 import Folder from "../models/folderModel.js";
+import { ensureLockedFolder, isLockedFolder } from "../utils/lockedFolder.js";
+
+const { Types: { ObjectId } } = mongoose;
 // Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
   try {
@@ -9,13 +14,34 @@ export const getNotes = async (req, res) => {
     const filter = { user: userId };
     if (folderId !== undefined) {
       // Explicit folderId query: return notes in that folder (null for root)
+      if (folderId !== "null" && !ObjectId.isValid(folderId)) {
+        return res.status(400).json({ message: "Invalid folder id" });
+      }
+
+      const targetFolder = folderId && folderId !== "null"
+        ? await Folder.findOne({ _id: folderId, user: userId }).lean()
+        : null;
+
+      if (folderId && folderId !== "null" && !targetFolder) {
+        return res.status(404).json({ message: "Folder not found" });
+      }
+
+      if (targetFolder && (targetFolder.isProtected || isLockedFolder(targetFolder))) {
+        const supplied = req.headers["x-folder-password"] || req.query.password;
+        if (!supplied) return res.status(403).json({ message: "Folder password required" });
+        const ok = await bcrypt.compare(String(supplied), targetFolder.passwordHash || "");
+        if (!ok) return res.status(403).json({ message: "Invalid folder password" });
+      }
+
       filter.folderId = folderId === "null" ? null : folderId;
     } else {
       // No folderId query: exclude notes inside password-protected folders from general listing
       const protectedFolders = await Folder.find({ user: userId, isProtected: true }).select("_id").lean();
-      const protectedIds = protectedFolders.map(f => f._id);
+      const protectedIds = protectedFolders.map(f => f._id.toString());
+      const lockedFolder = await ensureLockedFolder(userId);
+      if (lockedFolder) protectedIds.push(lockedFolder._id.toString());
       if (protectedIds.length > 0) {
-        filter.folderId = { $nin: protectedIds };
+        filter.folderId = { $nin: [...new Set(protectedIds)] };
       }
     }
     const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
@@ -212,6 +238,31 @@ export const moveNote = async (req, res) => {
   }
 };
 
+// Move a note into the locked folder
+export const lockNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found." });
+
+    const lockedFolder = await ensureLockedFolder(userId);
+    note.folderId = lockedFolder._id;
+    await note.save();
+
+    res.json({
+      message: "Note moved to locked folder",
+      note,
+      lockedFolderId: lockedFolder._id,
+      requiresPassword: Boolean(lockedFolder.passwordHash),
+    });
+  } catch (error) {
+    console.error("❌ Error locking note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // Delete a note
 export const deleteNote = async (req, res) => {
   try {
@@ -234,29 +285,50 @@ export const searchNotes = async (req, res) => {
     const userId = req.user.id;
     const keyword = req.query.q?.trim() || "";
     const { folderId } = req.query;
+    const excludedFolderIds = [];
+    const lockedFolder = await ensureLockedFolder(userId);
+    if (lockedFolder) excludedFolderIds.push(lockedFolder._id.toString());
+    const protectedFolders = await Folder.find({ user: userId, isProtected: true }).select("_id isProtected passwordHash name isDefault").lean();
+    protectedFolders.forEach((f) => excludedFolderIds.push(f._id.toString()));
 
-    if (!keyword) {
-      const filter = { user: userId };
-      if (folderId) filter.folderId = folderId === "null" ? null : folderId;
+    const filter = { user: userId };
+    const isFolderScoped = typeof folderId !== "undefined" && folderId !== "";
 
-      const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
-      return res.json(notes);
+    if (isFolderScoped) {
+      if (folderId !== "null" && !ObjectId.isValid(folderId)) {
+        return res.status(400).json({ message: "Invalid folder id" });
+      }
+
+      const targetFolder = folderId && folderId !== "null"
+        ? await Folder.findOne({ _id: folderId, user: userId }).lean()
+        : null;
+
+      if (folderId && folderId !== "null" && !targetFolder) {
+        return res.status(404).json({ message: "Folder not found" });
+      }
+
+      if (targetFolder && (targetFolder.isProtected || isLockedFolder(targetFolder))) {
+        const supplied = req.headers["x-folder-password"] || req.query.password;
+        if (!supplied) return res.status(403).json({ message: "Folder password required" });
+        const ok = await bcrypt.compare(String(supplied), targetFolder.passwordHash || "");
+        if (!ok) return res.status(403).json({ message: "Invalid folder password" });
+      }
+
+      filter.folderId = folderId === "null" ? null : folderId;
+    } else if (excludedFolderIds.length > 0) {
+      filter.folderId = { $nin: [...new Set(excludedFolderIds)] };
     }
 
-    const filter = {
-      user: userId,
-      $or: [
+    if (keyword) {
+      filter.$or = [
         { title: { $regex: keyword, $options: "i" } },
         { content: { $regex: keyword, $options: "i" } },
-        { tags: { $elemMatch: { $regex: keyword, $options: "i" } } }
-      ]
-    };
-
-    if (folderId) filter.folderId = folderId === "null" ? null : folderId;
+        { tags: { $elemMatch: { $regex: keyword, $options: "i" } } },
+      ];
+    }
 
     const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
     res.json(notes);
-
   } catch (error) {
     console.error("❌ Error searching notes:", error);
     res.status(500).json({ message: "Server error" });

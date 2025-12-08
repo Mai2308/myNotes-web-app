@@ -180,6 +180,8 @@ export default function FolderTree({
             >
               {folder.isDefault && folder.name === "Favorites" ? (
                 "⭐"
+              ) : folder.isDefault && folder.name === "Locked Notes" ? (
+                <Lock size={14} />
               ) : folder.isProtected ? (
                 <Lock size={14} />
               ) : (
@@ -189,7 +191,7 @@ export default function FolderTree({
             </span>
           )}
 
-          {!isEditing && (!folder.isDefault || folder.name === "Locked Notes") && (
+          {!isEditing && !folder.isDefault && (
             <div className="folder-actions" style={{ display: "flex", gap: "4px", marginLeft: "8px" }}>
               <button
                 onClick={(e) => {

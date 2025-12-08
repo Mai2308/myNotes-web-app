@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getFolders, createFolder, updateFolder, deleteFolder } from "../api/foldersApi";
+import { getFolders, createFolder, updateFolder, deleteFolder, getLockedFolder } from "../api/foldersApi";
 import FolderTree from "./FolderTree";
 import { useTheme } from "../context/ThemeContext";
 
@@ -27,6 +27,8 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
     setLoading(true);
     setError("");
     try {
+      // Ensure locked folder exists (server will create if missing)
+      await getLockedFolder(token);
       const data = await getFolders(token);
       setFolders(data);
       if (onFoldersChange) onFoldersChange(data);
