@@ -17,7 +17,8 @@ export default function Dashboard() {
   const [folderPasswords, setFolderPasswords] = useState({}); // folderId -> password entered this session
   const [lockedFolderId, setLockedFolderId] = useState(null);
   const [lockedHasPassword, setLockedHasPassword] = useState(false);
-  
+  const [searchTerm, setSearchTerm] = useState("");
+
   const navigate = useNavigate();
   const { theme } = useTheme();
 
