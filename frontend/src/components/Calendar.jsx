@@ -92,6 +92,48 @@ const Calendar = () => {
     }
   };
 
+  // Function to delete an event
+  const handleDeleteEvent = async (eventId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/calendar/${eventId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchEvents(); // Refresh events list
+      } else {
+        console.error("Failed to delete event");
+      }
+    } catch (err) {
+      console.error("Error deleting event:", err);
+    }
+  };
+
+  // Function to edit an event
+  const handleEditEvent = async (eventId, updatedData) => {
+    try {
+      const response = await fetch(`${API_URL}/api/calendar/${eventId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(updatedData),
+      });
+
+      if (response.ok) {
+        fetchEvents(); // Refresh events list
+      } else {
+        console.error("Failed to edit event");
+      }
+    } catch (err) {
+      console.error("Error editing event:", err);
+    }
+  };
+
   // Helper functions
   const daysInMonth = (date) => 
     new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -250,6 +292,19 @@ const Calendar = () => {
       {/* Add a clock to display the current time */}
       <div className="clock">
         <h3>Current Time: {currentTime.toLocaleTimeString()}</h3>
+      </div>
+
+      {/* Display events */}
+      <div className="events-list">
+        {events.map((event) => (
+          <div key={event.id} className="event-item">
+            <h4>{event.title}</h4>
+            <p>{event.description}</p>
+            <p>{new Date(event.date).toLocaleDateString()} {event.time}</p>
+            <button onClick={() => handleEditEvent(event.id, { title: "Updated Title" })}>Edit</button>
+            <button onClick={() => handleDeleteEvent(event.id)}>Delete</button>
+          </div>
+        ))}
       </div>
     </div>
   );
