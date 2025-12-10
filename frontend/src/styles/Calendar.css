@@ -178,3 +178,33 @@
 .submit-btn:hover {
   background: #2563EB;
 }
+
+/* Real-time clock */
+.clock {
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: #3B82F6;
+  margin-bottom: 20px;
+}
+
+/* Responsive calendar container */
+@media (max-width: 768px) {
+  .calendar-container {
+    padding: 15px;
+    max-width: 100%;
+  }
+
+  .calendar-header h2 {
+    font-size: 18px;
+  }
+
+  .calendar-day {
+    font-size: 12px;
+  }
+
+  .add-event-btn {
+    font-size: 14px;
+    padding: 10px;
+  }
+}
