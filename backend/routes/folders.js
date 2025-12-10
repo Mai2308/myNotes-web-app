@@ -2,7 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import Folder from "../models/folderModel.js";
 import Note from "../models/noteModel.js";
-import { protect } from "../middleware/auth.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 const { Types: { ObjectId } } = mongoose;

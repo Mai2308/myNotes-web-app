@@ -5,7 +5,7 @@ import {
   updateEvent, 
   deleteEvent 
 } from "../src/controllers/calendarController.js";
-import protect from "../middleware/auth.js";
+import protect from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 

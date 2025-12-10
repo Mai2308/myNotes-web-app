@@ -176,7 +176,7 @@ const Calendar = () => {
     <div className="calendar-container">
       {/* Header with month/year and navigation */}
       <div className="calendar-header">
-        <button onClick={goToPreviousMonth}>
+        <button onClick={goToPreviousMonth} aria-label="Previous Month">
           <ChevronLeft />
         </button>
         <h2>
@@ -185,7 +185,7 @@ const Calendar = () => {
             year: "numeric" 
           })}
         </h2>
-        <button onClick={goToNextMonth}>
+        <button onClick={goToNextMonth} aria-label="Next Month">
           <ChevronRight />
         </button>
       </div>
