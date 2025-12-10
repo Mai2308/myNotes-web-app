@@ -15,6 +15,7 @@ const Calendar = () => {
     reminderEnabled: false,
     color: "#3B82F6",
   });
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
@@ -22,6 +23,15 @@ const Calendar = () => {
   useEffect(() => {
     fetchEvents();
   }, [currentDate]);
+
+  // Update the time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Function to fetch events from backend
   const fetchEvents = async () => {
@@ -236,6 +246,11 @@ const Calendar = () => {
           </div>
         </div>
       )}
+
+      {/* Add a clock to display the current time */}
+      <div className="clock">
+        <h3>Current Time: {currentTime.toLocaleTimeString()}</h3>
+      </div>
     </div>
   );
 };
