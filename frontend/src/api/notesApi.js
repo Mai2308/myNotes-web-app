@@ -6,8 +6,23 @@ function authHeaders(token) {
 }
 
 // Get all notes  ← إضافة sort فقط
-export const getNotes = async (token, sort) => {
-  const res = await fetch(`${BASE}/api/notes?sort=${sort}`, {
+export const getNotes = async (token, sortOrOptions = {}) => {
+  // قبول string (قديم) أو object (جديد)
+  let sort, folderId, q;
+  if (typeof sortOrOptions === "string") {
+    sort = sortOrOptions;
+  } else if (sortOrOptions && typeof sortOrOptions === "object") {
+    ({ sort, folderId, q } = sortOrOptions);
+  }
+
+  const params = new URLSearchParams();
+  if (sort) params.append("sort", sort);
+  if (folderId !== undefined && folderId !== null) params.append("folderId", folderId);
+  if (q) params.append("q", q);
+
+  const url = `${BASE}/api/notes${params.toString() ? `?${params.toString()}` : ""}`;
+
+  const res = await fetch(url, {
     headers: { ...authHeaders(token) },
   });
   return await res.json();
