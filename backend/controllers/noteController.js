@@ -106,6 +106,8 @@ export const toggleFavorite = async (req, res) => {
           folderId: favoritesFolder._id,
           isFavorite: true,
           sourceNoteId: originalNote._id,
+          isChecklist: originalNote.isChecklist || false,
+          checklistItems: originalNote.checklistItems ? JSON.parse(JSON.stringify(originalNote.checklistItems)) : [],
         });
         await favoriteCopy.save();
       } else {
@@ -114,13 +116,15 @@ export const toggleFavorite = async (req, res) => {
         favoriteCopy.content = originalNote.content;
         favoriteCopy.tags = originalNote.tags;
         favoriteCopy.isFavorite = true;
+        favoriteCopy.isChecklist = originalNote.isChecklist || false;
+        favoriteCopy.checklistItems = originalNote.checklistItems ? JSON.parse(JSON.stringify(originalNote.checklistItems)) : [];
         await favoriteCopy.save();
       }
 
       res.json({ 
         message: "Note added to favorites", 
-        note: originalNote, 
-        favoriteCopy: favoriteCopy 
+        note: originalNote.toObject(), 
+        favoriteCopy: favoriteCopy.toObject() 
       });
     } else {
       // Unfavorite: mark original as not favorite and delete the copy in Favorites
@@ -136,7 +140,7 @@ export const toggleFavorite = async (req, res) => {
 
       res.json({ 
         message: "Note removed from favorites", 
-        note: originalNote 
+        note: originalNote.toObject() 
       });
     }
   } catch (error) {

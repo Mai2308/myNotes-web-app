@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getNotes, getNotesByFolder, deleteNote, moveNote, toggleFavorite, lockNote } from "../api/notesApi";
 import { useTheme } from "../context/ThemeContext";
@@ -16,8 +16,10 @@ export default function Dashboard() {
   const [folders, setFolders] = useState([]);
   const [folderPasswords, setFolderPasswords] = useState({}); // folderId -> password entered this session
   const [lockedFolderId, setLockedFolderId] = useState(null);
-  const [lockedHasPassword, setLockedHasPassword] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState(null); // { top, left } for fixed positioning
+  const menuButtonRefs = useRef({});
 
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -30,7 +32,6 @@ export default function Dashboard() {
       try {
         const data = await getLockedFolder(token);
         if (data?.folder?._id) setLockedFolderId(data.folder._id);
-        setLockedHasPassword(Boolean(data?.hasPassword));
       } catch (err) {
         console.error("Failed to preload locked folder", err);
       }
@@ -66,7 +67,6 @@ export default function Dashboard() {
             if (data?.folder?._id) {
               currentLocked = { id: data.folder._id, hasPassword: Boolean(data.hasPassword) };
               setLockedFolderId(data.folder._id);
-              setLockedHasPassword(Boolean(data.hasPassword));
             }
           } catch (err) {
             console.error("Failed to refresh locked folder", err);
@@ -89,7 +89,6 @@ export default function Dashboard() {
               return;
             }
             await setLockedFolderPassword(pwd, token);
-            setLockedHasPassword(true);
             password = pwd;
           } else {
             // Password exists, always prompt to enter it
@@ -180,7 +179,6 @@ export default function Dashboard() {
         // Clear password cache for locked folder
         setFolderPasswords({});
       }
-      setLockedHasPassword(Boolean(result?.requiresPassword));
       // Remove from current view (will appear when user opens locked folder)
       setNotes((prev) => prev.filter((n) => n._id !== noteId));
       // Force password re-prompt by resetting to root
@@ -252,7 +250,10 @@ export default function Dashboard() {
     }
   };
 
-  
+  const closeMenu = () => {
+    setOpenMenuId(null);
+    setMenuPos(null);
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this note?")) return;
@@ -344,12 +345,44 @@ export default function Dashboard() {
               cursor: "grab",
               transition: "transform 0.15s ease",
               opacity: draggedNote?._id === note._id ? 0.5 : 1,
-              
+              position: "relative",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
               <h3 className="h2" style={{ margin: 0, flex: 1 }}>{note.title || "Untitled"}</h3>
               
+              {/* Three-dot menu */}
+              <div style={{ position: "relative" }}>
+                <button
+                  ref={(el) => {
+                    if (el) menuButtonRefs.current[note._id] = el;
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (openMenuId === note._id) {
+                      setOpenMenuId(null);
+                      setMenuPos(null);
+                    } else {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setMenuPos({
+                        top: rect.bottom + window.scrollY + 4,
+                        left: rect.right + window.scrollX - 140,
+                      });
+                      setOpenMenuId(note._id);
+                    }
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "20px",
+                    padding: "0 4px",
+                  }}
+                  title="More options"
+                >
+                  ⋯
+                </button>
+              </div>
             </div>
 
             {note.isChecklist ? (
@@ -374,84 +407,161 @@ export default function Dashboard() {
                 dangerouslySetInnerHTML={{ __html: displayNote.content || "" }}
               ></p>
             )}
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: 12, flexWrap: "wrap" }}>
-              {
-                <>
-                  {!(lockedFolderId && note.folderId === lockedFolderId) && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLockNote(note._id);
-                      }}
-                      className="btn"
-                      style={{ background: "#6a1b9a", color: "white", padding: "6px 12px", fontSize: "13px" }}
-                      title="Move to Locked Notes"
-                    >
-                      🔒
-                    </button>
-                  )}
-                  {lockedFolderId && note.folderId === lockedFolderId && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoveNote(note._id, null);
-                      }}
-                      className="btn"
-                      style={{ background: "#ff9800", color: "white", padding: "6px 12px", fontSize: "13px" }}
-                      title="Unlock note"
-                    >
-                      🔓
-                    </button>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleFavorite(note._id, note.isFavorite);
-                    }}
-                    className="btn"
-                    style={{ 
-                      background: note.isFavorite ? "#FFD700" : "#888", 
-                      padding: "6px 12px", 
-                      fontSize: "13px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px"
-                    }}
-                    title={note.isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  >
-                    {note.isFavorite ? "★" : "☆"}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditNote(note);
-                    }}
-                    className="btn"
-                    style={{ background: "#2196F3", padding: "6px 12px", fontSize: "13px" }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(note._id);
-                    }}
-                    className="btn"
-                    style={{ background: "crimson", padding: "6px 12px", fontSize: "13px" }}
-                  >
-                    Delete
-                  </button>
-                </>
-              }
-            </div>
           </div>
         )})}
       </div>
+
+      {/* Fixed menu overlay - rendered outside the grid */}
+      {openMenuId && menuPos && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            closeMenu();
+          }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+          }}
+        >
+          {/* Menu container */}
+          {filteredNotes.find(n => n._id === openMenuId) && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "fixed",
+                top: `${menuPos.top}px`,
+                left: `${menuPos.left}px`,
+                background: theme === "light" ? "#fff" : "#2a2a2a",
+                border: `1px solid ${theme === "light" ? "#ddd" : "#555"}`,
+                borderRadius: "4px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                zIndex: 10000,
+                minWidth: "140px",
+              }}
+            >
+              {(() => {
+                const note = filteredNotes.find(n => n._id === openMenuId);
+                if (!note) return null;
+                return (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditNote(note);
+                        closeMenu();
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                      }}
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleFavorite(note._id);
+                        closeMenu();
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                      }}
+                    >
+                      {note.isFavorite ? "★ Unfavorite" : "☆ Favorite"}
+                    </button>
+                    {!(lockedFolderId && note.folderId === lockedFolderId) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLockNote(note._id);
+                          closeMenu();
+                        }}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "10px 12px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                        }}
+                      >
+                        🔒 Lock
+                      </button>
+                    )}
+                    {lockedFolderId && note.folderId === lockedFolderId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveNote(note._id, null);
+                          closeMenu();
+                        }}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "10px 12px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                        }}
+                      >
+                        🔓 Unlock
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(note._id);
+                        closeMenu();
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        color: "crimson",
+                      }}
+                    >
+                      🗑️ Delete
+                    </button>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
         </div>
       </div>
-
-      
     </div>
   );
 }
