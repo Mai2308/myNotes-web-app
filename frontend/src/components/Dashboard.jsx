@@ -1,345 +1,243 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getNotes, getNotesByFolder, deleteNote, moveNote, toggleFavorite, lockNote } from "../api/notesApi";
 import { useTheme } from "../context/ThemeContext";
 import { getFolder, getLockedFolder, setLockedFolderPassword, verifyLockedFolderPassword } from "../api/foldersApi";
 import FolderManager from "./FolderManager";
-import SearchBar from "./SearchBar";
-
+import { useView } from "../context/ViewContext";
+import SortMenu from "./viewOptions/SortMenu";
+import ViewLayoutSelector from "./viewOptions/ViewLayoutSelector";
 
 export default function Dashboard() {
+  const { sort, setSort, viewType } = useView();
+  const { theme } = useTheme();
+  const navigate = useNavigate();
+
   const [notes, setNotes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [draggedNote, setDraggedNote] = useState(null);
-  const [folders, setFolders] = useState([]);
-  const [folderPasswords, setFolderPasswords] = useState({}); // folderId -> password entered this session
-  const [lockedFolderId, setLockedFolderId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [menuPos, setMenuPos] = useState(null); // { top, left } for fixed positioning
-  const menuButtonRefs = useRef({});
-
-  const navigate = useNavigate();
-  const { theme } = useTheme();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [favPending, setFavPending] = useState(new Set());
 
   const token = localStorage.getItem("token");
+  const requestIdRef = useRef(0);
+  const debounceRef = useRef(null);
 
-  // Ensure locked folder metadata is known on mount
-  useEffect(() => {
-    const loadLocked = async () => {
-      try {
-        const data = await getLockedFolder(token);
-        if (data?.folder?._id) setLockedFolderId(data.folder._id);
-      } catch (err) {
-        console.error("Failed to preload locked folder", err);
-      }
-    };
-    loadLocked();
-  }, [token]);
+  const applySort = useCallback((list = [], sortMode) => {
+    if (!sortMode) return [...list];
+    const copy = [...list];
+    const getTime = (n) => new Date(n?.createdAt || n?.updatedAt || 0).getTime();
 
-  // When selected folder changes or on mount, fetch appropriate notes
+    switch (sortMode) {
+      case "newest":
+        return copy.sort((a, b) => getTime(b) - getTime(a));
+      case "oldest":
+        return copy.sort((a, b) => getTime(a) - getTime(b));
+      case "title_asc":
+        return copy.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+      case "title_desc":
+        return copy.sort((a, b) => (b.title || "").localeCompare(a.title || ""));
+      case "favorite":
+        return copy.sort((a, b) => {
+          const favDiff = (b.isFavorite === true ? 1 : 0) - (a.isFavorite === true ? 1 : 0);
+          return favDiff !== 0 ? favDiff : getTime(b) - getTime(a);
+        });
+      default:
+        return copy;
+    }
+  }, []);
+
+  // Fetch notes with debounce + stale-response guard
   useEffect(() => {
-    const run = async () => {
+    if (!token) return;
+
+    // apply local sort immediately to avoid flicker
+    setNotes((prev) => applySort(prev, sort));
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(() => {
+      const myReq = ++requestIdRef.current;
       setLoading(true);
       setError("");
 
+      getNotes(token, { sort, folderId: selectedFolderId, q: searchQuery })
+        .then((data) => {
+          if (myReq !== requestIdRef.current) return; // stale
+          setNotes(applySort(data || [], sort));
+        })
+        .catch((err) => {
+          console.error("fetchNotes error:", err);
+          if (myReq === requestIdRef.current) setError("Failed to load notes.");
+        })
+        .finally(() => {
+          if (myReq === requestIdRef.current) setLoading(false);
+        });
+    }, 120); // small debounce to avoid many requests
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [token, sort, selectedFolderId, searchQuery, applySort]);
+
+  const handleDelete = useCallback(
+    async (id) => {
+      if (!window.confirm("Are you sure you want to delete this note?")) return;
       try {
-        // Root view: load all visible notes
-        if (selectedFolderId === null) {
-          const data = await getNotes(token);
-          setNotes(data || []);
-          return;
-        }
-
-        const folder = folders.find((f) => f._id === selectedFolderId);
-        if (!folder) return;
-
-        const isLockedFolder = folder.isDefault && folder.name === "Locked Notes";
-
-        // Locked folder flow
-        if (isLockedFolder) {
-          // Always fetch fresh locked folder state from backend
-          let currentLocked = { id: selectedFolderId, hasPassword: false };
-          try {
-            const data = await getLockedFolder(token);
-            if (data?.folder?._id) {
-              currentLocked = { id: data.folder._id, hasPassword: Boolean(data.hasPassword) };
-              setLockedFolderId(data.folder._id);
-            }
-          } catch (err) {
-            console.error("Failed to refresh locked folder", err);
-            setError("Failed to load locked folder");
-            setSelectedFolderId(null);
-            return;
-          }
-
-          const lockedId = currentLocked.id;
-          
-          // Always prompt for password (don't use cache)
-          // This ensures password is requested every time
-          let password = null;
-
-          if (!currentLocked.hasPassword) {
-            const pwd = window.prompt("Set a password for Locked Notes (min 4 characters):");
-            if (!pwd || pwd.length < 4) {
-              setSelectedFolderId(null);
-              setError("Locked Notes requires a password (min 4 chars).");
-              return;
-            }
-            await setLockedFolderPassword(pwd, token);
-            password = pwd;
-          } else {
-            // Password exists, always prompt to enter it
-            const pwd = window.prompt("Enter password for Locked Notes:");
-            if (!pwd) {
-              setSelectedFolderId(null);
-              return;
-            }
-            try {
-              await verifyLockedFolderPassword(pwd, token);
-              password = pwd;
-            } catch (err) {
-              alert("Wrong password, Try again");
-              setSelectedFolderId(null);
-              return;
-            }
-          }
-
-          // Don't cache the password - always require re-entry
-          const { notes: folderNotes } = await getFolder(lockedId, { includeNotes: true, password }, token);
-          setNotes(folderNotes || []);
-          return;
-        }
-
-        // Generic protected folder flow
-        if (folder.isProtected) {
-          let password = folderPasswords[folder._id];
-          if (!password) {
-            const pwd = window.prompt(`This folder ("${folder.name}") is protected. Enter password:`);
-            if (!pwd) {
-              setSelectedFolderId(null);
-              return;
-            }
-            password = pwd;
-          }
-          const { notes: folderNotes } = await getFolder(folder._id, { includeNotes: true, password }, token);
-          setFolderPasswords((prev) => ({ ...prev, [folder._id]: password }));
-          setNotes(folderNotes || []);
-          return;
-        }
-
-        // Unprotected folder
-        const folderNotes = await getNotesByFolder(selectedFolderId, token);
-        setNotes(folderNotes || []);
+        await deleteNote(id, token);
+        setNotes((prev) => prev.filter((n) => n._id !== id));
       } catch (err) {
         console.error(err);
-        setError(err.message || "Failed to load notes");
-        setSelectedFolderId(null);
-      } finally {
-        setLoading(false);
+        alert("Failed to delete note.");
       }
-    };
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFolderId, token, folders]);
+    },
+    [token]
+  );
 
   const handleDragStart = (e, note) => {
     setDraggedNote(note);
-    e.dataTransfer.effectAllowed = "move";
+    if (e && e.dataTransfer) e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDragEnd = () => {
-    setDraggedNote(null);
-  };
+  const handleDragEnd = () => setDraggedNote(null);
 
-  const handleMoveNote = async (noteId, targetFolderId) => {
-    try {
-      await moveNote(noteId, targetFolderId, token);
-      // If moving a note out of locked folder, force re-prompt by clearing cache
-      if (lockedFolderId && targetFolderId !== lockedFolderId && selectedFolderId === lockedFolderId) {
-        setFolderPasswords({});
-        setSelectedFolderId(null);
-      } else {
-        const data = await getNotes(token);
-        setNotes(data || []);
+  const handleMoveNote = useCallback(
+    async (noteId, targetFolderId) => {
+      try {
+        await moveNote(noteId, targetFolderId, token);
+        // update locally if possible
+        setNotes((prev) =>
+          prev.map((n) => (n._id === noteId ? { ...n, folderId: targetFolderId } : n))
+        );
+        // refresh to ensure server state and sort
+        const data = await getNotes(token, { sort, folderId: selectedFolderId, q: searchQuery });
+        setNotes(applySort(data || [], sort));
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Failed to move note.");
       }
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Failed to move note.");
-    }
-  };
+    },
+    [token, sort, selectedFolderId, searchQuery, applySort]
+  );
 
-  const handleLockNote = async (noteId) => {
-    try {
-      const result = await lockNote(noteId, token);
-      if (result?.lockedFolderId) {
-        setLockedFolderId(result.lockedFolderId);
-        // Clear password cache for locked folder
-        setFolderPasswords({});
+  const handleToggleFavorite = useCallback(
+    async (noteId) => {
+      // منع النقر المتكرر
+      if (favPending.has(noteId)) return;
+      setFavPending((s) => new Set(s).add(noteId));
+
+      try {
+        // تحديث محلي فوري (optimistic) - بدون re-fetch
+        setNotes((prev) =>
+          prev.map((n) =>
+            n._id === noteId ? { ...n, isFavorite: !n.isFavorite } : n
+          )
+        );
+
+        // إرسال للسيرفر بدون انتظار re-fetch
+        await toggleFavorite(noteId, token);
+        console.log("toggleFavorite success for:", noteId);
+        
+        // لا نعمل re-fetch — خليه يبقى محلي
+      } catch (err) {
+        console.error("toggleFavorite failed:", err);
+        // على الفشل فقط: ارجع للحالة السابقة
+        setNotes((prev) =>
+          prev.map((n) =>
+            n._id === noteId ? { ...n, isFavorite: !n.isFavorite } : n
+          )
+        );
+        alert(err.message || "Failed to toggle favorite.");
+      } finally {
+        setFavPending((s) => {
+          const next = new Set(s);
+          next.delete(noteId);
+          return next;
+        });
       }
-      // Remove from current view (will appear when user opens locked folder)
-      setNotes((prev) => prev.filter((n) => n._id !== noteId));
-      // Force password re-prompt by resetting to root
-      setSelectedFolderId(null);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Failed to lock note.");
-    }
-  };
+    },
+    [favPending]
+  );
 
-  const handleToggleFavorite = async (noteId) => {
-    try {
-      // Find the note being toggled to determine if it's a copy or original
-      const clickedNote = notes.find(n => n._id === noteId);
-      const isClickingOnCopy = clickedNote?.sourceNoteId;
-      const originalNoteId = isClickingOnCopy ? clickedNote.sourceNoteId : noteId;
-      const isFavorite = clickedNote?.isFavorite;
-      
-      const response = await toggleFavorite(noteId, token);
-      console.log("🔍 Toggle Favorite Response:", response);
-      console.log("📋 Favorite Copy:", response.favoriteCopy);
-      
-      // Update notes list based on the response
-      setNotes(prevNotes => {
-        let updatedNotes = prevNotes;
-
-        if (!isFavorite) {
-          // Favoriting: Update the original note's isFavorite status
-          updatedNotes = prevNotes.map(note => {
-            if (note._id === originalNoteId) {
-              return { ...note, isFavorite: true };
-            }
-            return note;
-          });
-
-          // Add the favorite copy if it was created and doesn't exist
-          if (response.favoriteCopy) {
-            const copyExists = updatedNotes.some(note => note._id === response.favoriteCopy._id);
-            if (!copyExists) {
-              // Ensure all properties including checklist are preserved
-              const favoriteCopy = {
-                ...response.favoriteCopy,
-                isChecklist: response.favoriteCopy.isChecklist || false,
-                checklistItems: response.favoriteCopy.checklistItems || []
-              };
-              updatedNotes = [...updatedNotes, favoriteCopy];
-            }
-          }
-        } else {
-          // Unfavoriting: Remove the copy from the list and update original's status
-          updatedNotes = prevNotes
-            .filter(note => {
-              // Remove the favorite copy (the one in Favorites folder with sourceNoteId)
-              if (note.sourceNoteId === originalNoteId) {
-                return false;
-              }
-              // Remove the clicked copy itself if it's a copy
-              if (isClickingOnCopy && note._id === noteId) {
-                return false;
-              }
-              return true;
-            })
-            .map(note => {
-              // Update the original note's isFavorite status
-              if (note._id === originalNoteId) {
-                return { ...note, isFavorite: false };
-              }
-              return note;
-            });
-        }
-
-        return updatedNotes;
-      });
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Failed to toggle favorite.");
-    }
-  };
-
-  const closeMenu = () => {
-    setOpenMenuId(null);
-    setMenuPos(null);
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this note?")) return;
-    try {
-      await deleteNote(id, token);
-      setNotes(notes.filter((n) => n._id !== id));
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Failed to delete note.");
-    }
-  };
-
-  const handleEditNote = (note) => {
-    navigate(`/edit/${note._id}`, { state: { note } });
-  };
-
-  // Filter notes based on selected folder + search term
-  let filteredNotes = selectedFolderId === null
-    ? notes.filter((n) => !n.folderId) // Show only root notes when "All Notes (Root)" is selected
-    : notes.filter((n) => n.folderId === selectedFolderId);
-
-  if (searchTerm && searchTerm.trim()) {
-    const q = searchTerm.toLowerCase();
-    filteredNotes = filteredNotes.filter((n) => {
-      const title = String(n.title || "").toLowerCase();
-      const content = String(n.content || n.context || "").toLowerCase();
-      return title.includes(q) || content.includes(q);
+  const filteredNotes = notes
+    .filter((n) => (selectedFolderId === null ? !n.folderId : String(n.folderId) === String(selectedFolderId)))
+    .filter((n) => {
+      const q = (searchQuery || "").toLowerCase();
+      if (!q) return true;
+      const titleMatch = (n.title || "").toLowerCase().includes(q);
+      const contentText = (n.content || "").replace(/<[^>]+>/g, "").toLowerCase();
+      const contentMatch = contentText.includes(q);
+      return titleMatch || contentMatch;
     });
   }
 
   return (
-    <div className="container" style={{ paddingTop: "40px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "24px" }}>
+    <div className="container" style={{ paddingTop: 40}}>
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 24 }}>
+        <FolderManager
+          selectedFolderId={selectedFolderId}
+          onSelectFolder={setSelectedFolderId}
+          draggedNote={draggedNote}
+          onNoteDrop={handleMoveNote}
+        />
 
-        {/* Sidebar */}
         <div>
-          <FolderManager
-            selectedFolderId={selectedFolderId}
-            onSelectFolder={setSelectedFolderId}
-            onFoldersChange={setFolders}
-            draggedNote={draggedNote}
-            onNoteDrop={handleMoveNote}
-          />
-        </div>
-
-        {/* Notes Area */}
-        <div>
-
-          {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20, alignItems: "center", gap: 12 }}>
-            <h2 style={{ margin: 0 }}>
-              {selectedFolderId === null ? "All Notes (Root)" : "Notes in Folder"}
-            </h2>
-            {/* Search bar */}
-            <div style={{ width: 320 }}>
-              <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-            </div>
-
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                className={theme === "light" ? "btn-create-light" : "btn-create-dark"}
-                onClick={() => navigate("/create", { state: { folderId: selectedFolderId } })}
-              >
-                + Create Note
-              </button>
-            </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <SortMenu />
+            <ViewLayoutSelector />
           </div>
 
-      {loading && <p>Loading notes...</p>}
-      {error && <div className="alert">{error}</div>}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+            <h2 style={{ margin: 0 }}>{selectedFolderId === null ? "All Notes (Root)" : "Notes in Folder"}</h2>
+            <button
+              className={theme === "light" ? "btn-create-light" : "btn-create-dark"}
+              onClick={() => navigate("/create", { state: { folderId: selectedFolderId } })}
+            >
+              + Create Note
+            </button>
+          </div>
 
-      {!loading && filteredNotes.length === 0 && (
-        <p style={{ color: "var(--muted)" }}>No notes in this folder. Click "Create Note" to add one.</p>
-      )}
+          <input
+            type="text"
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: "60%",
+              padding: 10,
+              margin: "0 auto 20px auto",
+              display: "block",
+              borderRadius: 6,
+              border: "1px solid #ccc",
+            }}
+          />
 
-      <div className="notes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(250px,1fr))", gap: "16px" }}>
-        {filteredNotes.map((note) => {
-          const displayNote = note;
+          {loading && <p>Loading notes...</p>}
+          {error && <div className="alert">{error}</div>}
+          {!loading && filteredNotes.length === 0 && <p style={{ color: "var(--muted)" }}>No notes found.</p>}
+
+          <div
+            className={viewType === "grid" ? "notes-grid" : "notes-list"}
+            style={{
+              display: "grid",
+              gridTemplateColumns: viewType === "grid" ? "repeat(auto-fill, minmax(200px, 1fr))" : "1fr",
+              gap: 12,
+              maxWidth: "1200px",
+            }}
+          >
+            {filteredNotes.map((note) => (
+              <div
+                key={note._id}
+                className="card"
+                draggable
+                onDragStart={(e) => handleDragStart(e, note)}
+                onDragEnd={handleDragEnd}
+                style={{ padding: 12, cursor: "grab", opacity: draggedNote?._id === note._id ? 0.5 : 1 ,minHeight: "200px", }}
+                
+              >
+                <h3 style={{ fontSize: "16px", margin: "0 0 8px 0" }}>{note.title || "Untitled"}</h3>
 
           return (
           <div
@@ -380,27 +278,55 @@ export default function Dashboard() {
                     }
                   }}
                   style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "20px",
-                    padding: "0 4px",
+                    fontSize: 12,
+                    color: "var(--muted)",
+                    overflow: "hidden",
+                    maxHeight: 60,
+                    margin: "8px 0",
                   }}
-                  title="More options"
-                >
-                  ⋯
-                </button>
-              </div>
-            </div>
+                  dangerouslySetInnerHTML={{ __html: note.content || "" }}
+                />
 
-            {note.isChecklist ? (
-              <div style={{ fontSize: "14px", color: "var(--muted)", marginTop: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-                  <span>📋</span>
-                  <span style={{ fontWeight: "600" }}>Checklist</span>
-                </div>
-                <div style={{ fontSize: "13px" }}>
-                  {displayNote.checklistItems?.filter(item => item.completed).length || 0} / {displayNote.checklistItems?.length || 0} completed
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 10 }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFavorite(note._id);
+                    }}
+                    disabled={favPending.has(note._id)}
+                    className="btn"
+                    style={{
+                      background: note.isFavorite ? "#FFD700" : "#888",
+                      padding: "4px 8px",
+                      fontSize: 11,
+                      opacity: favPending.has(note._id) ? 0.6 : 1,
+                      cursor: favPending.has(note._id) ? "wait" : "pointer",
+                    }}
+                  >
+                    {note.isFavorite ? "★" : "☆"}
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/edit/${note._id}`);
+                    }}
+                    className="btn"
+                    style={{ background: "#2196F3" }}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(note._id);
+                    }}
+                    className="btn"
+                    style={{ background: "crimson" , padding: "4px 8px", fontSize: 11 }}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             ) : (
@@ -573,3 +499,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

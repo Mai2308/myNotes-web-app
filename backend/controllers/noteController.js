@@ -10,48 +10,49 @@ const { Types: { ObjectId } } = mongoose;
 export const getNotes = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { folderId } = req.query; // optional filter
+    const { folderId, sort } = req.query;
+
     const filter = { user: userId };
-    if (folderId !== undefined) {
-      // Explicit folderId query: return notes in that folder (null for root)
-      if (folderId !== "null" && !ObjectId.isValid(folderId)) {
-        return res.status(400).json({ message: "Invalid folder id" });
-      }
+    if (folderId) filter.folderId = folderId === "null" ? null : folderId;
 
-      const targetFolder = folderId && folderId !== "null"
-        ? await Folder.findOne({ _id: folderId, user: userId }).lean()
-        : null;
+    let query = Note.find(filter);
 
-      if (folderId && folderId !== "null" && !targetFolder) {
-        return res.status(404).json({ message: "Folder not found" });
-      }
+    // 🔥 Sorting logic
+    switch (sort) {
+      case "newest":
+        query = query.sort({ createdAt: -1 });
+        break;
 
-      if (targetFolder && (targetFolder.isProtected || isLockedFolder(targetFolder))) {
-        const supplied = req.headers["x-folder-password"] || req.query.password;
-        if (!supplied) return res.status(403).json({ message: "Folder password required" });
-        const ok = await bcrypt.compare(String(supplied), targetFolder.passwordHash || "");
-        if (!ok) return res.status(403).json({ message: "Invalid folder password" });
-      }
+      case "oldest":
+        query = query.sort({ createdAt: 1 });
+        break;
 
-      filter.folderId = folderId === "null" ? null : folderId;
-    } else {
-      // No folderId query: exclude notes inside password-protected folders from general listing
-      const protectedFolders = await Folder.find({ user: userId, isProtected: true }).select("_id").lean();
-      const protectedIds = protectedFolders.map(f => f._id.toString());
-      const lockedFolder = await ensureLockedFolder(userId);
-      if (lockedFolder) protectedIds.push(lockedFolder._id.toString());
-      if (protectedIds.length > 0) {
-        filter.folderId = { $nin: [...new Set(protectedIds)] };
-      }
+      case "title_asc":
+        query = query.sort({ title: 1 });
+        break;
+
+      case "title_desc":
+        query = query.sort({ title: -1 });
+        break;
+
+      case "favorite":
+        query = query.sort({ isFavorite: -1, createdAt: -1 }); 
+        break;
+
+      default:
+        // Default: newest
+        query = query.sort({ createdAt: -1 });
     }
-    const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
-    const result = notes.map(n => n.toObject());
-    res.json(result);
+
+    const notes = await query.exec();
+    res.json(notes);
+
   } catch (error) {
-    console.error("❌ Error searching notes:", error);
+    console.error("❌ Error fetching notes:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Toggle favorite status - creates a copy in Favorites folder
 export const toggleFavorite = async (req, res) => {

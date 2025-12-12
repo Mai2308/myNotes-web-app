@@ -31,13 +31,13 @@ router.post("/", protect, createNote);
 router.put("/:id", protect, updateNote);
 
 // Move a note to a folder
-router.patch("/:id/move", protect, moveNote);
+router.put("/:id/move", protect, moveNote);
 
 // Move a note into the locked folder
 router.post("/:id/lock", protect, lockNote);
 
 // Toggle favorite status
-router.post("/:id/favorite", protect, toggleFavorite);
+router.put("/:id/favorite", protect, toggleFavorite);
 
 // Checklist operations
 router.post("/:id/checklist/convert", protect, convertToChecklist);
