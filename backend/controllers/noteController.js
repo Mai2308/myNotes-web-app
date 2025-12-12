@@ -74,6 +74,13 @@ export const toggleFavorite = async (req, res) => {
       originalNote = clickedNote;
     }
 
+    console.log("📝 Original Note:", {
+      _id: originalNote._id,
+      title: originalNote.title,
+      isChecklist: originalNote.isChecklist,
+      checklistItems: originalNote.checklistItems
+    });
+
     // Find or create the user's Favorites folder
     let favoritesFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Favorites" }).exec();
     if (!favoritesFolder) {
@@ -98,7 +105,7 @@ export const toggleFavorite = async (req, res) => {
 
       if (!favoriteCopy) {
         // Create a copy of the note in the Favorites folder
-        favoriteCopy = new Note({
+        const copyData = {
           title: originalNote.title,
           content: originalNote.content,
           tags: originalNote.tags,
@@ -106,19 +113,35 @@ export const toggleFavorite = async (req, res) => {
           folderId: favoritesFolder._id,
           isFavorite: true,
           sourceNoteId: originalNote._id,
-          isChecklist: originalNote.isChecklist || false,
-          checklistItems: originalNote.checklistItems ? JSON.parse(JSON.stringify(originalNote.checklistItems)) : [],
-        });
+          isChecklist: !!originalNote.isChecklist,
+          checklistItems: originalNote.isChecklist && originalNote.checklistItems 
+            ? originalNote.checklistItems.map(item => ({ ...item }))
+            : []
+        };
+        favoriteCopy = new Note(copyData);
         await favoriteCopy.save();
+        console.log("💾 Created Favorite Copy (before refresh):", copyData);
+        // Refresh to ensure all fields are populated
+        favoriteCopy = await Note.findById(favoriteCopy._id).exec();
+        console.log("🔄 Favorite Copy (after refresh):", {
+          _id: favoriteCopy._id,
+          title: favoriteCopy.title,
+          isChecklist: favoriteCopy.isChecklist,
+          checklistItems: favoriteCopy.checklistItems
+        });
       } else {
         // Update existing copy content/title/tags to match latest
         favoriteCopy.title = originalNote.title;
         favoriteCopy.content = originalNote.content;
         favoriteCopy.tags = originalNote.tags;
         favoriteCopy.isFavorite = true;
-        favoriteCopy.isChecklist = originalNote.isChecklist || false;
-        favoriteCopy.checklistItems = originalNote.checklistItems ? JSON.parse(JSON.stringify(originalNote.checklistItems)) : [];
+        favoriteCopy.isChecklist = !!originalNote.isChecklist;
+        favoriteCopy.checklistItems = originalNote.isChecklist && originalNote.checklistItems 
+          ? originalNote.checklistItems.map(item => ({ ...item }))
+          : [];
         await favoriteCopy.save();
+        // Refresh to ensure all fields are populated
+        favoriteCopy = await Note.findById(favoriteCopy._id).exec();
       }
 
       res.json({ 
@@ -126,6 +149,7 @@ export const toggleFavorite = async (req, res) => {
         note: originalNote.toObject(), 
         favoriteCopy: favoriteCopy.toObject() 
       });
+      console.log("✅ Favorite Copy Response:", JSON.stringify(favoriteCopy.toObject(), null, 2));
     } else {
       // Unfavorite: mark original as not favorite and delete the copy in Favorites
       originalNote.isFavorite = false;

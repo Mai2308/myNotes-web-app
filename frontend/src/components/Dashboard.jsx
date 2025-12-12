@@ -198,6 +198,8 @@ export default function Dashboard() {
       const isFavorite = clickedNote?.isFavorite;
       
       const response = await toggleFavorite(noteId, token);
+      console.log("🔍 Toggle Favorite Response:", response);
+      console.log("📋 Favorite Copy:", response.favoriteCopy);
       
       // Update notes list based on the response
       setNotes(prevNotes => {
@@ -216,7 +218,13 @@ export default function Dashboard() {
           if (response.favoriteCopy) {
             const copyExists = updatedNotes.some(note => note._id === response.favoriteCopy._id);
             if (!copyExists) {
-              updatedNotes = [...updatedNotes, response.favoriteCopy];
+              // Ensure all properties including checklist are preserved
+              const favoriteCopy = {
+                ...response.favoriteCopy,
+                isChecklist: response.favoriteCopy.isChecklist || false,
+                checklistItems: response.favoriteCopy.checklistItems || []
+              };
+              updatedNotes = [...updatedNotes, favoriteCopy];
             }
           }
         } else {
