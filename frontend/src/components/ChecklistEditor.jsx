@@ -3,7 +3,10 @@ import { Plus, Trash2, GripVertical, CheckSquare, Square } from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
 
 export default function ChecklistEditor({ items = [], onChange }) {
-  const [checklistItems, setChecklistItems] = useState(items);
+  const [checklistItems, setChecklistItems] = useState(() => {
+    // Ensure each item has a stable id for reliable keys
+    return (items || []).map((it, i) => ({ id: it.id ?? `ci-${Date.now()}-${i}`, ...it }));
+  });
   const [newItemText, setNewItemText] = useState("");
   const [draggedIndex, setDraggedIndex] = useState(null);
   
@@ -11,13 +14,14 @@ export default function ChecklistEditor({ items = [], onChange }) {
   const itemInputRefs = useRef({});
 
   useEffect(() => {
-    setChecklistItems(items);
+    setChecklistItems((items || []).map((it, i) => ({ id: it.id ?? `ci-${Date.now()}-${i}`, ...it })));
   }, [items]);
 
   const handleAddItem = () => {
     if (!newItemText.trim()) return;
 
     const newItem = {
+      id: `ci-${Date.now()}-${Math.floor(Math.random()*1000)}`,
       text: newItemText.trim(),
       completed: false,
       order: checklistItems.length
@@ -176,7 +180,7 @@ export default function ChecklistEditor({ items = [], onChange }) {
         ) : (
           checklistItems.map((item, index) => (
             <div
-              key={index}
+              key={item.id}
               className={`checklist-item ${item.completed ? "completed" : ""} ${draggedIndex === index ? "dragging" : ""}`}
               draggable
               onDragStart={() => handleDragStart(index)}
@@ -200,6 +204,7 @@ export default function ChecklistEditor({ items = [], onChange }) {
                 value={item.text}
                 onChange={(e) => handleEditItem(index, e.target.value)}
                 className="checklist-item-text"
+                style={ item.completed ? { textDecoration: 'line-through', color: 'var(--muted)' } : {} }
               />
               
               <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>

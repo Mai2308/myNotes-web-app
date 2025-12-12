@@ -23,6 +23,31 @@ export default function Dashboard() {
   const { theme } = useTheme();
   const navigate = useNavigate();
 
+  // strip HTML to plain text for previews
+  const stripHtml = (html = "") =>
+    String(html)
+      .replace(/<br\s*\/?>(\s*)/gi, "\n")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .trim();
+
+  const renderPreview = (note) => {
+    if (!note) return "";
+    if (note.isChecklist && Array.isArray(note.checklistItems) && note.checklistItems.length > 0) {
+      return note.checklistItems
+        .slice(0, 3)
+        .map((it) => (it.completed ? "✓ " : "") + (it.text || ""))
+        .join(" • ");
+    }
+    const text = stripHtml(note.content || "");
+    if (!text) return "";
+    const max = 140;
+    return text.length > max ? text.slice(0, max).trim() + "…" : text;
+  };
+
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -307,6 +332,9 @@ export default function Dashboard() {
                 <h3 style={{ fontSize: "16px", margin: "0 0 8px 0" }}>
                   {note.title || "Untitled"}
                 </h3>
+                <div className="note-preview" style={{ marginTop: 6 }}>
+                  {renderPreview(note)}
+                </div>
 
                 <div style={{ position: "absolute", top: 8, right: 8 }}>
                   <button
