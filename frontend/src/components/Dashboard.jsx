@@ -101,7 +101,7 @@ export default function Dashboard() {
               await verifyLockedFolderPassword(pwd, token);
               password = pwd;
             } catch (err) {
-              setError("Invalid password");
+              alert("Wrong password, Try again");
               setSelectedFolderId(null);
               return;
             }
