@@ -14,12 +14,28 @@ export const getNotes = async (token) => {
 };
 
 // Get notes filtered by folderId (use "null" to fetch root notes)
-export const getNotesByFolder = async (folderId, token) => {
+// options: { password?: string }
+export const getNotesByFolder = async (folderId, token, options = {}) => {
   const q = typeof folderId === "string" ? encodeURIComponent(folderId) : "null";
-  const res = await fetch(`${BASE}/api/notes?folderId=${q}`, { headers: { ...authHeaders(token) } });
+  const headers = { ...authHeaders(token) };
+  if (options.password) headers["x-folder-password"] = options.password;
+  const res = await fetch(`${BASE}/api/notes?folderId=${q}`, { headers });
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to fetch notes by folder");
+  }
+  return await res.json();
+};
+
+// Move a note into the locked folder
+export const lockNote = async (id, token) => {
+  const res = await fetch(`${BASE}/api/notes/${id}/lock`, {
+    method: "POST",
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to lock note");
   }
   return await res.json();
 };

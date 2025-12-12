@@ -60,6 +60,44 @@ export const unprotectFolder = async (id, token) => {
   return await res.json();
 };
 
+// Locked folder helpers
+export const getLockedFolder = async (token) => {
+  const res = await fetch(`${BASE}/api/folders/locked`, {
+    headers: { ...authHeaders(token) },
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to fetch locked folder");
+  }
+  return await res.json();
+};
+
+export const setLockedFolderPassword = async (password, token) => {
+  const res = await fetch(`${BASE}/api/folders/locked/password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to set locked folder password");
+  }
+  return await res.json();
+};
+
+export const verifyLockedFolderPassword = async (password, token) => {
+  const res = await fetch(`${BASE}/api/folders/locked/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to verify locked folder password");
+  }
+  return await res.json();
+};
+
 // Create a new folder
 export const createFolder = async (folderData, token) => {
   // folderData = { name: string, parentId?: string | null }

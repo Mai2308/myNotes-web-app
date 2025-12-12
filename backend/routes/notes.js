@@ -6,6 +6,7 @@ import {
   deleteNote, 
   searchNotes, 
   moveNote, 
+  lockNote,
   toggleFavorite,
   convertToChecklist,
   convertToRegularNote,
@@ -31,6 +32,9 @@ router.put("/:id", protect, updateNote);
 
 // Move a note to a folder
 router.patch("/:id/move", protect, moveNote);
+
+// Move a note into the locked folder
+router.post("/:id/lock", protect, lockNote);
 
 // Toggle favorite status
 router.post("/:id/favorite", protect, toggleFavorite);

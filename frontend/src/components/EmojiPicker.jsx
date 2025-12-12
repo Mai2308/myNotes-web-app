@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getEmojiCatalog } from "../api/emojisApi";
 import { Smile, Search } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
 
 // Fallback emoji catalog if API fails
 const FALLBACK_CATALOG = [
@@ -56,11 +57,11 @@ const FALLBACK_CATALOG = [
 
 export default function EmojiPicker({ onPick, compact = false }) {
   const [categories, setCategories] = useState(FALLBACK_CATALOG);
-  
   const [activeCat, setActiveCat] = useState(FALLBACK_CATALOG[0]?.id || null);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const load = async () => {
@@ -122,11 +123,12 @@ export default function EmojiPicker({ onPick, compact = false }) {
           left: 0,
           zIndex: 10,
           width: compact ? 260 : 340,
-          background: "var(--background)",
-          border: "1px solid var(--border-color)",
+          background: theme === "light" ? "#ffffff" : "#1a2a4d",
+          border: `1px solid ${theme === "light" ? "#ddd" : "#334d7f"}`,
           borderRadius: 8,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
-          padding: 8
+          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+          padding: 8,
+          backdropFilter: "blur(8px)"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <div style={{ position: "relative", flex: 1 }}>
@@ -139,10 +141,10 @@ export default function EmojiPicker({ onPick, compact = false }) {
                 style={{
                   width: "100%",
                   padding: "8px 8px 8px 28px",
-                  border: "1px solid var(--border-color)",
+                  border: `1px solid ${theme === "light" ? "#ddd" : "#334d7f"}`,
                   borderRadius: 6,
-                  background: "var(--background)",
-                  color: "var(--text-color)"
+                  background: theme === "light" ? "#f9f9f9" : "#0f1a2d",
+                  color: theme === "light" ? "#000" : "#fff"
                 }}
               />
             </div>

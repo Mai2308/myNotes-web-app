@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNotes, getNotesByFolder, deleteNote, moveNote, toggleFavorite } from "../api/notesApi";
+import { getNotes, getNotesByFolder, deleteNote, moveNote, toggleFavorite, lockNote } from "../api/notesApi";
 import { useTheme } from "../context/ThemeContext";
-import { getFolder } from "../api/foldersApi";
+import { getFolder, getLockedFolder, setLockedFolderPassword, verifyLockedFolderPassword } from "../api/foldersApi";
 import FolderManager from "./FolderManager";
 import SearchBar from "./SearchBar";
 
@@ -14,79 +14,136 @@ export default function Dashboard() {
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [draggedNote, setDraggedNote] = useState(null);
   const [folders, setFolders] = useState([]);
-  const [protectedCache, setProtectedCache] = useState({}); // folderId -> true when verified this session
+  const [folderPasswords, setFolderPasswords] = useState({}); // folderId -> password entered this session
+  const [lockedFolderId, setLockedFolderId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState(null); // { top, left } for fixed positioning
+  const menuButtonRefs = useRef({});
+
   const navigate = useNavigate();
   const { theme } = useTheme();
 
   const token = localStorage.getItem("token");
 
+  // Ensure locked folder metadata is known on mount
+  useEffect(() => {
+    const loadLocked = async () => {
+      try {
+        const data = await getLockedFolder(token);
+        if (data?.folder?._id) setLockedFolderId(data.folder._id);
+      } catch (err) {
+        console.error("Failed to preload locked folder", err);
+      }
+    };
+    loadLocked();
+  }, [token]);
+
   // When selected folder changes or on mount, fetch appropriate notes
   useEffect(() => {
     const run = async () => {
-      if (selectedFolderId === null) {
-        // reload all notes for root view
-        setLoading(true);
-        try {
+      setLoading(true);
+      setError("");
+
+      try {
+        // Root view: load all visible notes
+        if (selectedFolderId === null) {
           const data = await getNotes(token);
           setNotes(data || []);
-          setError("");
-        } catch (err) {
-          console.error(err);
-          setError("Failed to load notes.");
-        } finally {
-          setLoading(false);
-        }
-        return;
-      }
-
-      const folder = folders.find(f => f._id === selectedFolderId);
-      if (!folder) return;
-      if (folder.isProtected) {
-        let password = null;
-        if (protectedCache[selectedFolderId]) {
-          // previously unlocked this session; don't prompt, but you still need to send password if backend requires it
-          // For simplicity we prompt again (or could store password). We'll prompt to avoid storing secrets.
-        }
-        password = window.prompt(`This folder ("${folder.name}") is protected. Enter password:`);
-        if (!password) {
-          // Reset view to root if canceled
-          setSelectedFolderId(null);
           return;
         }
-        setLoading(true);
-        try {
-          const { notes: folderNotes } = await getFolder(selectedFolderId, { includeNotes: true, password }, token);
+
+        const folder = folders.find((f) => f._id === selectedFolderId);
+        if (!folder) return;
+
+        const isLockedFolder = folder.isDefault && folder.name === "Locked Notes";
+
+        // Locked folder flow
+        if (isLockedFolder) {
+          // Always fetch fresh locked folder state from backend
+          let currentLocked = { id: selectedFolderId, hasPassword: false };
+          try {
+            const data = await getLockedFolder(token);
+            if (data?.folder?._id) {
+              currentLocked = { id: data.folder._id, hasPassword: Boolean(data.hasPassword) };
+              setLockedFolderId(data.folder._id);
+            }
+          } catch (err) {
+            console.error("Failed to refresh locked folder", err);
+            setError("Failed to load locked folder");
+            setSelectedFolderId(null);
+            return;
+          }
+
+          const lockedId = currentLocked.id;
+          
+          // Always prompt for password (don't use cache)
+          // This ensures password is requested every time
+          let password = null;
+
+          if (!currentLocked.hasPassword) {
+            const pwd = window.prompt("Set a password for Locked Notes (min 4 characters):");
+            if (!pwd || pwd.length < 4) {
+              setSelectedFolderId(null);
+              setError("Locked Notes requires a password (min 4 chars).");
+              return;
+            }
+            await setLockedFolderPassword(pwd, token);
+            password = pwd;
+          } else {
+            // Password exists, always prompt to enter it
+            const pwd = window.prompt("Enter password for Locked Notes:");
+            if (!pwd) {
+              setSelectedFolderId(null);
+              return;
+            }
+            try {
+              await verifyLockedFolderPassword(pwd, token);
+              password = pwd;
+            } catch (err) {
+              alert("Wrong password, Try again");
+              setSelectedFolderId(null);
+              return;
+            }
+          }
+
+          // Don't cache the password - always require re-entry
+          const { notes: folderNotes } = await getFolder(lockedId, { includeNotes: true, password }, token);
           setNotes(folderNotes || []);
-          setProtectedCache(prev => ({ ...prev, [selectedFolderId]: true }));
-          setError("");
-        } catch (err) {
-          console.error(err);
-          setError(err.message || "Failed to open protected folder");
-          // Reset to root on failure
-          setSelectedFolderId(null);
-        } finally {
-          setLoading(false);
+          return;
         }
-      } else {
-        // Unprotected folder: fetch only notes in this folder
-        setLoading(true);
-        try {
-          const folderNotes = await getNotesByFolder(selectedFolderId, token);
+
+        // Generic protected folder flow
+        if (folder.isProtected) {
+          let password = folderPasswords[folder._id];
+          if (!password) {
+            const pwd = window.prompt(`This folder ("${folder.name}") is protected. Enter password:`);
+            if (!pwd) {
+              setSelectedFolderId(null);
+              return;
+            }
+            password = pwd;
+          }
+          const { notes: folderNotes } = await getFolder(folder._id, { includeNotes: true, password }, token);
+          setFolderPasswords((prev) => ({ ...prev, [folder._id]: password }));
           setNotes(folderNotes || []);
-          setError("");
-        } catch (err) {
-          console.error(err);
-          setError(err.message || "Failed to load folder notes");
-        } finally {
-          setLoading(false);
+          return;
         }
+
+        // Unprotected folder
+        const folderNotes = await getNotesByFolder(selectedFolderId, token);
+        setNotes(folderNotes || []);
+      } catch (err) {
+        console.error(err);
+        setError(err.message || "Failed to load notes");
+        setSelectedFolderId(null);
+      } finally {
+        setLoading(false);
       }
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFolderId, token]);
+  }, [selectedFolderId, token, folders]);
 
   const handleDragStart = (e, note) => {
     setDraggedNote(note);
@@ -100,11 +157,35 @@ export default function Dashboard() {
   const handleMoveNote = async (noteId, targetFolderId) => {
     try {
       await moveNote(noteId, targetFolderId, token);
-      const data = await getNotes(token);
-      setNotes(data || []);
+      // If moving a note out of locked folder, force re-prompt by clearing cache
+      if (lockedFolderId && targetFolderId !== lockedFolderId && selectedFolderId === lockedFolderId) {
+        setFolderPasswords({});
+        setSelectedFolderId(null);
+      } else {
+        const data = await getNotes(token);
+        setNotes(data || []);
+      }
     } catch (err) {
       console.error(err);
       alert(err.message || "Failed to move note.");
+    }
+  };
+
+  const handleLockNote = async (noteId) => {
+    try {
+      const result = await lockNote(noteId, token);
+      if (result?.lockedFolderId) {
+        setLockedFolderId(result.lockedFolderId);
+        // Clear password cache for locked folder
+        setFolderPasswords({});
+      }
+      // Remove from current view (will appear when user opens locked folder)
+      setNotes((prev) => prev.filter((n) => n._id !== noteId));
+      // Force password re-prompt by resetting to root
+      setSelectedFolderId(null);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to lock note.");
     }
   };
 
@@ -117,6 +198,8 @@ export default function Dashboard() {
       const isFavorite = clickedNote?.isFavorite;
       
       const response = await toggleFavorite(noteId, token);
+      console.log("🔍 Toggle Favorite Response:", response);
+      console.log("📋 Favorite Copy:", response.favoriteCopy);
       
       // Update notes list based on the response
       setNotes(prevNotes => {
@@ -135,7 +218,13 @@ export default function Dashboard() {
           if (response.favoriteCopy) {
             const copyExists = updatedNotes.some(note => note._id === response.favoriteCopy._id);
             if (!copyExists) {
-              updatedNotes = [...updatedNotes, response.favoriteCopy];
+              // Ensure all properties including checklist are preserved
+              const favoriteCopy = {
+                ...response.favoriteCopy,
+                isChecklist: response.favoriteCopy.isChecklist || false,
+                checklistItems: response.favoriteCopy.checklistItems || []
+              };
+              updatedNotes = [...updatedNotes, favoriteCopy];
             }
           }
         } else {
@@ -169,7 +258,10 @@ export default function Dashboard() {
     }
   };
 
-  
+  const closeMenu = () => {
+    setOpenMenuId(null);
+    setMenuPos(null);
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this note?")) return;
@@ -183,7 +275,7 @@ export default function Dashboard() {
   };
 
   const handleEditNote = (note) => {
-    navigate(`/edit/${note._id}`);
+    navigate(`/edit/${note._id}`, { state: { note } });
   };
 
   // Filter notes based on selected folder + search term
@@ -261,12 +353,44 @@ export default function Dashboard() {
               cursor: "grab",
               transition: "transform 0.15s ease",
               opacity: draggedNote?._id === note._id ? 0.5 : 1,
-              
+              position: "relative",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
               <h3 className="h2" style={{ margin: 0, flex: 1 }}>{note.title || "Untitled"}</h3>
               
+              {/* Three-dot menu */}
+              <div style={{ position: "relative" }}>
+                <button
+                  ref={(el) => {
+                    if (el) menuButtonRefs.current[note._id] = el;
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (openMenuId === note._id) {
+                      setOpenMenuId(null);
+                      setMenuPos(null);
+                    } else {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setMenuPos({
+                        top: rect.bottom + window.scrollY + 4,
+                        left: rect.right + window.scrollX - 140,
+                      });
+                      setOpenMenuId(note._id);
+                    }
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "20px",
+                    padding: "0 4px",
+                  }}
+                  title="More options"
+                >
+                  ⋯
+                </button>
+              </div>
             </div>
 
             {note.isChecklist ? (
@@ -291,58 +415,161 @@ export default function Dashboard() {
                 dangerouslySetInnerHTML={{ __html: displayNote.content || "" }}
               ></p>
             )}
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: 12, flexWrap: "wrap" }}>
-              {
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleFavorite(note._id, note.isFavorite);
-                    }}
-                    className="btn"
-                    style={{ 
-                      background: note.isFavorite ? "#FFD700" : "#888", 
-                      padding: "6px 12px", 
-                      fontSize: "13px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px"
-                    }}
-                    title={note.isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  >
-                    {note.isFavorite ? "★" : "☆"}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditNote(note);
-                    }}
-                    className="btn"
-                    style={{ background: "#2196F3", padding: "6px 12px", fontSize: "13px" }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(note._id);
-                    }}
-                    className="btn"
-                    style={{ background: "crimson", padding: "6px 12px", fontSize: "13px" }}
-                  >
-                    Delete
-                  </button>
-                </>
-              }
-            </div>
           </div>
         )})}
       </div>
+
+      {/* Fixed menu overlay - rendered outside the grid */}
+      {openMenuId && menuPos && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            closeMenu();
+          }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+          }}
+        >
+          {/* Menu container */}
+          {filteredNotes.find(n => n._id === openMenuId) && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "fixed",
+                top: `${menuPos.top}px`,
+                left: `${menuPos.left}px`,
+                background: theme === "light" ? "#fff" : "#2a2a2a",
+                border: `1px solid ${theme === "light" ? "#ddd" : "#555"}`,
+                borderRadius: "4px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                zIndex: 10000,
+                minWidth: "140px",
+              }}
+            >
+              {(() => {
+                const note = filteredNotes.find(n => n._id === openMenuId);
+                if (!note) return null;
+                return (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditNote(note);
+                        closeMenu();
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                      }}
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleFavorite(note._id);
+                        closeMenu();
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                      }}
+                    >
+                      {note.isFavorite ? "★ Unfavorite" : "☆ Favorite"}
+                    </button>
+                    {!(lockedFolderId && note.folderId === lockedFolderId) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLockNote(note._id);
+                          closeMenu();
+                        }}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "10px 12px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                        }}
+                      >
+                        🔒 Lock
+                      </button>
+                    )}
+                    {lockedFolderId && note.folderId === lockedFolderId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveNote(note._id, null);
+                          closeMenu();
+                        }}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "10px 12px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                        }}
+                      >
+                        🔓 Unlock
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(note._id);
+                        closeMenu();
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        color: "crimson",
+                      }}
+                    >
+                      🗑️ Delete
+                    </button>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
         </div>
       </div>
-
-      
     </div>
   );
 }

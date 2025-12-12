@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import NoteEditor from "../components/NoteEditor";
 import { removeEmojiFromNote } from "../api/notesApi";
 import ChecklistEditor from "../components/ChecklistEditor";
@@ -17,6 +17,7 @@ import { ListTodo, FileText } from "lucide-react";
 export default function EditNote() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [title, setTitle] = useState("");
   const [folderId, setFolderId] = useState(null);
   const [folders, setFolders] = useState([]);
@@ -38,9 +39,16 @@ export default function EditNote() {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Load all notes and find the one we need
-        const notes = await getNotes(token);
-        const note = notes.find((n) => n._id === id);
+        let note = null;
+        
+        // Check if note was passed via navigation state (from locked folder)
+        if (location.state?.note) {
+          note = location.state.note;
+        } else {
+          // Load all notes and find the one we need
+          const notes = await getNotes(token);
+          note = notes.find((n) => n._id === id);
+        }
         
         if (!note) {
           setError("Note not found");
@@ -73,7 +81,7 @@ export default function EditNote() {
       }
     };
     loadData();
-  }, [id, token]);
+  }, [id, token, location.state?.note]);
 
   const handleUpdate = async () => {
     setSaving(true);
