@@ -620,4 +620,127 @@ body.dark, html {
 }
 
 
+/* ===== DARK THEME: اجعل الخلفية كلّها كحلي صلب ===== */
+.dark {
+  --bg: #001f3f;         /* الخلفية الأساسية للصفحة */
+  --card-bg: #0d334a;    /* خلفية النوتس (لون مختلف عن الباكجراوند) */
+  --text: #e6eef8;
+  --muted: #9fb3c9;
+  --accent: #7afcff;
+  --accent-dark: #42d9f4;
+  --shadow: 0 6px 18px rgba(0,0,0,0.28);
+  --input-bg: #081627;
+  --input-border: rgba(255,255,255,0.04);
+}
+
+/* Force dark background across html/body/#root and page container */
+html[data-theme="dark"], body[data-theme="dark"],
+html.dark, body.dark, #root, #root.dark {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  min-height: 100vh !important;
+}
+
+/* الخلفية الأساسية للصفحة والليستات */
+.container, .dashboard-page, .notes-list-container,
+.notes-grid, .notes-list {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: none !important;
+}
+
+/* الكروت (النوتس) لونها مختلف */
+.card, .notes-list .card, .notes-grid .card {
+  background: var(--card-bg) !important;
+  color: var(--text) !important;
+  border: none !important;
+  box-shadow: var(--shadow) !important;
+}
+
+/* منع ظهور أي خلفية بيضاء في الاسكرول */
+html, body {
+  background: var(--bg) !important;
+}
+
+#root { padding-bottom: 120px !important; }
+
+/*-------------------------------------------------------------------
+
+/* ===== HEADER STYLING ===== */
+.header {
+  background-color: #001f3f !important;
+  color: #ffffff !important;
+  padding: 16px 24px !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+}
+
+.header .container {
+  background-color: transparent !important;
+}
+
+.header .logo {
+  color: #ffffff !important;
+  margin: 0 !important;
+  font-size: 24px !important;
+  font-weight: bold !important;
+}
+
+.header nav {
+  display: flex !important;
+  gap: 16px !important;
+  align-items: center !important;
+}
+
+.header .btn-link {
+  color: #7afcff !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+  transition: color 0.2s ease !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+}
+
+.header .btn-link:hover {
+  color: #42d9f4 !important;
+  background-color: rgba(122, 252, 255, 0.1) !important;
+}
+
+.header .btn {
+  background-color: #00bfff !important;
+  color: #001f3f !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.header .btn:hover {
+  background-color: #42d9f4 !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Dark mode adjustments */
+.dark .header {
+  background-color: #001f3f !important;
+  border-bottom: 1px solid rgba(255,255,255,0.02) !important;
+}
+
+.dark .header .logo {
+  color: #e6eef8 !important;
+}
+
+.dark .header .btn-link {
+  color: #7afcff !important;
+}
+
+.dark .header .btn {
+  background-color: #7afcff !important;
+  color: #001f3f !important;
+}
+
+
+
 

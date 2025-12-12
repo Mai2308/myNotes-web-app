@@ -172,7 +172,7 @@ export default function Dashboard() {
     });
 
   return (
-    <div className="container" style={{ paddingTop: 40 }}>
+    <div className="container" style={{ paddingTop: 40}}>
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 24 }}>
         <FolderManager
           selectedFolderId={selectedFolderId}
