@@ -1,35 +1,32 @@
+// ...existing code...
+import React from "react";
 import { useView } from "../../context/ViewContext";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function ViewLayoutSelector() {
   const { viewType, setViewType } = useView();
+  const { theme } = useTheme();
 
   return (
-    <div style={{ display: "flex", gap: "10px" }}>
+    <div className="view-toggle" role="tablist" aria-label="View layout">
       <button
         onClick={() => setViewType("grid")}
-        style={{
-          padding: "8px 14px",
-          borderRadius: "6px",
-          background: viewType === "grid" ? "#007bff" : "#ccc",
-          color: "#fff",
-          border: "none"
-        }}
+        className={`view-btn ${viewType === "grid" ? "selected" : ""} ${theme === "light" ? "theme-light" : "theme-dark"}`}
+        aria-pressed={viewType === "grid"}
+        title="Grid"
       >
         Grid
       </button>
 
       <button
         onClick={() => setViewType("list")}
-        style={{
-          padding: "8px 14px",
-          borderRadius: "6px",
-          background: viewType === "list" ? "#007bff" : "#ccc",
-          color: "#fff",
-          border: "none"
-        }}
+        className={`view-btn ${viewType === "list" ? "selected" : ""} ${theme === "light" ? "theme-light" : "theme-dark"}`}
+        aria-pressed={viewType === "list"}
+        title="List"
       >
         List
       </button>
     </div>
   );
 }
+// ...existing code...

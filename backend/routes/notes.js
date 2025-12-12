@@ -14,10 +14,10 @@ router.post("/", protect, createNote);
 router.put("/:id", protect, updateNote);
 
 // Move a note to a folder
-router.patch("/:id/move", protect, moveNote);
+router.put("/:id/move", protect, moveNote);
 
 // Toggle favorite status
-router.post("/:id/favorite", protect, toggleFavorite);
+router.put("/:id/favorite", protect, toggleFavorite);
 
 // Delete a note
 router.delete("/:id", protect, deleteNote);

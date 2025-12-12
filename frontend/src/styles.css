@@ -664,23 +664,28 @@ html, body {
 
 #root { padding-bottom: 120px !important; }
 
-/*-------------------------------------------------------------------
+/*-------------------------------------------------------------------*/
 
 /* ===== HEADER STYLING ===== */
+/* header should be white in light, and dark in dark mode */
 .header {
-  background-color: #001f3f !important;
-  color: #ffffff !important;
+  /* use card-bg in light so header looks white in light mode */
+  background: var(--card-bg) !important;
+  color: var(--text) !important;
   padding: 16px 24px !important;
   border: none !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  box-shadow: none !important;             /* remove the subtle shadow */
+  border-bottom: none !important; 
 }
 
+/* keep inner container transparent if you have one */
 .header .container {
   background-color: transparent !important;
 }
 
+/* logo text */
 .header .logo {
-  color: #ffffff !important;
+  color: var(--text) !important;
   margin: 0 !important;
   font-size: 24px !important;
   font-weight: bold !important;
@@ -692,8 +697,9 @@ html, body {
   align-items: center !important;
 }
 
+/* links in header use text color (light or dark depending on theme) */
 .header .btn-link {
-  color: #7afcff !important;
+  color: var(--text) !important;
   text-decoration: none !important;
   font-weight: 500 !important;
   transition: color 0.2s ease !important;
@@ -702,13 +708,14 @@ html, body {
 }
 
 .header .btn-link:hover {
-  color: #42d9f4 !important;
-  background-color: rgba(122, 252, 255, 0.1) !important;
+  color: var(--accent) !important;
+  background-color: rgba(122, 252, 255, 0.06) !important;
 }
 
+/* header primary buttons follow accent gradient */
 .header .btn {
-  background-color: #00bfff !important;
-  color: #001f3f !important;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark)) !important;
+  color: #fff !important;
   border: none !important;
   padding: 8px 16px !important;
   border-radius: 6px !important;
@@ -718,27 +725,155 @@ html, body {
 }
 
 .header .btn:hover {
-  background-color: #42d9f4 !important;
   transform: translateY(-2px) !important;
 }
 
-/* Dark mode adjustments */
-.dark .header {
-  background-color: #001f3f !important;
+/* Dark mode adjustments - make header same as page bg */
+.dark .header,
+html[data-theme="dark"] .header {
+  background: var(--bg) !important;
+  color: var(--text) !important;
   border-bottom: 1px solid rgba(255,255,255,0.02) !important;
 }
 
 .dark .header .logo {
-  color: #e6eef8 !important;
+  color: var(--text) !important;
 }
 
 .dark .header .btn-link {
-  color: #7afcff !important;
+  color: var(--accent) !important;
 }
 
 .dark .header .btn {
-  background-color: #7afcff !important;
+  background-color: var(--accent) !important;
   color: #001f3f !important;
+}
+
+/* ===== Make Grid/List buttons pink in LIGHT mode ===== */
+/* default (light) */
+html:not(.dark) .view-toggle button,
+html:not(.dark) .view-toggle .btn,
+html:not(.dark) .notes-controls .view-toggle button,
+.view-toggle .grid-btn,
+.view-toggle .list-btn,
+.btn.view-grid, .btn.view-list,
+.view-mode .btn {
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark)) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 6px 18px rgba(255,92,162,0.12) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+}
+
+/* If active/selected state class exists */
+.view-toggle button.active,
+.view-toggle .btn.active,
+.view-toggle .grid-btn.active,
+.view-toggle .list-btn.active {
+  transform: translateY(-1px) !important;
+  opacity: 0.98 !important;
+}
+
+/* Keep dark theme styling unchanged */
+html[data-theme="dark"] .view-toggle button,
+html[data-theme="dark"] .view-toggle .btn,
+.dark .view-toggle .btn,
+.dark .view-toggle button {
+  background: transparent !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: none !important;
+}
+
+/* ===== View toggle buttons: base + selected styles ===== */
+.view-toggle {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* base button */
+.view-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background: #e6e6e6;
+  color: #222;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+/* hover */
+.view-btn:hover { transform: translateY(-1px); }
+
+/* selected button in LIGHT mode (pink) */
+html:not(.dark) .view-btn.selected,
+html:not([data-theme="dark"]) .view-btn.selected {
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark)) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 6px 18px rgba(255,92,162,0.12) !important;
+}
+
+/* selected button in DARK mode (blue) */
+.dark .view-btn.selected,
+html[data-theme="dark"] .view-btn.selected {
+  background: #007bff !important; /* blue in dark mode */
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 6px 18px rgba(0,123,255,0.12) !important;
+}
+
+/* neutralize pink if class remains in dark */
+.dark .view-btn.pink-btn,
+html[data-theme="dark"] .view-btn.pink-btn {
+  background: transparent !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: none !important;
+}
+
+/* maintain borders for dark theme buttons when not selected */
+.dark .view-btn {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Light mode: make non-selected buttons softer pink and selected one darker */
+html:not(.dark) .view-toggle .view-btn {
+  background: linear-gradient(90deg, rgba(255,126,185,0.18), rgba(255,92,162,0.18)) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(255,92,162,0.08) !important;
+}
+
+/* selected = darker pink + stronger elevation */
+html:not(.dark) .view-toggle .view-btn.selected,
+html:not(.dark) .view-toggle .view-btn[aria-pressed="true"] {
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark)) !important;
+  color: #fff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 28px rgba(255,92,162,0.18) !important;
+  border: none !important;
+}
+
+/* keep dark theme visuals unchanged */
+html[data-theme="dark"] .view-toggle .view-btn,
+.dark .view-toggle .view-btn {
+  background: transparent !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .view-toggle .view-btn.selected,
+.dark .view-toggle .view-btn.selected {
+  background: #007bff !important; /* keep selected dark-blue in dark mode */
+  color: #fff !important;
+  box-shadow: 0 8px 20px rgba(0,123,255,0.12) !important;
 }
 
 

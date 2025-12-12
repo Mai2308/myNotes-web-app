@@ -5,16 +5,49 @@ import Folder from "../models/folderModel.js"; // new
 export const getNotes = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { folderId } = req.query; // optional filter
+    const { folderId, sort } = req.query;
+
     const filter = { user: userId };
     if (folderId) filter.folderId = folderId === "null" ? null : folderId;
-    const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
+
+    let query = Note.find(filter);
+
+    // 🔥 Sorting logic
+    switch (sort) {
+      case "newest":
+        query = query.sort({ createdAt: -1 });
+        break;
+
+      case "oldest":
+        query = query.sort({ createdAt: 1 });
+        break;
+
+      case "title_asc":
+        query = query.sort({ title: 1 });
+        break;
+
+      case "title_desc":
+        query = query.sort({ title: -1 });
+        break;
+
+      case "favorite":
+        query = query.sort({ isFavorite: -1, createdAt: -1 }); 
+        break;
+
+      default:
+        // Default: newest
+        query = query.sort({ createdAt: -1 });
+    }
+
+    const notes = await query.exec();
     res.json(notes);
+
   } catch (error) {
-    console.error("❌ Error searching notes:", error);
+    console.error("❌ Error fetching notes:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Toggle favorite status - creates a copy in Favorites folder
 export const toggleFavorite = async (req, res) => {
