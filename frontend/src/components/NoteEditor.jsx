@@ -17,15 +17,16 @@ import {
   Save,
   Upload,
 } from "lucide-react";
+import EmojiPicker from "./EmojiPicker";
+import { addEmojiToNote } from "../api/notesApi";
 
 const NoteEditor = forwardRef((props, ref) => {
-  const { onSave } = props || {};
+  const { onSave, noteId } = props || {};
 
   const editorRef = useRef(null);
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [savedMessage, setSavedMessage] = useState("");
-  const username = "";
   const saveKey = "autoSavedNote";
 
   useImperativeHandle(ref, () => ({
@@ -65,6 +66,48 @@ const NoteEditor = forwardRef((props, ref) => {
     const html = editorRef.current?.innerHTML ?? "";
     pushHistory(html);
     editorRef.current?.focus();
+  };
+
+  const insertEmojiAtCaret = async (emoji) => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) {
+      editorRef.current?.focus();
+    }
+    const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+
+    try {
+      if (range) {
+        range.deleteContents();
+        const textNode = document.createTextNode(emoji);
+        range.insertNode(textNode);
+        // Move caret after inserted emoji
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        document.execCommand("insertText", false, emoji);
+      }
+    } catch (e) {
+      document.execCommand("insertText", false, emoji);
+    }
+
+    const html = el.innerHTML ?? "";
+    pushHistory(html);
+
+    // Sync emoji metadata if we have a noteId
+    try {
+      if (noteId) {
+        const token = localStorage.getItem("token");
+        await addEmojiToNote(noteId, emoji, token);
+      }
+    } catch (err) {
+      // non-blocking
+      console.warn("Failed to sync emoji", err);
+    }
   };
 
   const undo = () => {
@@ -165,6 +208,9 @@ const NoteEditor = forwardRef((props, ref) => {
         <button onClick={() => exec("underline")}><Underline size={16} /></button>
 
         <div className="divider"></div>
+
+        {/* Emoji picker */}
+        <EmojiPicker compact onPick={insertEmojiAtCaret} />
 
         <label className="color-picker">
           <Palette size={16} />

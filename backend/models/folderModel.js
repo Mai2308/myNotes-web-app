@@ -6,6 +6,8 @@ const FolderSchema = new Schema({
   name: { type: String, required: true, trim: true },
   parentId: { type: Schema.Types.ObjectId, ref: 'Folder', default: null },
   isDefault: { type: Boolean, default: false }, // true for system folders like Favorites
+  isProtected: { type: Boolean, default: false },
+  passwordHash: { type: String, default: null },
 }, { timestamps: true });
 
 export default mongoose.model('Folder', FolderSchema);

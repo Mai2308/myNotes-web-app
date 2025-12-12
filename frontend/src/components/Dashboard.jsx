@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNotes, deleteNote, moveNote, toggleFavorite } from "../api/notesApi";
+import { getNotes, getNotesByFolder, deleteNote, moveNote, toggleFavorite, lockNote } from "../api/notesApi";
 import { useTheme } from "../context/ThemeContext";
+import { getFolder, getLockedFolder, setLockedFolderPassword, verifyLockedFolderPassword } from "../api/foldersApi";
 import FolderManager from "./FolderManager";
 import { useView } from "../context/ViewContext";
 import SortMenu from "./viewOptions/SortMenu";
@@ -170,6 +171,7 @@ export default function Dashboard() {
       const contentMatch = contentText.includes(q);
       return titleMatch || contentMatch;
     });
+  }
 
   return (
     <div className="container" style={{ paddingTop: 40}}>
@@ -237,7 +239,44 @@ export default function Dashboard() {
               >
                 <h3 style={{ fontSize: "16px", margin: "0 0 8px 0" }}>{note.title || "Untitled"}</h3>
 
-                <p
+          return (
+          <div
+            key={note._id}
+            className="card"
+            draggable="true"
+            onDragStart={(e) => handleDragStart(e, note)}
+            onDragEnd={handleDragEnd}
+            style={{
+              padding: "16px",
+              cursor: "grab",
+              transition: "transform 0.15s ease",
+              opacity: draggedNote?._id === note._id ? 0.5 : 1,
+              position: "relative",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
+              <h3 className="h2" style={{ margin: 0, flex: 1 }}>{note.title || "Untitled"}</h3>
+              
+              {/* Three-dot menu */}
+              <div style={{ position: "relative" }}>
+                <button
+                  ref={(el) => {
+                    if (el) menuButtonRefs.current[note._id] = el;
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (openMenuId === note._id) {
+                      setOpenMenuId(null);
+                      setMenuPos(null);
+                    } else {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setMenuPos({
+                        top: rect.bottom + window.scrollY + 4,
+                        left: rect.right + window.scrollX - 140,
+                      });
+                      setOpenMenuId(note._id);
+                    }
+                  }}
                   style={{
                     fontSize: 12,
                     color: "var(--muted)",
@@ -290,8 +329,171 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
-            ))}
+            ) : (
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "var(--muted)",
+                  overflow: "hidden",
+                  maxHeight: "80px",
+                  textOverflow: "ellipsis",
+                }}
+                dangerouslySetInnerHTML={{ __html: displayNote.content || "" }}
+              ></p>
+            )}
           </div>
+        )})}
+      </div>
+
+      {/* Fixed menu overlay - rendered outside the grid */}
+      {openMenuId && menuPos && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            closeMenu();
+          }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+          }}
+        >
+          {/* Menu container */}
+          {filteredNotes.find(n => n._id === openMenuId) && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "fixed",
+                top: `${menuPos.top}px`,
+                left: `${menuPos.left}px`,
+                background: theme === "light" ? "#fff" : "#2a2a2a",
+                border: `1px solid ${theme === "light" ? "#ddd" : "#555"}`,
+                borderRadius: "4px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                zIndex: 10000,
+                minWidth: "140px",
+              }}
+            >
+              {(() => {
+                const note = filteredNotes.find(n => n._id === openMenuId);
+                if (!note) return null;
+                return (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditNote(note);
+                        closeMenu();
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                      }}
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleFavorite(note._id);
+                        closeMenu();
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                      }}
+                    >
+                      {note.isFavorite ? "★ Unfavorite" : "☆ Favorite"}
+                    </button>
+                    {!(lockedFolderId && note.folderId === lockedFolderId) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLockNote(note._id);
+                          closeMenu();
+                        }}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "10px 12px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                        }}
+                      >
+                        🔒 Lock
+                      </button>
+                    )}
+                    {lockedFolderId && note.folderId === lockedFolderId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveNote(note._id, null);
+                          closeMenu();
+                        }}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "10px 12px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                        }}
+                      >
+                        🔓 Unlock
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(note._id);
+                        closeMenu();
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        color: "crimson",
+                      }}
+                    >
+                      🗑️ Delete
+                    </button>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
         </div>
       </div>
     </div>

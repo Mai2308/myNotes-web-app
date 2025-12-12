@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { getFolders, createFolder, updateFolder, deleteFolder } from "../api/foldersApi";
+import React, { useState, useEffect, useCallback } from "react";
+import { getFolders, createFolder, updateFolder, deleteFolder, getLockedFolder } from "../api/foldersApi";
 import FolderTree from "./FolderTree";
 import { useTheme } from "../context/ThemeContext";
 
@@ -23,14 +23,12 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
 
   const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    loadFolders();
-  }, []);
-
-  const loadFolders = async () => {
+  const loadFolders = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
+      // Ensure locked folder exists (server will create if missing)
+      await getLockedFolder(token);
       const data = await getFolders(token);
       setFolders(data);
       if (onFoldersChange) onFoldersChange(data);
@@ -40,7 +38,16 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, onFoldersChange]);
+
+  useEffect(() => {
+    loadFolders();
+  }, [loadFolders]);
+
+  useEffect(() => {
+    loadFolders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateFolder = async (parentId = null) => {
     setShowCreateForm(true);

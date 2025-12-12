@@ -1,6 +1,11 @@
 import sanitizeHtml from "sanitize-html";
+import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import Note from "../models/noteModel.js";
-import Folder from "../models/folderModel.js"; // new
+import Folder from "../models/folderModel.js";
+import { ensureLockedFolder, isLockedFolder } from "../utils/lockedFolder.js";
+
+const { Types: { ObjectId } } = mongoose;
 // Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
   try {
@@ -55,9 +60,27 @@ export const toggleFavorite = async (req, res) => {
     const userId = req.user.id;
     const noteId = req.params.id;
 
-    // Find the original note
-    const originalNote = await Note.findOne({ _id: noteId, user: userId }).exec();
-    if (!originalNote) return res.status(404).json({ message: "Note not found" });
+    // Find the note being toggled
+    const clickedNote = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!clickedNote) return res.status(404).json({ message: "Note not found" });
+
+    // Determine if this is a copy or the original note
+    let originalNote;
+    if (clickedNote.sourceNoteId) {
+      // User clicked on a copy in Favorites - find the original
+      originalNote = await Note.findOne({ _id: clickedNote.sourceNoteId, user: userId }).exec();
+      if (!originalNote) return res.status(404).json({ message: "Original note not found" });
+    } else {
+      // User clicked on the original note
+      originalNote = clickedNote;
+    }
+
+    console.log("📝 Original Note:", {
+      _id: originalNote._id,
+      title: originalNote.title,
+      isChecklist: originalNote.isChecklist,
+      checklistItems: originalNote.checklistItems
+    });
 
     // Find or create the user's Favorites folder
     let favoritesFolder = await Folder.findOne({ user: userId, isDefault: true, name: "Favorites" }).exec();
@@ -83,7 +106,7 @@ export const toggleFavorite = async (req, res) => {
 
       if (!favoriteCopy) {
         // Create a copy of the note in the Favorites folder
-        favoriteCopy = new Note({
+        const copyData = {
           title: originalNote.title,
           content: originalNote.content,
           tags: originalNote.tags,
@@ -91,22 +114,43 @@ export const toggleFavorite = async (req, res) => {
           folderId: favoritesFolder._id,
           isFavorite: true,
           sourceNoteId: originalNote._id,
-        });
+          isChecklist: !!originalNote.isChecklist,
+          checklistItems: originalNote.isChecklist && originalNote.checklistItems 
+            ? originalNote.checklistItems.map(item => ({ ...item }))
+            : []
+        };
+        favoriteCopy = new Note(copyData);
         await favoriteCopy.save();
+        console.log("💾 Created Favorite Copy (before refresh):", copyData);
+        // Refresh to ensure all fields are populated
+        favoriteCopy = await Note.findById(favoriteCopy._id).exec();
+        console.log("🔄 Favorite Copy (after refresh):", {
+          _id: favoriteCopy._id,
+          title: favoriteCopy.title,
+          isChecklist: favoriteCopy.isChecklist,
+          checklistItems: favoriteCopy.checklistItems
+        });
       } else {
         // Update existing copy content/title/tags to match latest
         favoriteCopy.title = originalNote.title;
         favoriteCopy.content = originalNote.content;
         favoriteCopy.tags = originalNote.tags;
         favoriteCopy.isFavorite = true;
+        favoriteCopy.isChecklist = !!originalNote.isChecklist;
+        favoriteCopy.checklistItems = originalNote.isChecklist && originalNote.checklistItems 
+          ? originalNote.checklistItems.map(item => ({ ...item }))
+          : [];
         await favoriteCopy.save();
+        // Refresh to ensure all fields are populated
+        favoriteCopy = await Note.findById(favoriteCopy._id).exec();
       }
 
       res.json({ 
         message: "Note added to favorites", 
-        note: originalNote, 
-        favoriteCopy: favoriteCopy 
+        note: originalNote.toObject(), 
+        favoriteCopy: favoriteCopy.toObject() 
       });
+      console.log("✅ Favorite Copy Response:", JSON.stringify(favoriteCopy.toObject(), null, 2));
     } else {
       // Unfavorite: mark original as not favorite and delete the copy in Favorites
       originalNote.isFavorite = false;
@@ -121,7 +165,7 @@ export const toggleFavorite = async (req, res) => {
 
       res.json({ 
         message: "Note removed from favorites", 
-        note: originalNote 
+        note: originalNote.toObject() 
       });
     }
   } catch (error) {
@@ -173,6 +217,9 @@ export const updateNote = async (req, res) => {
     const noteId = req.params.id;
     const { title, content, tags, folderId } = req.body;
 
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
+
     // If folderId present, validate
     if (typeof folderId !== "undefined" && folderId !== null) {
       const folder = await Folder.findOne({ _id: folderId, user: userId }).exec();
@@ -185,10 +232,9 @@ export const updateNote = async (req, res) => {
     if (typeof tags !== "undefined") update.tags = tags;
     if (typeof folderId !== "undefined") update.folderId = folderId;
 
-    const note = await Note.findOneAndUpdate({ _id: noteId, user: userId }, update, { new: true }).exec();
-    if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
+    const updatedNote = await Note.findOneAndUpdate({ _id: noteId, user: userId }, update, { new: true }).exec();
 
-    res.json({ message: "✅ Note updated successfully!", note });
+    res.json({ message: "✅ Note updated successfully!", note: updatedNote });
   } catch (error) {
     console.error("❌ Error updating note:", error);
     res.status(500).json({ message: "Server error" });
@@ -221,6 +267,31 @@ export const moveNote = async (req, res) => {
   }
 };
 
+// Move a note into the locked folder
+export const lockNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found." });
+
+    const lockedFolder = await ensureLockedFolder(userId);
+    note.folderId = lockedFolder._id;
+    await note.save();
+
+    res.json({
+      message: "Note moved to locked folder",
+      note,
+      lockedFolderId: lockedFolder._id,
+      requiresPassword: Boolean(lockedFolder.passwordHash),
+    });
+  } catch (error) {
+    console.error("❌ Error locking note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // Delete a note
 export const deleteNote = async (req, res) => {
   try {
@@ -243,32 +314,247 @@ export const searchNotes = async (req, res) => {
     const userId = req.user.id;
     const keyword = req.query.q?.trim() || "";
     const { folderId } = req.query;
+    const excludedFolderIds = [];
+    const lockedFolder = await ensureLockedFolder(userId);
+    if (lockedFolder) excludedFolderIds.push(lockedFolder._id.toString());
+    const protectedFolders = await Folder.find({ user: userId, isProtected: true }).select("_id isProtected passwordHash name isDefault").lean();
+    protectedFolders.forEach((f) => excludedFolderIds.push(f._id.toString()));
 
-    if (!keyword) {
-      const filter = { user: userId };
-      if (folderId) filter.folderId = folderId === "null" ? null : folderId;
+    const filter = { user: userId };
+    const isFolderScoped = typeof folderId !== "undefined" && folderId !== "";
 
-      const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
-      return res.json(notes);
+    if (isFolderScoped) {
+      if (folderId !== "null" && !ObjectId.isValid(folderId)) {
+        return res.status(400).json({ message: "Invalid folder id" });
+      }
+
+      const targetFolder = folderId && folderId !== "null"
+        ? await Folder.findOne({ _id: folderId, user: userId }).lean()
+        : null;
+
+      if (folderId && folderId !== "null" && !targetFolder) {
+        return res.status(404).json({ message: "Folder not found" });
+      }
+
+      if (targetFolder && (targetFolder.isProtected || isLockedFolder(targetFolder))) {
+        const supplied = req.headers["x-folder-password"] || req.query.password;
+        if (!supplied) return res.status(403).json({ message: "Folder password required" });
+        const ok = await bcrypt.compare(String(supplied), targetFolder.passwordHash || "");
+        if (!ok) return res.status(403).json({ message: "Invalid folder password" });
+      }
+
+      filter.folderId = folderId === "null" ? null : folderId;
+    } else if (excludedFolderIds.length > 0) {
+      filter.folderId = { $nin: [...new Set(excludedFolderIds)] };
     }
 
-    const filter = {
-      user: userId,
-      $or: [
+    if (keyword) {
+      filter.$or = [
         { title: { $regex: keyword, $options: "i" } },
         { content: { $regex: keyword, $options: "i" } },
-        { tags: { $elemMatch: { $regex: keyword, $options: "i" } } }
-      ]
-    };
-
-    if (folderId) filter.folderId = folderId === "null" ? null : folderId;
+        { tags: { $elemMatch: { $regex: keyword, $options: "i" } } },
+      ];
+    }
 
     const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
     res.json(notes);
-
   } catch (error) {
     console.error("❌ Error searching notes:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Convert a note to checklist mode
+export const convertToChecklist = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    // Parse content into checklist items (split by lines)
+    const content = note.content || "";
+    
+    // Strip HTML tags and get plain text, handle different HTML structures
+    let plainText = content
+      .replace(/<br\s*\/?>/gi, '\n')  // Convert br tags to newlines
+      .replace(/<\/p>/gi, '\n')        // Convert closing p tags to newlines
+      .replace(/<\/div>/gi, '\n')      // Convert closing div tags to newlines
+      .replace(/<\/li>/gi, '\n')       // Convert closing li tags to newlines
+      .replace(/<[^>]*>/g, '')         // Remove all other HTML tags
+      .replace(/&nbsp;/g, ' ')         // Replace nbsp with space
+      .replace(/&amp;/g, '&')          // Replace amp
+      .replace(/&lt;/g, '<')           // Replace lt
+      .replace(/&gt;/g, '>')           // Replace gt
+      .trim();
+    
+    const lines = plainText
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    const checklistItems = lines.map((line, index) => ({
+      text: line,
+      completed: false,
+      order: index
+    }));
+
+    note.isChecklist = true;
+    note.checklistItems = checklistItems;
+    await note.save();
+
+    res.json({ message: "Note converted to checklist", note });
+  } catch (error) {
+    console.error("❌ Error converting to checklist:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Convert a checklist back to regular note
+export const convertToRegularNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    // Convert checklist items back to content
+    if (note.isChecklist && note.checklistItems.length > 0) {
+      const sortedItems = note.checklistItems.sort((a, b) => a.order - b.order);
+      const content = sortedItems.map(item => item.text).join('\n');
+      note.content = content;
+    }
+
+    note.isChecklist = false;
+    note.checklistItems = [];
+    await note.save();
+
+    res.json({ message: "Checklist converted to regular note", note });
+  } catch (error) {
+    console.error("❌ Error converting to regular note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update checklist items (add, edit, delete, reorder)
+export const updateChecklistItems = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { checklistItems } = req.body;
+
+    if (!Array.isArray(checklistItems)) {
+      return res.status(400).json({ message: "checklistItems must be an array" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    if (!note.isChecklist) return res.status(400).json({ message: "Note is not in checklist mode" });
+
+    // Validate and set checklist items
+    const validatedItems = checklistItems.map((item, index) => ({
+      text: String(item.text || "").trim(),
+      completed: Boolean(item.completed),
+      order: typeof item.order === 'number' ? item.order : index
+    })).filter(item => item.text.length > 0);
+
+    note.checklistItems = validatedItems;
+    await note.save();
+
+    res.json({ message: "Checklist items updated", note });
+  } catch (error) {
+    console.error("❌ Error updating checklist items:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Toggle completion status of a specific checklist item
+export const toggleChecklistItem = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { itemIndex } = req.body;
+
+    if (typeof itemIndex !== 'number' || itemIndex < 0) {
+      return res.status(400).json({ message: "Valid itemIndex is required" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    if (!note.isChecklist) return res.status(400).json({ message: "Note is not in checklist mode" });
+    if (itemIndex >= note.checklistItems.length) {
+      return res.status(400).json({ message: "Item index out of bounds" });
+    }
+
+    // Toggle the completed status
+    note.checklistItems[itemIndex].completed = !note.checklistItems[itemIndex].completed;
+    await note.save();
+
+    res.json({ 
+      message: "Checklist item toggled", 
+      note,
+      toggledItem: note.checklistItems[itemIndex]
+    });
+  } catch (error) {
+    console.error("❌ Error toggling checklist item:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Add an emoji to a note's emoji list (metadata)
+export const addEmojiToNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { emoji } = req.body;
+
+    if (!emoji || typeof emoji !== "string") {
+      return res.status(400).json({ message: "emoji is required as a string" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    note.emojis = Array.isArray(note.emojis) ? note.emojis : [];
+    if (!note.emojis.includes(emoji)) {
+      note.emojis.push(emoji);
+      await note.save();
+    }
+
+    res.json({ message: "Emoji added to note", note });
+  } catch (error) {
+    console.error("❌ Error adding emoji to note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Remove an emoji from a note's emoji list (metadata)
+export const removeEmojiFromNote = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const noteId = req.params.id;
+    const { emoji } = req.params;
+
+    if (!emoji || typeof emoji !== "string") {
+      return res.status(400).json({ message: "emoji param is required" });
+    }
+
+    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    note.emojis = (note.emojis || []).filter(e => e !== emoji);
+    await note.save();
+
+    res.json({ message: "Emoji removed from note", note });
+  } catch (error) {
+    console.error("❌ Error removing emoji from note:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 

@@ -166,8 +166,8 @@ html[data-theme="dark"] .toolbar button:hover {
 }
 
 /* Small action buttons under editor */
-.save-controls button {
-  padding: 10px 14px;
+
+.editor-action-btn {
   border-radius: 10px;
   background: var(--card-bg);
   border: 1px solid rgba(0,0,0,0.08);
@@ -879,3 +879,102 @@ html[data-theme="dark"] .view-toggle .view-btn.selected,
 
 
 
+.modal-close-btn:hover {
+  color: var(--text);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Locked note indicator in card */
+.card[style*="border: 2px solid #ff9800"] {
+  position: relative;
+}
+
+.card[style*="border: 2px solid #ff9800"]::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #ff9800, #ffc107);
+  border-radius: var(--radius);
+  z-index: -1;
+  opacity: 0.1;
+}
+/* =============================
+   Modern Search Bar
+============================= */
+
+.searchbar-container {
+  position: relative;
+  width: 100%;
+  max-width: 350px;
+}
+
+.searchbar-input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  color: var(--text);
+  font-size: 15px;
+  transition: 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+}
+
+.searchbar-input::placeholder {
+  color: var(--muted);
+}
+
+.searchbar-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,126,185,0.15);
+  outline: none;
+}
+
+/* Search icon */
+.searchbar-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 18px;
+  width: 18px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* Dark mode matching styles */
+.dark .searchbar-input {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.dark .searchbar-input:focus {
+  box-shadow: 0 0 0 3px rgba(122,252,255,0.2);
+}
+
+.dark .searchbar-icon {
+  color: var(--muted);
+}

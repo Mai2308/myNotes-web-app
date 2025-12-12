@@ -30,5 +30,15 @@ Notes
   - `POST /api/users/login` — body: `{ email, password }`
   - `GET /api/notes` — Authorization: `Bearer <token>`
   - `POST /api/notes` — Authorization + body: `{ title, content, tags }`
+  - `POST /api/notes/:id/emojis` — Authorization + body: `{ emoji }` → adds emoji to note metadata
+  - `DELETE /api/notes/:id/emojis/:emoji` — Authorization → removes emoji from note metadata
+  - Locked notes:
+    - `GET /api/folders/locked` — ensure the default "Locked Notes" folder exists and return its metadata
+    - `POST /api/folders/locked/password` — set the locked-folder password once (409 if already set)
+    - `POST /api/folders/locked/verify` — verify the locked-folder password
+    - `POST /api/notes/:id/lock` — move a note into the locked folder
+    - Access locked folder contents via `GET /api/folders/:id?includeNotes=true` with header `x-folder-password: <password>`
+  - `GET /api/emojis` — returns curated emoji categories for the picker
+  - `GET /api/emojis/search?q=` — quick search over curated emoji list
 
 - To use the frontend against this backend, set `REACT_APP_API_URL` in the frontend environment or run the frontend with the default `http://localhost:5000`.
