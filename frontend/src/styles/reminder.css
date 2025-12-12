@@ -2,23 +2,24 @@
 
 /* ReminderForm Component */
 .reminder-form {
-  background: var(--bg-secondary, #f9f9f9);
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius, 12px);
   padding: 20px;
   margin: 16px 0;
   max-width: 100%;
+  box-shadow: var(--shadow);
 }
 
 .reminder-form-header {
   margin-bottom: 16px;
-  border-bottom: 2px solid var(--primary-color, #007bff);
+  border-bottom: 2px solid var(--accent, #ff7eb9);
   padding-bottom: 8px;
 }
 
 .reminder-form-header h3 {
   margin: 0;
-  color: var(--text-primary, #333);
+  color: var(--text);
   font-size: 18px;
   font-weight: 600;
 }
@@ -31,7 +32,7 @@
 .form-group label {
   display: block;
   margin-bottom: 6px;
-  color: var(--text-primary, #333);
+  color: var(--text);
   font-weight: 500;
   font-size: 14px;
 }
@@ -42,6 +43,7 @@
   margin-bottom: 0;
   cursor: pointer;
   gap: 8px;
+  font-weight: 500;
 }
 
 .form-group label.checkbox-label span {
@@ -55,12 +57,12 @@
 .form-select {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border-color, #d0d0d0);
-  border-radius: 4px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius, 12px);
   font-size: 14px;
   font-family: inherit;
-  background-color: var(--bg-primary, #fff);
-  color: var(--text-primary, #333);
+  background-color: var(--input-bg);
+  color: var(--text);
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
 }
@@ -68,14 +70,14 @@
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: var(--primary-color, #007bff);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: var(--accent, #ff7eb9);
+  box-shadow: 0 0 0 3px rgba(255, 126, 185, 0.1);
 }
 
 .form-input:disabled,
 .form-select:disabled {
-  background-color: var(--bg-disabled, #f5f5f5);
-  color: var(--text-disabled, #999);
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--muted);
   cursor: not-allowed;
 }
 
@@ -103,7 +105,7 @@
   position: absolute;
   right: 10px;
   pointer-events: none;
-  color: var(--text-secondary, #666);
+  color: var(--muted);
 }
 
 /* Time Input Wrapper */
@@ -116,7 +118,7 @@
 .time-input-wrapper .time-icon {
   position: absolute;
   left: 10px;
-  color: var(--text-secondary, #666);
+  color: var(--muted);
   pointer-events: none;
 }
 
@@ -126,10 +128,10 @@
 
 /* Recurring Options */
 .recurring-options {
-  background-color: var(--bg-tertiary, #f5f5f5);
-  border-left: 3px solid var(--primary-color, #007bff);
+  background-color: rgba(0, 0, 0, 0.02);
+  border-left: 3px solid var(--accent, #ff7eb9);
   padding: 12px 16px;
-  border-radius: 4px;
+  border-radius: 6px;
   margin-top: 12px;
   margin-bottom: 12px;
 }
@@ -148,8 +150,8 @@
 
 /* Reminder Summary */
 .reminder-summary {
-  background-color: rgba(0, 123, 255, 0.05);
-  border: 1px solid rgba(0, 123, 255, 0.2);
+  background-color: rgba(255, 126, 185, 0.05);
+  border: 1px solid rgba(255, 126, 185, 0.2);
   border-radius: 6px;
   padding: 12px 14px;
   margin: 12px 0;
@@ -158,7 +160,7 @@
 .reminder-summary .summary-text {
   margin: 0;
   font-size: 13px;
-  color: var(--text-secondary, #555);
+  color: var(--text);
   line-height: 1.6;
 }
 
@@ -168,14 +170,14 @@
   gap: 10px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
+  border-top: 1px solid var(--input-border);
 }
 
 /* Button Styles */
 .btn {
   padding: 10px 16px;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -190,14 +192,14 @@
 }
 
 .btn-primary {
-  background-color: var(--primary-color, #007bff);
+  background-color: var(--accent, #ff7eb9);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-hover, #0056b3);
+  background-color: var(--accent-dark, #ff5ca2);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+  box-shadow: 0 4px 8px rgba(255, 126, 185, 0.3);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -205,13 +207,13 @@
 }
 
 .btn-secondary {
-  background-color: var(--bg-secondary, #e9ecef);
-  color: var(--text-primary, #333);
-  border: 1px solid var(--border-color, #d0d0d0);
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text);
+  border: 1px solid var(--input-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--bg-tertiary, #dee2e6);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 /* Notification Center Component */
@@ -227,18 +229,18 @@
   padding: 6px;
   border-radius: 6px;
   transition: all 0.2s;
-  color: var(--text-primary, #333);
+  color: var(--text);
 }
 
 .notification-bell-button:hover {
-  background-color: var(--bg-secondary, #f0f0f0);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .notification-badge {
   position: absolute;
   top: -2px;
   right: -2px;
-  background-color: #dc3545;
+  background-color: var(--accent, #ff7eb9);
   color: white;
   border-radius: 50%;
   width: 20px;
@@ -248,7 +250,7 @@
   justify-content: center;
   font-size: 12px;
   font-weight: bold;
-  border: 2px solid var(--bg-primary, #fff);
+  border: 2px solid var(--card-bg);
 }
 
 .notification-dropdown {
@@ -256,10 +258,10 @@
   top: 100%;
   right: 0;
   margin-top: 8px;
-  background: var(--bg-primary, #fff);
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius, 12px);
+  box-shadow: var(--shadow);
   min-width: 320px;
   max-height: 400px;
   overflow-y: auto;
@@ -271,21 +273,22 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-  background-color: var(--bg-secondary, #f9f9f9);
+  border-bottom: 1px solid var(--input-border);
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .notification-dropdown-header h4 {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
+  color: var(--text);
 }
 
 .notification-dropdown-header button {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-secondary, #666);
+  color: var(--muted);
   font-size: 12px;
   padding: 0;
   text-decoration: underline;
@@ -293,23 +296,23 @@
 }
 
 .notification-dropdown-header button:hover {
-  color: var(--text-primary, #333);
+  color: var(--text);
 }
 
 .notification-item {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .notification-item:hover {
-  background-color: var(--bg-secondary, #f9f9f9);
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .notification-item.unread {
-  background-color: rgba(0, 123, 255, 0.05);
-  border-left: 3px solid var(--primary-color, #007bff);
+  background-color: rgba(255, 126, 185, 0.05);
+  border-left: 3px solid var(--accent);
   padding-left: 13px;
 }
 
@@ -326,19 +329,20 @@
 .notification-item-title {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-primary, #333);
+  color: var(--text);
   margin-bottom: 4px;
 }
 
 .notification-item-message {
   font-size: 12px;
-  color: var(--text-secondary, #666);
+  color: var(--muted);
   line-height: 1.4;
 }
 
 .notification-item-time {
   font-size: 11px;
-  color: var(--text-tertiary, #999);
+  color: var(--muted);
+  opacity: 0.7;
   white-space: nowrap;
   margin-left: 8px;
 }
@@ -351,25 +355,26 @@
 
 .notification-item-actions button {
   background: none;
-  border: 1px solid var(--border-color, #d0d0d0);
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
-  color: var(--text-secondary, #666);
+  color: var(--muted);
 }
 
 .notification-item-actions button:hover {
-  background-color: var(--bg-secondary, #f0f0f0);
-  border-color: var(--primary-color, #007bff);
-  color: var(--primary-color, #007bff);
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .notification-empty {
   padding: 20px 16px;
   text-align: center;
-  color: var(--text-tertiary, #999);
+  color: var(--muted);
+  opacity: 0.7;
   font-size: 13px;
 }
 
@@ -384,8 +389,8 @@
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  background: var(--bg-secondary, #f9f9f9);
-  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   gap: 12px;
   transition: all 0.2s;
@@ -393,6 +398,7 @@
 
 .reminder-item:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent);
 }
 
 .reminder-item.overdue {
@@ -435,7 +441,7 @@
 .reminder-item-title {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary, #333);
+  color: var(--text);
   margin-bottom: 4px;
 }
 
@@ -443,7 +449,7 @@
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: var(--text-secondary, #666);
+  color: var(--muted);
 }
 
 .reminder-item-meta span {
@@ -459,19 +465,19 @@
 
 .reminder-item-action-btn {
   background: none;
-  border: 1px solid var(--border-color, #d0d0d0);
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   padding: 4px 8px;
   cursor: pointer;
   font-size: 12px;
   transition: all 0.2s;
-  color: var(--text-secondary, #666);
+  color: var(--muted);
 }
 
 .reminder-item-action-btn:hover {
-  background-color: var(--bg-primary, #fff);
-  border-color: var(--primary-color, #007bff);
-  color: var(--primary-color, #007bff);
+  background-color: rgba(0, 0, 0, 0.02);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* Filter and Sort Controls */
@@ -489,45 +495,31 @@
 
 .filter-button {
   padding: 8px 12px;
-  border: 1px solid var(--border-color, #d0d0d0);
+  border: 1px solid var(--input-border);
   border-radius: 20px;
-  background-color: var(--bg-secondary, #f9f9f9);
+  background-color: rgba(0, 0, 0, 0.02);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  color: var(--text-secondary, #666);
+  color: var(--muted);
 }
 
 .filter-button.active {
-  background-color: var(--primary-color, #007bff);
+  background-color: var(--accent);
   color: white;
-  border-color: var(--primary-color, #007bff);
+  border-color: var(--accent);
 }
 
 .filter-button:hover {
-  background-color: var(--primary-color, #007bff);
+  background-color: var(--accent);
   color: white;
-  border-color: var(--primary-color, #007bff);
+  border-color: var(--accent);
 }
 
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
-  .reminder-form {
-    --bg-secondary: #2a2a2a;
-    --border-color: #444;
-    --text-primary: #e0e0e0;
-  }
-
-  .form-input,
-  .form-select {
-    --bg-primary: #1e1e1e;
-    --text-primary: #e0e0e0;
-  }
-
-  .notification-dropdown {
-    --bg-primary: #1e1e1e;
-    --border-color: #444;
-  }
+  /* Dark mode is handled by the app's .dark selector in styles.css */
+  /* All CSS variables are automatically updated there */
 }
 
 /* Responsive Design */

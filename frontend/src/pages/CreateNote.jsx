@@ -183,7 +183,7 @@ export default function CreateNote() {
 
         {/* Reminder Section */}
         <div style={{ marginBottom: "16px", padding: "12px", backgroundColor: "var(--bg-secondary, #f9f9f9)", borderRadius: "6px", border: "1px solid var(--border-color, #e0e0e0)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
             <label style={{ fontSize: "14px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
               <Clock size={16} />
               Reminder/Deadline:
@@ -192,7 +192,7 @@ export default function CreateNote() {
               type="button"
               className="btn"
               onClick={() => setShowReminderForm(!showReminderForm)}
-              style={{ fontSize: "12px", padding: "6px 12px", backgroundColor: reminderData ? "#ffc107" : "#007bff" }}
+              style={{ fontSize: "12px", padding: "6px 10px", backgroundColor: reminderData ? "var(--accent)" : "var(--accent-dark)", minWidth: "auto" }}
             >
               {reminderData ? "✓ Configured" : "Set Reminder"}
             </button>
