@@ -6,6 +6,8 @@ function authHeaders(token) {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
+// --------------------- GET FOLDERS ---------------------
+
 // Get all folders for the current user
 export const getFolders = async (token) => {
   const res = await fetch(`${BASE}/api/folders`, {
@@ -17,28 +19,29 @@ export const getFolders = async (token) => {
 
 // Get a specific folder by ID (optionally with notes)
 export const getFolder = async (id, options = {}, token) => {
-  // options: { includeNotes?: boolean, password?: string }
   const includeNotes = options.includeNotes === true;
   const url = includeNotes
     ? `${BASE}/api/folders/${id}?includeNotes=true`
     : `${BASE}/api/folders/${id}`;
+
   const headers = { ...authHeaders(token) };
   if (includeNotes && options.password) {
     headers["x-folder-password"] = options.password;
   }
-  const res = await fetch(url, {
-    headers,
-  });
+
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error("Failed to fetch folder");
   return await res.json();
 };
+
+// --------------------- PROTECT / UNPROTECT ---------------------
 
 // Protect a folder with a password
 export const protectFolder = async (id, password, token) => {
   const res = await fetch(`${BASE}/api/folders/${id}/protect`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
-    body: JSON.stringify({ password })
+    body: JSON.stringify({ password }),
   });
   if (!res.ok) {
     const error = await res.json();
@@ -60,47 +63,62 @@ export const unprotectFolder = async (id, token) => {
   return await res.json();
 };
 
-// Locked folder helpers
+// --------------------- LOCKED FOLDER FEATURES ---------------------
+
+// Get the locked folder (normalized)
 export const getLockedFolder = async (token) => {
   const res = await fetch(`${BASE}/api/folders/locked`, {
     headers: { ...authHeaders(token) },
   });
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to fetch locked folder");
   }
-  return await res.json();
+
+  // New backend returns:
+  // { folder: {...}, hasPassword: boolean }
+  const body = await res.json();
+  const folder = body?.folder ?? body;
+  return { ...folder, hasPassword: Boolean(body?.hasPassword) };
 };
 
+// Set password for locked folder
 export const setLockedFolderPassword = async (password, token) => {
   const res = await fetch(`${BASE}/api/folders/locked/password`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ password }),
   });
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to set locked folder password");
   }
+
   return await res.json();
 };
 
+// Verify password for locked folder
 export const verifyLockedFolderPassword = async (password, token) => {
   const res = await fetch(`${BASE}/api/folders/locked/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ password }),
   });
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to verify locked folder password");
   }
-  return await res.json();
+
+  return await res.json(); // { success: true }
 };
+
+// --------------------- CRUD FOLDERS ---------------------
 
 // Create a new folder
 export const createFolder = async (folderData, token) => {
-  // folderData = { name: string, parentId?: string | null }
   const res = await fetch(`${BASE}/api/folders`, {
     method: "POST",
     headers: {
@@ -109,16 +127,17 @@ export const createFolder = async (folderData, token) => {
     },
     body: JSON.stringify(folderData),
   });
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to create folder");
   }
+
   return await res.json();
 };
 
-// Update a folder (rename or move)
+// Update folder (rename or move)
 export const updateFolder = async (id, updates, token) => {
-  // updates = { name?: string, parentId?: string | null }
   const res = await fetch(`${BASE}/api/folders/${id}`, {
     method: "PATCH",
     headers: {
@@ -127,22 +146,26 @@ export const updateFolder = async (id, updates, token) => {
     },
     body: JSON.stringify(updates),
   });
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to update folder");
   }
+
   return await res.json();
 };
 
-// Delete a folder
+// Delete folder
 export const deleteFolder = async (id, token) => {
   const res = await fetch(`${BASE}/api/folders/${id}`, {
     method: "DELETE",
     headers: { ...authHeaders(token) },
   });
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to delete folder");
   }
+
   return await res.json();
 };

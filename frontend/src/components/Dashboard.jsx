@@ -1,15 +1,25 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNotes, getNotesByFolder, deleteNote, moveNote, toggleFavorite, lockNote } from "../api/notesApi";
-import { useTheme } from "../context/ThemeContext";
-import { getFolder, getLockedFolder, setLockedFolderPassword, verifyLockedFolderPassword } from "../api/foldersApi";
+import {
+  getNotes,
+  deleteNote,
+  moveNote,
+  toggleFavorite,
+} from "../api/notesApi";
+import {
+  getFolder,
+  getLockedFolder,
+  setLockedFolderPassword,
+  verifyLockedFolderPassword,
+} from "../api/foldersApi";
 import FolderManager from "./FolderManager";
+import { useTheme } from "../context/ThemeContext";
 import { useView } from "../context/ViewContext";
 import SortMenu from "./viewOptions/SortMenu";
 import ViewLayoutSelector from "./viewOptions/ViewLayoutSelector";
 
 export default function Dashboard() {
-  const { sort, setSort, viewType } = useView();
+  const { sort, viewType } = useView();
   const { theme } = useTheme();
   const navigate = useNavigate();
 
@@ -21,39 +31,61 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [favPending, setFavPending] = useState(new Set());
 
+  const [lockedFolderId, setLockedFolderId] = useState(null);
+  const [lockedFolderPassword, setLockedFolderPasswordState] = useState(null);
+
   const token = localStorage.getItem("token");
   const requestIdRef = useRef(0);
   const debounceRef = useRef(null);
 
-  const applySort = useCallback((list = [], sortMode) => {
-    if (!sortMode) return [...list];
-    const copy = [...list];
-    const getTime = (n) => new Date(n?.createdAt || n?.updatedAt || 0).getTime();
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState(null);
+  const menuButtonRefs = useRef({});
+  const menuRef = useRef(null);
 
-    switch (sortMode) {
-      case "newest":
-        return copy.sort((a, b) => getTime(b) - getTime(a));
-      case "oldest":
-        return copy.sort((a, b) => getTime(a) - getTime(b));
-      case "title_asc":
-        return copy.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-      case "title_desc":
-        return copy.sort((a, b) => (b.title || "").localeCompare(a.title || ""));
-      case "favorite":
-        return copy.sort((a, b) => {
-          const favDiff = (b.isFavorite === true ? 1 : 0) - (a.isFavorite === true ? 1 : 0);
-          return favDiff !== 0 ? favDiff : getTime(b) - getTime(a);
-        });
-      default:
-        return copy;
-    }
-  }, []);
+  // Load locked folder info on mount
+  useEffect(() => {
+    if (!token) return;
+    getLockedFolder(token)
+      .then((folder) => {
+        setLockedFolderId(folder._id);
+      })
+      .catch((err) => console.error("Failed to get locked folder:", err));
+  }, [token]);
 
-  // Fetch notes with debounce + stale-response guard
+  const applySort = useCallback(
+    (list = [], sortMode) => {
+      if (!sortMode) return [...list];
+      const copy = [...list];
+      const getTime = (n) =>
+        new Date(n?.createdAt || n?.updatedAt || 0).getTime();
+
+      switch (sortMode) {
+        case "newest":
+          return copy.sort((a, b) => getTime(b) - getTime(a));
+        case "oldest":
+          return copy.sort((a, b) => getTime(a) - getTime(b));
+        case "title_asc":
+          return copy.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        case "title_desc":
+          return copy.sort((a, b) => (b.title || "").localeCompare(a.title || ""));
+        case "favorite":
+          return copy.sort((a, b) => {
+            const favDiff =
+              (b.isFavorite === true ? 1 : 0) - (a.isFavorite === true ? 1 : 0);
+            return favDiff !== 0 ? favDiff : getTime(b) - getTime(a);
+          });
+        default:
+          return copy;
+      }
+    },
+    []
+  );
+
+  // Fetch notes
   useEffect(() => {
     if (!token) return;
 
-    // apply local sort immediately to avoid flicker
     setNotes((prev) => applySort(prev, sort));
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -75,7 +107,7 @@ export default function Dashboard() {
         .finally(() => {
           if (myReq === requestIdRef.current) setLoading(false);
         });
-    }, 120); // small debounce to avoid many requests
+    }, 120);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -106,44 +138,42 @@ export default function Dashboard() {
   const handleMoveNote = useCallback(
     async (noteId, targetFolderId) => {
       try {
+          // moving note to another folder (including locked folder)
+
         await moveNote(noteId, targetFolderId, token);
-        // update locally if possible
         setNotes((prev) =>
           prev.map((n) => (n._id === noteId ? { ...n, folderId: targetFolderId } : n))
         );
-        // refresh to ensure server state and sort
-        const data = await getNotes(token, { sort, folderId: selectedFolderId, q: searchQuery });
+
+        const data = await getNotes(token, {
+          sort,
+          folderId: selectedFolderId,
+          q: searchQuery,
+        });
         setNotes(applySort(data || [], sort));
       } catch (err) {
         console.error(err);
         alert(err.message || "Failed to move note.");
       }
     },
-    [token, sort, selectedFolderId, searchQuery, applySort]
+    [token, sort, selectedFolderId, searchQuery, applySort, lockedFolderId, lockedFolderPassword]
   );
 
   const handleToggleFavorite = useCallback(
     async (noteId) => {
-      // منع النقر المتكرر
       if (favPending.has(noteId)) return;
       setFavPending((s) => new Set(s).add(noteId));
 
       try {
-        // تحديث محلي فوري (optimistic) - بدون re-fetch
         setNotes((prev) =>
           prev.map((n) =>
             n._id === noteId ? { ...n, isFavorite: !n.isFavorite } : n
           )
         );
 
-        // إرسال للسيرفر بدون انتظار re-fetch
         await toggleFavorite(noteId, token);
-        console.log("toggleFavorite success for:", noteId);
-        
-        // لا نعمل re-fetch — خليه يبقى محلي
       } catch (err) {
         console.error("toggleFavorite failed:", err);
-        // على الفشل فقط: ارجع للحالة السابقة
         setNotes((prev) =>
           prev.map((n) =>
             n._id === noteId ? { ...n, isFavorite: !n.isFavorite } : n
@@ -158,11 +188,13 @@ export default function Dashboard() {
         });
       }
     },
-    [favPending]
+    [favPending, token]
   );
 
   const filteredNotes = notes
-    .filter((n) => (selectedFolderId === null ? !n.folderId : String(n.folderId) === String(selectedFolderId)))
+    .filter((n) =>
+      selectedFolderId === null ? !n.folderId : String(n.folderId) === String(selectedFolderId)
+    )
     .filter((n) => {
       const q = (searchQuery || "").toLowerCase();
       if (!q) return true;
@@ -171,29 +203,56 @@ export default function Dashboard() {
       const contentMatch = contentText.includes(q);
       return titleMatch || contentMatch;
     });
-  }
+
+  const closeMenu = () => {
+    setOpenMenuId(null);
+    setMenuPos(null);
+  };
+
+  // attach outside-click close behavior
+  useOutsideMenuClose(openMenuId, menuRef, menuButtonRefs, closeMenu);
 
   return (
-    <div className="container" style={{ paddingTop: 40}}>
+    <div className="container" style={{ paddingTop: 40 }}>
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 24 }}>
         <FolderManager
           selectedFolderId={selectedFolderId}
-          onSelectFolder={setSelectedFolderId}
+          onSelectFolder={(folderId) => {
+            // FolderManager handles locked-folder prompts; just set selection here
+            setSelectedFolderId(folderId);
+          }}
           draggedNote={draggedNote}
           onNoteDrop={handleMoveNote}
         />
 
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 20,
+            }}
+          >
             <SortMenu />
             <ViewLayoutSelector />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-            <h2 style={{ margin: 0 }}>{selectedFolderId === null ? "All Notes (Root)" : "Notes in Folder"}</h2>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 20,
+            }}
+          >
+            <h2 style={{ margin: 0 }}>
+              {selectedFolderId === null ? "All Notes (Root)" : "Notes in Folder"}
+            </h2>
             <button
               className={theme === "light" ? "btn-create-light" : "btn-create-dark"}
-              onClick={() => navigate("/create", { state: { folderId: selectedFolderId } })}
+              onClick={() =>
+                navigate("/create", { state: { folderId: selectedFolderId } })
+              }
             >
               + Create Note
             </button>
@@ -216,13 +275,16 @@ export default function Dashboard() {
 
           {loading && <p>Loading notes...</p>}
           {error && <div className="alert">{error}</div>}
-          {!loading && filteredNotes.length === 0 && <p style={{ color: "var(--muted)" }}>No notes found.</p>}
+          {!loading && filteredNotes.length === 0 && (
+            <p style={{ color: "var(--muted)" }}>No notes found.</p>
+          )}
 
           <div
             className={viewType === "grid" ? "notes-grid" : "notes-list"}
             style={{
               display: "grid",
-              gridTemplateColumns: viewType === "grid" ? "repeat(auto-fill, minmax(200px, 1fr))" : "1fr",
+              gridTemplateColumns:
+                viewType === "grid" ? "repeat(auto-fill, minmax(200px, 1fr))" : "1fr",
               gap: 12,
               maxWidth: "1200px",
             }}
@@ -234,269 +296,180 @@ export default function Dashboard() {
                 draggable
                 onDragStart={(e) => handleDragStart(e, note)}
                 onDragEnd={handleDragEnd}
-                style={{ padding: 12, cursor: "grab", opacity: draggedNote?._id === note._id ? 0.5 : 1 ,minHeight: "200px", }}
-                
-              >
-                <h3 style={{ fontSize: "16px", margin: "0 0 8px 0" }}>{note.title || "Untitled"}</h3>
-
-          return (
-          <div
-            key={note._id}
-            className="card"
-            draggable="true"
-            onDragStart={(e) => handleDragStart(e, note)}
-            onDragEnd={handleDragEnd}
-            style={{
-              padding: "16px",
-              cursor: "grab",
-              transition: "transform 0.15s ease",
-              opacity: draggedNote?._id === note._id ? 0.5 : 1,
-              position: "relative",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
-              <h3 className="h2" style={{ margin: 0, flex: 1 }}>{note.title || "Untitled"}</h3>
-              
-              {/* Three-dot menu */}
-              <div style={{ position: "relative" }}>
-                <button
-                  ref={(el) => {
-                    if (el) menuButtonRefs.current[note._id] = el;
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (openMenuId === note._id) {
-                      setOpenMenuId(null);
-                      setMenuPos(null);
-                    } else {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setMenuPos({
-                        top: rect.bottom + window.scrollY + 4,
-                        left: rect.right + window.scrollX - 140,
-                      });
-                      setOpenMenuId(note._id);
-                    }
-                  }}
-                  style={{
-                    fontSize: 12,
-                    color: "var(--muted)",
-                    overflow: "hidden",
-                    maxHeight: 60,
-                    margin: "8px 0",
-                  }}
-                  dangerouslySetInnerHTML={{ __html: note.content || "" }}
-                />
-
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 10 }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleFavorite(note._id);
-                    }}
-                    disabled={favPending.has(note._id)}
-                    className="btn"
-                    style={{
-                      background: note.isFavorite ? "#FFD700" : "#888",
-                      padding: "4px 8px",
-                      fontSize: 11,
-                      opacity: favPending.has(note._id) ? 0.6 : 1,
-                      cursor: favPending.has(note._id) ? "wait" : "pointer",
-                    }}
-                  >
-                    {note.isFavorite ? "★" : "☆"}
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/edit/${note._id}`);
-                    }}
-                    className="btn"
-                    style={{ background: "#2196F3" }}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(note._id);
-                    }}
-                    className="btn"
-                    style={{ background: "crimson" , padding: "4px 8px", fontSize: 11 }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p
                 style={{
-                  fontSize: "14px",
-                  color: "var(--muted)",
-                  overflow: "hidden",
-                  maxHeight: "80px",
-                  textOverflow: "ellipsis",
+                  padding: 12,
+                  cursor: "grab",
+                  opacity: draggedNote?._id === note._id ? 0.5 : 1,
+                  minHeight: "200px",
+                  position: "relative",
                 }}
-                dangerouslySetInnerHTML={{ __html: displayNote.content || "" }}
-              ></p>
-            )}
-          </div>
-        )})}
-      </div>
+              >
+                <h3 style={{ fontSize: "16px", margin: "0 0 8px 0" }}>
+                  {note.title || "Untitled"}
+                </h3>
 
-      {/* Fixed menu overlay - rendered outside the grid */}
-      {openMenuId && menuPos && (
-        <div
-          onClick={(e) => {
-            e.stopPropagation();
-            closeMenu();
-          }}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 9999,
-          }}
-        >
-          {/* Menu container */}
-          {filteredNotes.find(n => n._id === openMenuId) && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                position: "fixed",
-                top: `${menuPos.top}px`,
-                left: `${menuPos.left}px`,
-                background: theme === "light" ? "#fff" : "#2a2a2a",
-                border: `1px solid ${theme === "light" ? "#ddd" : "#555"}`,
-                borderRadius: "4px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-                zIndex: 10000,
-                minWidth: "140px",
-              }}
-            >
-              {(() => {
-                const note = filteredNotes.find(n => n._id === openMenuId);
-                if (!note) return null;
-                return (
-                  <>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditNote(note);
+                <div style={{ position: "absolute", top: 8, right: 8 }}>
+                  <button
+                    ref={(el) => {
+                      if (el) menuButtonRefs.current[note._id] = el;
+                    }}
+                    onClick={() => {
+                      const btn = menuButtonRefs.current[note._id];
+                      if (!btn) return;
+                      const rect = btn.getBoundingClientRect();
+                      const pos = { top: rect.bottom + window.scrollY + 6, left: rect.right + window.scrollX };
+                      // toggle on repeated clicks
+                      if (openMenuId === note._id) {
                         closeMenu();
-                      }}
+                      } else {
+                        setMenuPos(pos);
+                        setOpenMenuId(note._id);
+                      }
+                    }}
+                  >
+                    ⋮
+                  </button>
+
+                  {openMenuId === note._id && menuPos && (
+                    <div
+                      ref={menuRef}
                       style={{
-                        display: "block",
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "10px 12px",
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                        position: "fixed",
+                        top: `${menuPos.top}px`,
+                        left: `${menuPos.left}px`,
+                        transform: "translateX(-100%)",
+                        background: theme === "light" ? "#fff" : "#2a2a2a",
+                        border: `1px solid ${theme === "light" ? "#ddd" : "#555"}`,
+                        borderRadius: 4,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                        zIndex: 1000,
+                        display: "flex",
+                        flexDirection: "column",
+                        minWidth: 140,
+                        maxWidth: 320,
+                        overflow: "hidden",
                       }}
                     >
-                      ✏️ Edit
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleFavorite(note._id);
-                        closeMenu();
-                      }}
-                      style={{
-                        display: "block",
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "10px 12px",
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
-                      }}
-                    >
-                      {note.isFavorite ? "★ Unfavorite" : "☆ Favorite"}
-                    </button>
-                    {!(lockedFolderId && note.folderId === lockedFolderId) && (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLockNote(note._id);
+                        onClick={() => {
+                          navigate(`/edit/${note._id}`);
                           closeMenu();
                         }}
                         style={{
-                          display: "block",
-                          width: "100%",
-                          textAlign: "left",
-                          padding: "10px 12px",
+                          padding: 8,
                           border: "none",
                           background: "transparent",
                           cursor: "pointer",
-                          fontSize: "14px",
-                          borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                        }}
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleToggleFavorite(note._id);
+                          closeMenu();
+                        }}
+                        style={{
+                          padding: 8,
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {note.isFavorite ? "★ Unfavorite" : "☆ Favorite"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleMoveNote(note._id, lockedFolderId);
+                          closeMenu();
+                        }}
+                        style={{
+                          padding: 8,
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
                         }}
                       >
                         🔒 Lock
                       </button>
-                    )}
-                    {lockedFolderId && note.folderId === lockedFolderId && (
+                      {String(note.folderId) === String(lockedFolderId) && (
+                        <button
+                          onClick={async () => {
+                            // Require password if not cached for this session
+                            try {
+                              if (!lockedFolderPassword) {
+                                const pwd = prompt("Enter password for locked folder:");
+                                if (!pwd) return;
+                                await verifyLockedFolderPassword(pwd, token);
+                                setLockedFolderPasswordState(pwd);
+                              }
+
+                              await handleMoveNote(note._id, null);
+                              // Return UI to root folder after unlocking
+                              setSelectedFolderId(null);
+                              closeMenu();
+                            } catch (err) {
+                              console.error(err);
+                              alert(err.message || "Failed to unlock note");
+                            }
+                          }}
+                          style={{
+                            padding: 8,
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                          }}
+                        >
+                          🔓 Unlock
+                        </button>
+                      )}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMoveNote(note._id, null);
+                        onClick={() => {
+                          handleDelete(note._id);
                           closeMenu();
                         }}
                         style={{
-                          display: "block",
-                          width: "100%",
-                          textAlign: "left",
-                          padding: "10px 12px",
+                          padding: 8,
                           border: "none",
                           background: "transparent",
                           cursor: "pointer",
-                          fontSize: "14px",
-                          borderBottom: `1px solid ${theme === "light" ? "#eee" : "#444"}`,
+                          color: "crimson",
                         }}
                       >
-                        🔓 Unlock
+                        🗑️ Delete
                       </button>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(note._id);
-                        closeMenu();
-                      }}
-                      style={{
-                        display: "block",
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "10px 12px",
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        color: "crimson",
-                      }}
-                    >
-                      🗑️ Delete
-                    </button>
-                  </>
-                );
-              })()}
-            </div>
-          )}
-        </div>
-      )}
-
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+// Close menu when clicking outside
+// Add global listener to close menu when clicking outside the menu or its toggle button
+// Uses capturing mousedown to ensure it runs before other handlers
+// (Note: React strict mode may mount/unmount twice in dev)
+function useOutsideMenuClose(openMenuId, menuRef, menuButtonRefs, closeFn) {
+  useEffect(() => {
+    const handler = (e) => {
+      if (!openMenuId) return;
+      const menuEl = menuRef.current;
+      const btn = menuButtonRefs.current?.[openMenuId];
+      if (menuEl && menuEl.contains(e.target)) return;
+      if (btn && btn.contains(e.target)) return;
+      closeFn();
+    };
+    document.addEventListener("mousedown", handler, true);
+    return () => document.removeEventListener("mousedown", handler, true);
+  }, [openMenuId, menuRef, menuButtonRefs, closeFn]);
+}
+
+
+
+
 

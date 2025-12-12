@@ -1,37 +1,45 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getFolders, createFolder, updateFolder, deleteFolder, getLockedFolder } from "../api/foldersApi";
+import {
+  getFolders,
+  createFolder,
+  updateFolder,
+  deleteFolder,
+  getLockedFolder,
+  setLockedFolderPassword,
+  verifyLockedFolderPassword,
+} from "../api/foldersApi";
 import FolderTree from "./FolderTree";
 import { useTheme } from "../context/ThemeContext";
 
-/**
- * FolderManager - Manages folder operations and displays folder tree
- * Props:
- *  - selectedFolderId: currently selected folder
- *  - onSelectFolder: callback when folder is selected
- *  - onFoldersChange: callback when folders are modified (to refresh parent)
- *  - draggedNote: the note being dragged (if any)
- *  - onNoteDrop: callback when a note is dropped on a folder
- */
-export default function FolderManager({ selectedFolderId, onSelectFolder, onFoldersChange, draggedNote, onNoteDrop }) {
+export default function FolderManager({
+  selectedFolderId,
+  onSelectFolder,
+  onFoldersChange,
+  draggedNote,
+  onNoteDrop,
+}) {
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderParentId, setNewFolderParentId] = useState(null);
-  const { theme } = useTheme();
+  const [lockedFolder, setLockedFolder] = useState(null);
+  const [lockedFolderPassword, setLockedFolderPasswordState] = useState(null);
 
+  const { theme } = useTheme();
   const token = localStorage.getItem("token");
 
   const loadFolders = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      // Ensure locked folder exists (server will create if missing)
-      await getLockedFolder(token);
+      const locked = await getLockedFolder(token);
+      setLockedFolder(locked);
+
       const data = await getFolders(token);
-      setFolders(data);
-      if (onFoldersChange) onFoldersChange(data);
+      setFolders(Array.isArray(data) ? data : []);
+      if (onFoldersChange) onFoldersChange(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
       setError("Failed to load folders.");
@@ -44,11 +52,6 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
     loadFolders();
   }, [loadFolders]);
 
-  useEffect(() => {
-    loadFolders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleCreateFolder = async (parentId = null) => {
     setShowCreateForm(true);
     setNewFolderParentId(parentId);
@@ -57,18 +60,21 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
 
   const confirmCreateFolder = async () => {
     if (!newFolderName.trim()) {
-      alert("Folder name is required");
+      window.alert("Folder name is required");
       return;
     }
     try {
-      await createFolder({ name: newFolderName.trim(), parentId: newFolderParentId }, token);
+      await createFolder(
+        { name: newFolderName.trim(), parentId: newFolderParentId },
+        token
+      );
       setShowCreateForm(false);
       setNewFolderName("");
       setNewFolderParentId(null);
       await loadFolders();
     } catch (err) {
       console.error(err);
-      alert(err.message || "Failed to create folder");
+      window.alert(err.message || "Failed to create folder");
     }
   };
 
@@ -84,23 +90,86 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
       await loadFolders();
     } catch (err) {
       console.error(err);
-      alert(err.message || "Failed to rename folder");
+      window.alert(err.message || "Failed to rename folder");
     }
   };
 
   const handleDeleteFolder = async (folderId) => {
     try {
       await deleteFolder(folderId, token);
-      // If deleted folder was selected, reset to root
-      if (selectedFolderId === folderId) {
-        onSelectFolder(null);
-      }
+      if (selectedFolderId === folderId) onSelectFolder(null);
       await loadFolders();
     } catch (err) {
       console.error(err);
-      alert(err.message || "Failed to delete folder");
+      window.alert(err.message || "Failed to delete folder");
     }
   };
+
+  const handleSelectFolder = async (folderOrId) => {
+    // Accept either a folder object or an _id string (or null for root)
+    if (!folderOrId) {
+      onSelectFolder(null);
+      return;
+    }
+
+    let folder = null;
+    if (typeof folderOrId === "string") {
+      folder = folders.find((f) => String(f._id) === String(folderOrId));
+      if (!folder) {
+        // If we don't have the folder locally, just forward the id
+        onSelectFolder(folderOrId);
+        return;
+      }
+    } else {
+      folder = folderOrId;
+    }
+
+    const isLockedFolder = lockedFolder?._id === folder._id;
+
+    if (isLockedFolder) {
+      // If we already have a cached password in this session, skip prompts
+      if (!lockedFolderPassword) {
+        try {
+          const hasPassword = Boolean(lockedFolder?.hasPassword || lockedFolder?.passwordSet);
+          if (!hasPassword) {
+            // No password set yet: ask the user to set one
+            const newPwd = window.prompt("No password set. Please set a password for the locked folder:");
+            if (!newPwd) return;
+            await setLockedFolderPassword(newPwd, token);
+            setLockedFolderPasswordState(newPwd);
+          } else {
+            // Password exists: prompt and allow retries on incorrect attempts
+            let attempts = 0;
+            let pwd = window.prompt("Enter password to access locked notes:");
+            if (!pwd) return;
+            while (true) {
+              try {
+                await verifyLockedFolderPassword(pwd, token);
+                setLockedFolderPasswordState(pwd);
+                break;
+              } catch (verifyErr) {
+                attempts += 1;
+                window.alert("Incorrect password. Please try again.");
+                if (attempts >= 5) {
+                  window.alert("Too many failed attempts. Access cancelled.");
+                  return;
+                }
+                pwd = window.prompt("Enter password to access locked notes:");
+                if (!pwd) return;
+              }
+            }
+          }
+        } catch (err) {
+          window.alert(err.message || "Failed to open locked folder");
+          return;
+        }
+      }
+    }
+
+    // Finally select the folder id
+    onSelectFolder(folder._id);
+  };
+
 
   return (
     <div
@@ -112,7 +181,14 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
         minHeight: "300px",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "16px",
+        }}
+      >
         <h3 style={{ margin: 0, fontSize: "18px" }}>📂 Folders</h3>
         <button
           onClick={() => handleCreateFolder(null)}
@@ -131,8 +207,16 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
         </button>
       </div>
 
-      {loading && <p style={{ fontSize: "14px", color: "var(--muted)" }}>Loading folders...</p>}
-      {error && <div className="alert" style={{ padding: "8px", fontSize: "14px" }}>{error}</div>}
+      {loading && (
+        <p style={{ fontSize: "14px", color: "var(--muted)" }}>
+          Loading folders...
+        </p>
+      )}
+      {error && (
+        <div className="alert" style={{ padding: "8px", fontSize: "14px" }}>
+          {error}
+        </div>
+      )}
 
       {showCreateForm && (
         <div
@@ -144,7 +228,14 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
             marginBottom: "16px",
           }}
         >
-          <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "bold" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "8px",
+              fontSize: "14px",
+              fontWeight: "bold",
+            }}
+          >
             New Folder Name:
           </label>
           <input
@@ -211,12 +302,13 @@ export default function FolderManager({ selectedFolderId, onSelectFolder, onFold
         <FolderTree
           folders={folders}
           selectedFolderId={selectedFolderId}
-          onSelectFolder={onSelectFolder}
+          onSelectFolder={handleSelectFolder}
           onRenameFolder={handleRenameFolder}
           onDeleteFolder={handleDeleteFolder}
           onCreateSubfolder={handleCreateFolder}
           draggedNote={draggedNote}
           onNoteDrop={onNoteDrop}
+          lockedFolderId={lockedFolder?._id}
         />
       )}
     </div>
