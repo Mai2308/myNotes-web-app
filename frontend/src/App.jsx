@@ -8,6 +8,7 @@ import EditNote from "./pages/EditNote";
 import NotesList from "./components/NotesList";
 import Header from "./components/Header";
 import { useAuth } from "./auth/AuthProvider";
+import { ReminderProvider } from "./context/ReminderContext";
 import NotesPage from "./pages/NotesPage";
 
 function RequireAuth({ children }) {
@@ -18,65 +19,67 @@ function RequireAuth({ children }) {
 
 export default function App() {
   return (
-    <>
-      <Header />
+    <ReminderProvider>
+      <>
+        <Header />
 
-      <Routes>
-        {/* Home page only when user visits "/" */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Routes>
+          {/* Home page only when user visits "/" */}
+          <Route path="/" element={<Navigate to="/login" />} />
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <RequireAuth>
-              <Dashboard />
-            </RequireAuth>
-          }
-        />
+          <Route
+            path="/dashboard"
+            element={
+              <RequireAuth>
+                <Dashboard />
+              </RequireAuth>
+            }
+          />
 
-        <Route
-          path="/create"
-          element={
-            <RequireAuth>
-              <CreateNote />
-            </RequireAuth>
-          }
-        />
+          <Route
+            path="/create"
+            element={
+              <RequireAuth>
+                <CreateNote />
+              </RequireAuth>
+            }
+          />
 
-        <Route
-          path="/notespage"
-          element={
-            <RequireAuth>
-              <NotesPage />
-            </RequireAuth>
-          }
-        />
+          <Route
+            path="/notespage"
+            element={
+              <RequireAuth>
+                <NotesPage />
+              </RequireAuth>
+            }
+          />
 
-        <Route
-          path="/edit/:id"
-          element={
-            <RequireAuth>
-              <EditNote />
-            </RequireAuth>
-          }
-        />
+          <Route
+            path="/edit/:id"
+            element={
+              <RequireAuth>
+                <EditNote />
+              </RequireAuth>
+            }
+          />
 
-        <Route
-          path="/notes"
-          element={
-            <RequireAuth>
-              <NotesList />
-            </RequireAuth>
-          }
-        />
+          <Route
+            path="/notes"
+            element={
+              <RequireAuth>
+                <NotesList />
+              </RequireAuth>
+            }
+          />
 
-        {/* 404 */}
-        <Route path="*" element={<div style={{ padding: 20 }}>404 — Not Found</div>} />
-      </Routes>
-    </>
+          {/* 404 */}
+          <Route path="*" element={<div style={{ padding: 20 }}>404 — Not Found</div>} />
+        </Routes>
+      </>
+    </ReminderProvider>
   );
 }
 

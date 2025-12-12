@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import NoteEditor from "../components/NoteEditor";
 import ChecklistEditor from "../components/ChecklistEditor";
+import ReminderForm from "../components/ReminderForm";
+import { createReminder } from "../api/remindersApi";
 import "../styles.css";
 import { createNote as apiCreateNote, convertToChecklist, updateChecklistItems } from "../api/notesApi";
 import { getFolders } from "../api/foldersApi";
-import { ListTodo, FileText } from "lucide-react";
+import { ListTodo, FileText, Clock } from "lucide-react";
 
 export default function CreateNote() {
   const [title, setTitle] = useState("");
@@ -16,6 +18,8 @@ export default function CreateNote() {
   const [success, setSuccess] = useState("");
   const [isChecklist, setIsChecklist] = useState(false);
   const [checklistItems, setChecklistItems] = useState([]);
+  const [showReminderForm, setShowReminderForm] = useState(false);
+  const [reminderData, setReminderData] = useState(null);
   const editorRef = useRef(null);
   const location = useLocation();
 
@@ -71,6 +75,16 @@ export default function CreateNote() {
         await convertToChecklist(noteId, token);
         await updateChecklistItems(noteId, checklistItems, token);
 
+        // Create reminder if set
+        if (reminderData) {
+          try {
+            await createReminder(noteId, reminderData);
+          } catch (err) {
+            console.error("Failed to create reminder:", err);
+            // Don't fail note creation if reminder fails
+          }
+        }
+
       } else {
         const content = editorRef.current?.getContent() ?? "";
         if (!title.trim() && !content.trim()) {
@@ -79,11 +93,23 @@ export default function CreateNote() {
           return;
         }
 
-        await apiCreateNote({
+        const createRes = await apiCreateNote({
           title: title.trim(),
           content,
           folderId: folderId || null,
         }, token);
+
+        const noteId = createRes?.note?._id;
+
+        // Create reminder if set
+        if (reminderData && noteId) {
+          try {
+            await createReminder(noteId, reminderData);
+          } catch (err) {
+            console.error("Failed to create reminder:", err);
+            // Don't fail note creation if reminder fails
+          }
+        }
       }
 
       setSuccess("Note saved successfully!");
@@ -91,6 +117,8 @@ export default function CreateNote() {
       setFolderId(null);
       setChecklistItems([]);
       setIsChecklist(false);
+      setReminderData(null);
+      setShowReminderForm(false);
       editorRef.current?.clearContent();
     } catch (err) {
       setError(err.message || "Failed to save note");
@@ -151,6 +179,48 @@ export default function CreateNote() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Reminder Section */}
+        <div style={{ marginBottom: "16px", padding: "12px", backgroundColor: "var(--bg-secondary, #f9f9f9)", borderRadius: "6px", border: "1px solid var(--border-color, #e0e0e0)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <label style={{ fontSize: "14px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Clock size={16} />
+              Reminder/Deadline:
+            </label>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setShowReminderForm(!showReminderForm)}
+              style={{ fontSize: "12px", padding: "6px 12px", backgroundColor: reminderData ? "#ffc107" : "#007bff" }}
+            >
+              {reminderData ? "✓ Configured" : "Set Reminder"}
+            </button>
+          </div>
+          
+          {reminderData && !showReminderForm && (
+            <div style={{ fontSize: "13px", color: "var(--text-secondary, #666)", padding: "8px", backgroundColor: "var(--bg-primary, #fff)", borderRadius: "4px" }}>
+              📅 {new Date(reminderData.dueDate).toLocaleDateString()} at {new Date(reminderData.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {reminderData.recurring && reminderData.recurring.enabled && (
+                <>
+                  <br />
+                  🔄 Repeats {reminderData.recurring.frequency}
+                </>
+              )}
+            </div>
+          )}
+
+          {showReminderForm && (
+            <ReminderForm
+              onSubmit={(data) => {
+                setReminderData(data);
+                setShowReminderForm(false);
+              }}
+              onCancel={() => setShowReminderForm(false)}
+              initialData={reminderData}
+              isLoading={false}
+            />
+          )}
         </div>
 
         {/* Mode Toggle Button */}

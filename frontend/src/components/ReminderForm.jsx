@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Clock, RotateCw, X } from 'lucide-react';
+import { ChevronDown, Clock, RotateCw } from 'lucide-react';
 import '../styles/reminder.css';
 
 /**

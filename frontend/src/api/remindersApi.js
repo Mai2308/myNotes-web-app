@@ -280,7 +280,7 @@ export const groupRemindersByDate = (reminders) => {
   return grouped;
 };
 
-export default {
+const remindersAPI = {
   // Reminders
   createReminder,
   getReminders,
@@ -303,3 +303,5 @@ export default {
   filterRemindersByStatus,
   groupRemindersByDate,
 };
+
+export default remindersAPI;

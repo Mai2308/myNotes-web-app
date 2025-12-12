@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import NoteEditor from "../components/NoteEditor";
 import { removeEmojiFromNote } from "../api/notesApi";
 import ChecklistEditor from "../components/ChecklistEditor";
+import ReminderForm from "../components/ReminderForm";
+import { createReminder, getRemindersForNote, updateReminder, deleteReminder } from "../api/remindersApi";
 import "../styles.css";
 import { 
   updateNote, 
@@ -12,7 +14,7 @@ import {
   updateChecklistItems 
 } from "../api/notesApi";
 import { getFolders } from "../api/foldersApi";
-import { ListTodo, FileText } from "lucide-react";
+import { ListTodo, FileText, Clock } from "lucide-react";
 
 export default function EditNote() {
   const { id } = useParams();
@@ -28,6 +30,9 @@ export default function EditNote() {
   const [checklistItems, setChecklistItems] = useState([]);
   const [converting, setConverting] = useState(false);
   const [emojis, setEmojis] = useState([]);
+  const [showReminderForm, setShowReminderForm] = useState(false);
+  const [reminder, setReminder] = useState(null);
+  const [reminderLoading, setReminderLoading] = useState(false);
   
   const editorRef = useRef(null);
 
@@ -59,6 +64,16 @@ export default function EditNote() {
         const foldersData = await getFolders(token);
         setFolders(foldersData);
         
+        // Load reminders for this note
+        try {
+          const reminders = await getRemindersForNote(id);
+          if (reminders && reminders.length > 0) {
+            setReminder(reminders[0]); // Get the first (should be only one active)
+          }
+        } catch (err) {
+          console.error("Failed to load reminders:", err);
+        }
+        
         // Set editor content after a small delay to ensure ref is ready
         setTimeout(() => {
           if (editorRef.current && note.content && !note.isChecklist) {
@@ -74,6 +89,38 @@ export default function EditNote() {
     };
     loadData();
   }, [id, token]);
+
+  const handleReminderSubmit = async (reminderData) => {
+    setReminderLoading(true);
+    try {
+      if (!reminderData) {
+        // Delete reminder if exists
+        if (reminder) {
+          await deleteReminder(reminder._id);
+          setReminder(null);
+        }
+      } else {
+        // Create or update reminder
+        if (reminder) {
+          // Update existing
+          await updateReminder(reminder._id, reminderData);
+          setReminder({ ...reminder, ...reminderData });
+        } else {
+          // Create new
+          const newReminder = await createReminder(id, reminderData);
+          setReminder(newReminder);
+        }
+      }
+      setShowReminderForm(false);
+      setSuccess("Reminder saved successfully!");
+      setTimeout(() => setSuccess(""), 2000);
+    } catch (err) {
+      console.error("Failed to save reminder:", err);
+      setError("Failed to save reminder");
+    } finally {
+      setReminderLoading(false);
+    }
+  };
 
   const handleUpdate = async () => {
     setSaving(true);
@@ -254,6 +301,44 @@ export default function EditNote() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Reminder Section */}
+        <div style={{ marginBottom: "16px", padding: "12px", backgroundColor: "var(--bg-secondary, #f9f9f9)", borderRadius: "6px", border: "1px solid var(--border-color, #e0e0e0)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <label style={{ fontSize: "14px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Clock size={16} />
+              Reminder/Deadline:
+            </label>
+            <button
+              className="btn"
+              onClick={() => setShowReminderForm(!showReminderForm)}
+              style={{ fontSize: "12px", padding: "6px 12px", backgroundColor: reminder ? "#ffc107" : "#007bff" }}
+            >
+              {reminder ? "✓ Configured" : "Set Reminder"}
+            </button>
+          </div>
+          
+          {reminder && !showReminderForm && (
+            <div style={{ fontSize: "13px", color: "var(--text-secondary, #666)", padding: "8px", backgroundColor: "var(--bg-primary, #fff)", borderRadius: "4px" }}>
+              📅 {new Date(reminder.dueDate).toLocaleDateString()} at {new Date(reminder.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {reminder.recurring && reminder.recurring.enabled && (
+                <>
+                  <br />
+                  🔄 Repeats {reminder.recurring.frequency}
+                </>
+              )}
+            </div>
+          )}
+
+          {showReminderForm && (
+            <ReminderForm
+              onSubmit={handleReminderSubmit}
+              onCancel={() => setShowReminderForm(false)}
+              initialData={reminder}
+              isLoading={reminderLoading}
+            />
+          )}
         </div>
 
         {/* Mode Toggle Button */}

@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import ThemeToggle from "./ThemeToggle";
+import NotificationCenter from "./NotificationCenter";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -33,6 +34,7 @@ export default function Header() {
 
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           <ThemeToggle />
+          {user && <NotificationCenter />}
           {user && <button onClick={handleLogout} className="btn">Logout</button>}
         </div>
       </div>

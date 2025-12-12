@@ -5,6 +5,7 @@ import { useTheme } from "../context/ThemeContext";
 import { getFolder } from "../api/foldersApi";
 import FolderManager from "./FolderManager";
 import SearchBar from "./SearchBar";
+import UpcomingRemindersWidget from "./UpcomingRemindersWidget";
 
 
 export default function Dashboard() {
@@ -237,6 +238,9 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
+
+          {/* Upcoming Reminders Widget - Show only in root view */}
+          {selectedFolderId === null && !loading && <UpcomingRemindersWidget />}
 
       {loading && <p>Loading notes...</p>}
       {error && <div className="alert">{error}</div>}
