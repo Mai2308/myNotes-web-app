@@ -10,6 +10,11 @@ import userRoutes from "./routes/users.js";
 import noteRoutes from "./routes/notes.js";
 import folderRoutes from "./routes/folders.js";
 import emojiRoutes from "./routes/emojis.js";
+import reminderRoutes from "./routes/reminders.js";
+
+// Services
+import { initializeEmailService } from "./services/emailService.js";
+import { startReminderScheduler, stopReminderScheduler } from "./services/schedulerService.js";
 
 dotenv.config();
 
@@ -31,6 +36,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/emojis", emojiRoutes);
+app.use("/api/reminders", reminderRoutes);
 
 // Global 404 handler
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));
@@ -49,6 +55,12 @@ connectMongo()
   .then(() => {
     server = app.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
+
+      // Initialize email service
+      initializeEmailService();
+
+      // Start reminder scheduler
+      startReminderScheduler();
     });
   })
   .catch((err) => {
@@ -60,6 +72,9 @@ connectMongo()
 const shutdown = async (signal) => {
   console.log(`Received ${signal}, shutting down...`);
   try {
+    // Stop the reminder scheduler
+    stopReminderScheduler();
+    
     if (server) server.close();
     // If your connectMongo returns a mongoose instance or you can import mongoose here and disconnect:
     // await mongoose.disconnect();

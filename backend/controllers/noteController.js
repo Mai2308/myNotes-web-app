@@ -125,7 +125,7 @@ export const createNote = async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    let { title = "", content = "", tags = [], folderId = null } = req.body;
+    let { title = "", content = "", tags = [], folderId = null, reminder = null } = req.body;
     title = String(title).trim();
     content = String(content || "");
 
@@ -145,7 +145,19 @@ export const createNote = async (req, res) => {
       allowedAttributes: { "*": ["style"] },
     });
 
-    const note = new Note({ title, content: clean, tags, user: userId, folderId });
+    const note = new Note({ 
+      title, 
+      content: clean, 
+      tags, 
+      user: userId, 
+      folderId,
+      reminder: reminder || {
+        enabled: false,
+        dueDate: null,
+        notificationSent: false,
+        recurring: { enabled: false }
+      }
+    });
     await note.save();
 
     res.status(201).json({ message: "Note created", note });
@@ -160,7 +172,7 @@ export const updateNote = async (req, res) => {
   try {
     const userId = req.user.id;
     const noteId = req.params.id;
-    const { title, content, tags, folderId } = req.body;
+    const { title, content, tags, folderId, reminder } = req.body;
 
     const note = await Note.findOne({ _id: noteId, user: userId }).exec();
     if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
@@ -176,6 +188,7 @@ export const updateNote = async (req, res) => {
     if (typeof content !== "undefined") update.content = content;
     if (typeof tags !== "undefined") update.tags = tags;
     if (typeof folderId !== "undefined") update.folderId = folderId;
+    if (typeof reminder !== "undefined") update.reminder = reminder;
 
     const updatedNote = await Note.findOneAndUpdate({ _id: noteId, user: userId }, update, { new: true }).exec();
 
