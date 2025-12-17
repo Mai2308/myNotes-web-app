@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # ✅ BACKEND
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: Run backend tests
+        working-directory: ./backend
+        run: npm run test
+
+      # ✅ FRONTEND
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm run test
+
+      # ⚠️ CYPRESS
+      - name: Run Cypress E2E tests
+        uses: cypress-io/github-action@v5
+        with:
+          working-directory: ./frontend
+          start: npm start
+          wait-on: http://localhost:3000
+          wait-on-timeout: 60
+
+
+
