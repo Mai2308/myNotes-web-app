@@ -7,9 +7,8 @@ import {
   toggleFavorite,
 } from "../api/notesApi";
 import {
-  getFolder,
+  
   getLockedFolder,
-  setLockedFolderPassword,
   verifyLockedFolderPassword,
 } from "../api/foldersApi";
 import FolderManager from "./FolderManager";
@@ -160,29 +159,30 @@ export default function Dashboard() {
 
   const handleDragEnd = () => setDraggedNote(null);
 
-  const handleMoveNote = useCallback(
-    async (noteId, targetFolderId) => {
-      try {
-          // moving note to another folder (including locked folder)
+const handleMoveNote = useCallback(
+  async (noteId, targetFolderId) => {
+    try {
+      await moveNote(noteId, targetFolderId, token);
+      setNotes((prev) =>
+        prev.map((n) =>
+          n._id === noteId ? { ...n, folderId: targetFolderId } : n
+        )
+      );
 
-        await moveNote(noteId, targetFolderId, token);
-        setNotes((prev) =>
-          prev.map((n) => (n._id === noteId ? { ...n, folderId: targetFolderId } : n))
-        );
+      const data = await getNotes(token, {
+        sort,
+        folderId: selectedFolderId,
+        q: searchQuery,
+      });
+      setNotes(applySort(data || [], sort));
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to move note.");
+    }
+  },
+  [token, sort, selectedFolderId, searchQuery, applySort]
+);
 
-        const data = await getNotes(token, {
-          sort,
-          folderId: selectedFolderId,
-          q: searchQuery,
-        });
-        setNotes(applySort(data || [], sort));
-      } catch (err) {
-        console.error(err);
-        alert(err.message || "Failed to move note.");
-      }
-    },
-    [token, sort, selectedFolderId, searchQuery, applySort, lockedFolderId, lockedFolderPassword]
-  );
 
   const handleToggleFavorite = useCallback(
     async (noteId) => {
