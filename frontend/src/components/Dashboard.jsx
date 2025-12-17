@@ -9,7 +9,6 @@ import {
 import {
   
   getLockedFolder,
- 
   verifyLockedFolderPassword,
 } from "../api/foldersApi";
 import FolderManager from "./FolderManager";
@@ -159,7 +158,7 @@ export default function Dashboard() {
   };
 
   const handleDragEnd = () => setDraggedNote(null);
-  
+
 const handleMoveNote = useCallback(
   async (noteId, targetFolderId) => {
     try {
