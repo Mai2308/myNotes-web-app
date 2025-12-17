@@ -29,6 +29,7 @@ export default function EditNote() {
   const [checklistItems, setChecklistItems] = useState([]);
   const [converting, setConverting] = useState(false);
   const [emojis, setEmojis] = useState([]);
+  const [reminder, setReminder] = useState(null);
   
   const editorRef = useRef(null);
 
@@ -61,6 +62,16 @@ export default function EditNote() {
         setIsChecklist(note.isChecklist || false);
         setChecklistItems(note.checklistItems || []);
         setEmojis(note.emojis || []);
+        
+        // Set reminder data if exists
+        if (note.reminderDate) {
+          setReminder({
+            reminderDate: note.reminderDate,
+            isRecurring: note.isRecurring || false,
+            recurringPattern: note.recurringPattern || "daily",
+            notificationMethods: note.notificationMethods || ["in-app"],
+          });
+        }
         
 
         // Load folders
@@ -99,6 +110,12 @@ export default function EditNote() {
           {
             title: title.trim() || "Untitled Checklist",
             folderId: folderId || null,
+            ...(reminder && {
+              reminderDate: reminder.reminderDate,
+              isRecurring: reminder.isRecurring,
+              recurringPattern: reminder.recurringPattern,
+              notificationMethods: reminder.notificationMethods,
+            }),
           },
           token
         );
@@ -117,6 +134,12 @@ export default function EditNote() {
             title: title.trim(),
             content,
             folderId: folderId || null,
+            ...(reminder && {
+              reminderDate: reminder.reminderDate,
+              isRecurring: reminder.isRecurring,
+              recurringPattern: reminder.recurringPattern,
+              notificationMethods: reminder.notificationMethods,
+            }),
           },
           token
         );
@@ -298,7 +321,11 @@ export default function EditNote() {
             onChange={handleChecklistChange}
           />
         ) : (
-          <NoteEditor ref={editorRef} noteId={id} />
+          <NoteEditor 
+            ref={editorRef} 
+            noteId={id}
+            onReminderChange={setReminder}
+          />
         )}
 
         {error && <div className="alert">{error}</div>}

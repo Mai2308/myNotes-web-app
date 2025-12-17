@@ -16,17 +16,21 @@ import {
   Trash2,
   Save,
   Upload,
+  Clock,
 } from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
+import ReminderModal from "./ReminderModal";
 import { addEmojiToNote } from "../api/notesApi";
 
 const NoteEditor = forwardRef((props, ref) => {
-  const { onSave, noteId } = props || {};
+  const { onSave, noteId, onReminderChange } = props || {};
 
   const editorRef = useRef(null);
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [savedMessage, setSavedMessage] = useState("");
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminder, setReminder] = useState(null);
   const saveKey = "autoSavedNote";
 
   useImperativeHandle(ref, () => ({
@@ -43,6 +47,8 @@ const NoteEditor = forwardRef((props, ref) => {
       setHistory([]);
       setRedoStack([]);
     },
+    getReminder: () => reminder,
+    setReminder: (remindData) => setReminder(remindData),
   }));
 
   useEffect(() => {
@@ -219,6 +225,15 @@ const NoteEditor = forwardRef((props, ref) => {
 
         <div className="divider"></div>
 
+        {/* Reminder button */}
+        <button 
+          onClick={() => setShowReminderModal(true)}
+          title="Set a reminder"
+          className={reminder ? "active" : ""}
+        >
+          <Clock size={16} />
+        </button>
+
         <button onClick={undo}><Undo size={16} /></button>
         <button onClick={redo}><Redo size={16} /></button>
       </div>
@@ -233,6 +248,18 @@ const NoteEditor = forwardRef((props, ref) => {
       />
 
       {savedMessage && <p className="saved-msg">{savedMessage}</p>}
+
+      {showReminderModal && (
+        <ReminderModal
+          initialReminder={reminder}
+          onSave={(reminderData) => {
+            setReminder(reminderData);
+            if (onReminderChange) onReminderChange(reminderData);
+            setShowReminderModal(false);
+          }}
+          onClose={() => setShowReminderModal(false)}
+        />
+      )}
 
       <div className="save-controls">
         <button onClick={handleSaveDraft}><Save size={16} /> Save Draft</button>

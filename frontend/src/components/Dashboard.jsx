@@ -17,6 +17,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useView } from "../context/ViewContext";
 import SortMenu from "./viewOptions/SortMenu";
 import ViewLayoutSelector from "./viewOptions/ViewLayoutSelector";
+import { Clock, AlertCircle } from "lucide-react";
 
 export default function Dashboard() {
   const { sort, viewType } = useView();
@@ -318,7 +319,7 @@ const handleMoveNote = useCallback(
             {filteredNotes.map((note) => (
               <div
                 key={note._id}
-                className="card"
+                className={`card ${note.isOverdue ? "overdue-note" : ""}`}
                 draggable
                 onDragStart={(e) => handleDragStart(e, note)}
                 onDragEnd={handleDragEnd}
@@ -328,6 +329,8 @@ const handleMoveNote = useCallback(
                   opacity: draggedNote?._id === note._id ? 0.5 : 1,
                   minHeight: "200px",
                   position: "relative",
+                  borderLeft: note.isOverdue ? "4px solid #dc2626" : undefined,
+                  background: note.isOverdue ? "linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(239, 68, 68, 0.05) 100%)" : undefined,
                 }}
               >
                 <h3 style={{ fontSize: "16px", margin: "0 0 8px 0" }}>
@@ -335,6 +338,48 @@ const handleMoveNote = useCallback(
                 </h3>
                 <div className="note-preview" style={{ marginTop: 6 }}>
                   {renderPreview(note)}
+                </div>
+
+                {/* Reminder and Overdue Indicators */}
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
+                  {note.reminderDate && (
+                    <div
+                      title={`Reminder: ${new Date(note.reminderDate).toLocaleString()}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        background: "rgba(255, 126, 185, 0.1)",
+                        color: "#ff7eb9",
+                      }}
+                    >
+                      <Clock size={12} />
+                      Reminder
+                    </div>
+                  )}
+                  {note.isOverdue && (
+                    <div
+                      title="This note is overdue"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        background: "rgba(220, 38, 38, 0.1)",
+                        color: "#dc2626",
+                      }}
+                    >
+                      <AlertCircle size={12} />
+                      Overdue
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ position: "absolute", top: 8, right: 8 }}>

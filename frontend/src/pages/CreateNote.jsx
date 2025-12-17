@@ -47,6 +47,7 @@ export default function CreateNote() {
 
     try {
       const token = localStorage.getItem("token");
+      const reminder = editorRef.current?.getReminder?.();
 
       if (isChecklist) {
         if (checklistItems.length === 0) {
@@ -62,6 +63,12 @@ export default function CreateNote() {
           title: title.trim() || "Untitled Checklist",
           content: contentFromItems,
           folderId: folderId || null,
+          ...(reminder && {
+            reminderDate: reminder.reminderDate,
+            isRecurring: reminder.isRecurring,
+            recurringPattern: reminder.recurringPattern,
+            notificationMethods: reminder.notificationMethods,
+          }),
         }, token);
 
         const noteId = createRes?.note?._id;
@@ -83,6 +90,12 @@ export default function CreateNote() {
           title: title.trim(),
           content,
           folderId: folderId || null,
+          ...(reminder && {
+            reminderDate: reminder.reminderDate,
+            isRecurring: reminder.isRecurring,
+            recurringPattern: reminder.recurringPattern,
+            notificationMethods: reminder.notificationMethods,
+          }),
         }, token);
       }
 
