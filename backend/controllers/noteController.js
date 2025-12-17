@@ -180,7 +180,7 @@ export const createNote = async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    let { title = "", content = "", tags = [], folderId = null } = req.body;
+    let { title = "", content = "", tags = [], folderId = null, reminderDate, isRecurring, recurringPattern, notificationMethods } = req.body;
     title = String(title).trim();
     content = String(content || "");
 
@@ -200,7 +200,20 @@ export const createNote = async (req, res) => {
       allowedAttributes: { "*": ["style"] },
     });
 
-    const note = new Note({ title, content: clean, tags, user: userId, folderId });
+    const noteData = { title, content: clean, tags, user: userId, folderId };
+    
+    // Add reminder fields if provided
+    if (reminderDate) {
+      const reminderDateTime = new Date(reminderDate);
+      if (!isNaN(reminderDateTime.getTime()) && reminderDateTime > new Date()) {
+        noteData.reminderDate = reminderDateTime;
+        noteData.isRecurring = isRecurring || false;
+        noteData.recurringPattern = (isRecurring && recurringPattern) ? recurringPattern : null;
+        noteData.notificationMethods = notificationMethods || ['in-app'];
+      }
+    }
+
+    const note = new Note(noteData);
     await note.save();
 
     res.status(201).json({ message: "Note created", note });
@@ -215,7 +228,7 @@ export const updateNote = async (req, res) => {
   try {
     const userId = req.user.id;
     const noteId = req.params.id;
-    const { title, content, tags, folderId } = req.body;
+    const { title, content, tags, folderId, reminderDate, isRecurring, recurringPattern, notificationMethods } = req.body;
 
     const note = await Note.findOne({ _id: noteId, user: userId }).exec();
     if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
@@ -231,6 +244,28 @@ export const updateNote = async (req, res) => {
     if (typeof content !== "undefined") update.content = content;
     if (typeof tags !== "undefined") update.tags = tags;
     if (typeof folderId !== "undefined") update.folderId = folderId;
+    
+    // Handle reminder fields
+    if (typeof reminderDate !== "undefined") {
+      if (reminderDate) {
+        const reminderDateTime = new Date(reminderDate);
+        if (!isNaN(reminderDateTime.getTime())) {
+          update.reminderDate = reminderDateTime;
+          update.notificationSent = false;
+          update.isOverdue = false;
+        }
+      } else {
+        // Clear reminder if set to null
+        update.reminderDate = null;
+        update.isRecurring = false;
+        update.recurringPattern = null;
+        update.notificationSent = false;
+        update.isOverdue = false;
+      }
+    }
+    if (typeof isRecurring !== "undefined") update.isRecurring = isRecurring;
+    if (typeof recurringPattern !== "undefined") update.recurringPattern = recurringPattern;
+    if (typeof notificationMethods !== "undefined") update.notificationMethods = notificationMethods;
 
     const updatedNote = await Note.findOneAndUpdate({ _id: noteId, user: userId }, update, { new: true }).exec();
 

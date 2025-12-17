@@ -10,6 +10,11 @@ import userRoutes from "./routes/users.js";
 import noteRoutes from "./routes/notes.js";
 import folderRoutes from "./routes/folders.js";
 import emojiRoutes from "./routes/emojis.js";
+import reminderRoutes from "./routes/reminders.js";
+import notificationRoutes from "./routes/notifications.js";
+
+// Services
+import { startNotificationScheduler } from "./services/notificationService.js";
 
 dotenv.config();
 
@@ -31,6 +36,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/emojis", emojiRoutes);
+app.use("/api/reminders", reminderRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Global 404 handler
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));
@@ -49,6 +56,8 @@ connectMongo()
   .then(() => {
     server = app.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
+      // Start the notification scheduler after server starts
+      startNotificationScheduler();
     });
   })
   .catch((err) => {

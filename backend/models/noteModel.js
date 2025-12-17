@@ -18,6 +18,22 @@ const NoteSchema = new mongoose.Schema(
       completed: { type: Boolean, default: false },
       order: { type: Number, required: true }
     }],
+    // Reminder/Deadline fields
+    reminderDate: { type: Date, default: null }, // Date and time for the reminder
+    isRecurring: { type: Boolean, default: false }, // Whether the reminder repeats
+    recurringPattern: { 
+      type: String, 
+      enum: ['daily', 'weekly', 'monthly', 'yearly', null],
+      default: null 
+    }, // Recurrence pattern
+    notificationSent: { type: Boolean, default: false }, // Track if notification was sent
+    lastNotificationDate: { type: Date, default: null }, // Track when last notification was sent
+    notificationMethods: [{ 
+      type: String, 
+      enum: ['in-app', 'email'],
+      default: 'in-app'
+    }], // How to notify the user
+    isOverdue: { type: Boolean, default: false }, // Mark if deadline passed
   },
   { timestamps: true }
 );
