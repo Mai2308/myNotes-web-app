@@ -74,12 +74,11 @@ export default function CreateNote() {
           noteData.deadline = deadlineISO;
         }
 
-        // Add reminder fields only if reminder exists
-        if (reminder) {
+        // Add reminder fields only if reminder exists and has a valid reminderDate
+        if (reminder && reminder.reminderDate) {
           noteData.reminderDate = reminder.reminderDate;
           noteData.isRecurring = reminder.isRecurring;
           noteData.recurringPattern = reminder.recurringPattern;
-          noteData.notificationMethods = reminder.notificationMethods;
         }
 
         const createRes = await apiCreateNote(noteData, token);
@@ -109,12 +108,11 @@ export default function CreateNote() {
           noteData.deadline = deadlineISO;
         }
 
-        // Add reminder fields only if reminder exists
-        if (reminder) {
+        // Add reminder fields only if reminder exists and has a valid reminderDate
+        if (reminder && reminder.reminderDate) {
           noteData.reminderDate = reminder.reminderDate;
           noteData.isRecurring = reminder.isRecurring;
           noteData.recurringPattern = reminder.recurringPattern;
-          noteData.notificationMethods = reminder.notificationMethods;
         }
 
         await apiCreateNote(noteData, token);

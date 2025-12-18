@@ -113,14 +113,7 @@ async function processReminder(note, user, { dueDate, overdue }) {
     console.log(`✅ In-app notification added for user ${user.email}`);
   }
 
-  // Send email notification
-  if (notificationMethods.includes('email') && user.email) {
-    if (overdue) {
-      await sendOverdueEmail(user.email, note.title, note.content, dueDate || note.reminderDate || note.deadline);
-    } else {
-      await sendReminderEmail(user.email, note.title, note.content, dueDate || note.reminderDate || note.deadline);
-    }
-  }
+  // Email notifications removed - only in-app notifications are supported
 
   // Update note status
   note.notificationSent = true;

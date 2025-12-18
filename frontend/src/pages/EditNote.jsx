@@ -71,7 +71,6 @@ export default function EditNote() {
             reminderDate: note.reminderDate,
             isRecurring: note.isRecurring || false,
             recurringPattern: note.recurringPattern || "daily",
-            notificationMethods: note.notificationMethods || ["in-app"],
           });
         }
 
@@ -100,7 +99,6 @@ export default function EditNote() {
                 reminderDate: note.reminderDate,
                 isRecurring: note.isRecurring || false,
                 recurringPattern: note.recurringPattern || "daily",
-                notificationMethods: note.notificationMethods || ["in-app"],
               });
             }
           }
@@ -139,7 +137,6 @@ export default function EditNote() {
             reminderDate: reminder?.reminderDate || null,
             isRecurring: reminder?.isRecurring || false,
             recurringPattern: reminder?.recurringPattern || null,
-            notificationMethods: reminder?.notificationMethods || [],
           },
           token
         );
@@ -162,7 +159,6 @@ export default function EditNote() {
             reminderDate: reminder?.reminderDate || null,
             isRecurring: reminder?.isRecurring || false,
             recurringPattern: reminder?.recurringPattern || null,
-            notificationMethods: reminder?.notificationMethods || [],
           },
           token
         );

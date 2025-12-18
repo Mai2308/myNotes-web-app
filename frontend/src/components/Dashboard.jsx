@@ -12,7 +12,7 @@ import {
  
   verifyLockedFolderPassword,
 } from "../api/foldersApi";
-import { getUpcomingReminders, getOverdueNotes } from "../api/remindersApi";
+import { getUpcomingReminders, getOverdueNotes, testRemindersApi } from "../api/remindersApi";
 import FolderManager from "./FolderManager";
 import { useTheme } from "../context/ThemeContext";
 import { useView } from "../context/ViewContext";
@@ -122,19 +122,35 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!token) return;
-    setReminderLoading(true);
-    setReminderError("");
+    
+    // First test if API is reachable
+    testRemindersApi().then((result) => {
+      if (!result.success) {
+        console.error("⚠️ Reminders API not reachable:", result.error);
+        setReminderError("Reminders API is not reachable");
+        setReminderLoading(false);
+        return;
+      }
+      
+      // If API is reachable, fetch reminders and deadlines
+      setReminderLoading(true);
+      setReminderError("");
 
-    Promise.all([getUpcomingReminders(token), getOverdueNotes(token)])
-      .then(([upcomingRes, overdueRes]) => {
-        setUpcomingReminders(upcomingRes?.reminders || []);
-        setOverdueItems(overdueRes?.overdueNotes || []);
-      })
-      .catch((err) => {
-        console.error("Failed to load reminders/deadlines", err);
-        setReminderError("Could not load reminders and deadlines");
-      })
-      .finally(() => setReminderLoading(false));
+      console.log("🔍 Fetching reminders and deadlines...");
+      Promise.all([getUpcomingReminders(token), getOverdueNotes(token)])
+        .then(([upcomingRes, overdueRes]) => {
+          console.log("✅ Upcoming reminders response:", upcomingRes);
+          console.log("✅ Overdue notes response:", overdueRes);
+          setUpcomingReminders(upcomingRes?.reminders || []);
+          setOverdueItems(overdueRes?.overdueNotes || []);
+        })
+        .catch((err) => {
+          console.error("❌ Failed to load reminders/deadlines:", err);
+          console.error("Error details:", err.message, err.stack);
+          setReminderError("Could not load reminders and deadlines");
+        })
+        .finally(() => setReminderLoading(false));
+    });
   }, [token]);
 
   const applySort = useCallback(

@@ -120,6 +120,7 @@ export const removeReminder = async (req, res) => {
 export const getUpcomingReminders = async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log(`📥 GET /api/reminders/upcoming - User: ${userId}`);
     const now = new Date();
 
     const notes = await Note.find({
@@ -143,6 +144,7 @@ export const getUpcomingReminders = async (req, res) => {
         return (aDue?.getTime() || 0) - (bDue?.getTime() || 0);
       });
 
+    console.log(`✅ Returning ${reminders.length} upcoming reminder(s)`);
     res.json({
       count: reminders.length,
       reminders,
@@ -158,6 +160,7 @@ export const getUpcomingReminders = async (req, res) => {
 export const getOverdueNotes = async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log(`📥 GET /api/reminders/overdue - User: ${userId}`);
     const now = new Date();
 
     const notes = await Note.find({
@@ -181,6 +184,7 @@ export const getOverdueNotes = async (req, res) => {
         return (aDue?.getTime() || 0) - (bDue?.getTime() || 0);
       });
 
+    console.log(`✅ Returning ${overdueNotes.length} overdue note(s)`);
     res.json({
       count: overdueNotes.length,
       overdueNotes,

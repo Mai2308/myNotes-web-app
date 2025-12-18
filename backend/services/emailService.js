@@ -6,7 +6,8 @@ dotenv.config();
 // Create email transporter
 const createTransporter = () => {
   // Configure with environment variables
-  return nodemailer.createTransporter({
+  // nodemailer default export is the createTransport function in v6+
+  return nodemailer.createTransport({
     host: process.env.EMAIL_HOST || "smtp.gmail.com",
     port: process.env.EMAIL_PORT || 587,
     secure: false, // true for 465, false for other ports

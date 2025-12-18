@@ -11,6 +11,11 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+// Debug endpoint (no auth required) - for testing
+router.get("/debug/test", (req, res) => {
+  res.json({ status: "ok", message: "Reminders API is reachable" });
+});
+
 // All routes require authentication
 router.use(protect);
 

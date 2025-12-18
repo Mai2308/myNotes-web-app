@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Clock,
-  Bell,
   Repeat2,
   X,
   Check,
@@ -15,7 +14,6 @@ const ReminderModal = ({ onClose, onSave, initialReminder = null, isOpen = true 
   const [reminderTime, setReminderTime] = useState("09:00");
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringPattern, setRecurringPattern] = useState("daily");
-  const [notificationMethods, setNotificationMethods] = useState(["in-app"]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -31,17 +29,8 @@ const ReminderModal = ({ onClose, onSave, initialReminder = null, isOpen = true 
       }
       setIsRecurring(initialReminder.isRecurring || false);
       setRecurringPattern(initialReminder.recurringPattern || "daily");
-      setNotificationMethods(initialReminder.notificationMethods || ["in-app"]);
     }
   }, [initialReminder, isOpen]);
-
-  const handleMethodToggle = (method) => {
-    setNotificationMethods((prev) =>
-      prev.includes(method)
-        ? prev.filter((m) => m !== method)
-        : [...prev, method]
-    );
-  };
 
   const handleSave = () => {
     setError("");
@@ -59,16 +48,10 @@ const ReminderModal = ({ onClose, onSave, initialReminder = null, isOpen = true 
       return;
     }
 
-    if (notificationMethods.length === 0) {
-      setError("Please select at least one notification method");
-      return;
-    }
-
     const reminderData = {
       reminderDate: selectedDateTime.toISOString(),
       isRecurring,
       recurringPattern: isRecurring ? recurringPattern : null,
-      notificationMethods,
     };
 
     onSave(reminderData);
@@ -81,7 +64,6 @@ const ReminderModal = ({ onClose, onSave, initialReminder = null, isOpen = true 
     setReminderTime("09:00");
     setIsRecurring(false);
     setRecurringPattern("daily");
-    setNotificationMethods(["in-app"]);
     onClose();
   };
 
@@ -159,32 +141,7 @@ const ReminderModal = ({ onClose, onSave, initialReminder = null, isOpen = true 
               </select>
             </div>
           )}
-
-          {/* Notification Methods */}
-          <div className="reminder-section">
-            <label className="reminder-label">
-              <Bell size={16} />
-              Notifications
-            </label>
-            <div className="reminder-methods">
-              <label className="reminder-method-checkbox">
-                <input
-                  type="checkbox"
-                  checked={notificationMethods.includes("in-app")}
-                  onChange={() => handleMethodToggle("in-app")}
-                />
-                <span>In-App Notification</span>
-              </label>
-              <label className="reminder-method-checkbox">
-                <input
-                  type="checkbox"
-                  checked={notificationMethods.includes("email")}
-                  onChange={() => handleMethodToggle("email")}
-                />
-                <span>Email Notification</span>
-              </label>
-            </div>
-          </div>
+          {/* Notification Methods Removed */}
         </div>
 
         <div className="reminder-modal-footer">

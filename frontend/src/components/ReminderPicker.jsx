@@ -8,7 +8,6 @@ export default function ReminderPicker({ onReminderSet, existingReminder, disabl
   const [reminderTime, setReminderTime] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringPattern, setRecurringPattern] = useState("daily");
-  const [notificationMethods, setNotificationMethods] = useState(["in-app"]);
 
   // Load existing reminder data
   useEffect(() => {
@@ -21,7 +20,6 @@ export default function ReminderPicker({ onReminderSet, existingReminder, disabl
       setReminderTime(timeStr);
       setIsRecurring(existingReminder.isRecurring || false);
       setRecurringPattern(existingReminder.recurringPattern || "daily");
-      setNotificationMethods(existingReminder.notificationMethods || ["in-app"]);
       setShowReminder(true);
     }
   }, [existingReminder]);
@@ -29,22 +27,9 @@ export default function ReminderPicker({ onReminderSet, existingReminder, disabl
   const handleDateChange = (e) => setReminderDate(e.target.value);
   const handleTimeChange = (e) => setReminderTime(e.target.value);
 
-  const handleNotificationMethodChange = (method) => {
-    setNotificationMethods((prev) =>
-      prev.includes(method)
-        ? prev.filter((m) => m !== method)
-        : [...prev, method]
-    );
-  };
-
   const handleSetReminder = () => {
     if (!reminderDate || !reminderTime) {
       alert("Please select both date and time");
-      return;
-    }
-
-    if (notificationMethods.length === 0) {
-      alert("Select at least one notification method");
       return;
     }
 
@@ -55,7 +40,6 @@ export default function ReminderPicker({ onReminderSet, existingReminder, disabl
       reminderDate: reminderDateTime.toISOString(),
       isRecurring,
       recurringPattern: isRecurring ? recurringPattern : null,
-      notificationMethods,
     };
 
     onReminderSet(reminderData);
@@ -68,7 +52,6 @@ export default function ReminderPicker({ onReminderSet, existingReminder, disabl
     setReminderTime("");
     setIsRecurring(false);
     setRecurringPattern("daily");
-    setNotificationMethods(["in-app"]);
     onReminderSet(null);
   };
 
@@ -336,33 +319,6 @@ export default function ReminderPicker({ onReminderSet, existingReminder, disabl
                 </select>
               </div>
             )}
-          </div>
-
-          {/* Notification Methods */}
-          <div>
-            <label style={{ fontSize: "12px", fontWeight: "600", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "8px" }}>
-              Notify Me Via:
-            </label>
-            <div className="reminder-checkbox-group">
-              <div className="reminder-checkbox-item">
-                <input
-                  type="checkbox"
-                  id="notify-app"
-                  checked={notificationMethods.includes("in-app")}
-                  onChange={() => handleNotificationMethodChange("in-app")}
-                />
-                <label htmlFor="notify-app">In-App Notification</label>
-              </div>
-              <div className="reminder-checkbox-item">
-                <input
-                  type="checkbox"
-                  id="notify-email"
-                  checked={notificationMethods.includes("email")}
-                  onChange={() => handleNotificationMethodChange("email")}
-                />
-                <label htmlFor="notify-email">Email Notification</label>
-              </div>
-            </div>
           </div>
 
           {/* Buttons */}
