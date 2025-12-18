@@ -6,7 +6,11 @@ export const register = async (payload) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  return await res.json();
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || `Registration failed with status ${res.status}`);
+  }
+  return data;
 };
 
 export const login = async (payload) => {
@@ -15,5 +19,9 @@ export const login = async (payload) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  return await res.json();
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || `Login failed with status ${res.status}`);
+  }
+  return data;
 };

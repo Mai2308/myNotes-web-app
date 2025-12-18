@@ -26,6 +26,7 @@ export default function Header() {
             ) : (
               <>
                 <Link to="/dashboard" className="btn-link">Dashboard</Link>
+                <Link to="/flashcards" className="btn-link">📚 Flashcards</Link>
               </>
             )}
           </nav>

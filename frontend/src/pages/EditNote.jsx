@@ -29,6 +29,8 @@ export default function EditNote() {
   const [checklistItems, setChecklistItems] = useState([]);
   const [converting, setConverting] = useState(false);
   const [emojis, setEmojis] = useState([]);
+  const [createdAt, setCreatedAt] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState(null);
   
   const editorRef = useRef(null);
 
@@ -61,6 +63,8 @@ export default function EditNote() {
         setIsChecklist(note.isChecklist || false);
         setChecklistItems(note.checklistItems || []);
         setEmojis(note.emojis || []);
+        setCreatedAt(note.createdAt);
+        setUpdatedAt(note.updatedAt);
         
 
         // Load folders
@@ -84,11 +88,12 @@ export default function EditNote() {
   }, [id, token, location.state?.note]);
 
   const handleUpdate = async () => {
+    if (saving) return;
     setSaving(true);
     setError("");
     setSuccess("");
 
-    try {
+    try{
       if (isChecklist) {
         // Update checklist items first
         await updateChecklistItems(id, checklistItems, token);
@@ -229,6 +234,25 @@ export default function EditNote() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
+
+        {(createdAt || updatedAt) && (
+          <div style={{ marginBottom: 12, color: "var(--muted)", fontSize: "12px" }}>
+            {createdAt && (
+              <div>
+                <span title={new Date(createdAt).toLocaleString()}>
+                  Created: {new Date(createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {updatedAt && (
+              <div>
+                <span title={new Date(updatedAt).toLocaleString()}>
+                  Last edited: {new Date(updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Folder Selection Dropdown */}
         <div style={{ marginBottom: "16px" }}>
