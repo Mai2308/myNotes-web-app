@@ -3,34 +3,63 @@ import Note from "../models/noteModel.js";
 import User from "../models/userModel.js";
 import { sendReminderEmail, sendOverdueEmail } from "./emailService.js";
 
+const computeIsOverdue = (noteLike, now = new Date()) => {
+  const deadlineAt = noteLike?.deadline ? new Date(noteLike.deadline) : null;
+  const reminderAt = noteLike?.reminderDate ? new Date(noteLike.reminderDate) : null;
+
+  const deadlinePassed = deadlineAt && !isNaN(deadlineAt) && deadlineAt < now;
+  const reminderPassed = reminderAt && !isNaN(reminderAt) && !noteLike?.isRecurring && reminderAt < now;
+
+  return Boolean(deadlinePassed || reminderPassed);
+};
+
+const getNextDueDate = (noteLike) => {
+  const dates = [];
+  if (noteLike?.reminderDate) {
+    const d = new Date(noteLike.reminderDate);
+    if (!isNaN(d)) dates.push(d);
+  }
+  if (noteLike?.deadline) {
+    const d = new Date(noteLike.deadline);
+    if (!isNaN(d)) dates.push(d);
+  }
+  if (!dates.length) return null;
+  return new Date(Math.min(...dates.map((d) => d.getTime())));
+};
+
 // In-app notification storage (in production, use a proper database or messaging system)
 const inAppNotifications = new Map();
 
 // Get in-app notifications for a user
 export const getInAppNotifications = (userId) => {
-  return inAppNotifications.get(userId) || [];
+  const userIdStr = String(userId);
+  return inAppNotifications.get(userIdStr) || [];
 };
 
 // Add in-app notification
 export const addInAppNotification = (userId, notification) => {
-  const userNotifications = inAppNotifications.get(userId) || [];
+  const userIdStr = String(userId);
+  const userNotifications = inAppNotifications.get(userIdStr) || [];
   userNotifications.push({
     ...notification,
     id: Date.now(),
     timestamp: new Date(),
     read: false,
   });
-  inAppNotifications.set(userId, userNotifications);
+  inAppNotifications.set(userIdStr, userNotifications);
+  console.log(`✅ Added notification for user ${userIdStr}, total notifications: ${userNotifications.length}`);
 };
 
 // Clear in-app notifications for a user
 export const clearInAppNotifications = (userId) => {
-  inAppNotifications.delete(userId);
+  const userIdStr = String(userId);
+  inAppNotifications.delete(userIdStr);
 };
 
 // Mark notification as read
 export const markNotificationAsRead = (userId, notificationId) => {
-  const userNotifications = inAppNotifications.get(userId) || [];
+  const userIdStr = String(userId);
+  const userNotifications = inAppNotifications.get(userIdStr) || [];
   const notification = userNotifications.find(n => n.id === notificationId);
   if (notification) {
     notification.read = true;
@@ -61,10 +90,12 @@ function calculateNextReminderDate(currentDate, pattern) {
   return nextDate;
 }
 
-// Process a single reminder
-async function processReminder(note, user) {
+// Process a single reminder or deadline
+async function processReminder(note, user, { dueDate, overdue }) {
   const now = new Date();
-  const notificationMethods = note.notificationMethods || ['in-app'];
+  const notificationMethods = Array.isArray(note.notificationMethods) && note.notificationMethods.length > 0
+    ? note.notificationMethods
+    : ['in-app'];
 
   console.log(`📢 Processing reminder for note: ${note.title} (${note._id})`);
 
@@ -75,28 +106,26 @@ async function processReminder(note, user) {
       title: note.title,
       content: note.content,
       reminderDate: note.reminderDate,
-      type: note.reminderDate < now ? 'overdue' : 'reminder',
+      deadline: note.deadline,
+      dueDate,
+      type: overdue ? 'overdue' : 'reminder',
     });
     console.log(`✅ In-app notification added for user ${user.email}`);
   }
 
   // Send email notification
   if (notificationMethods.includes('email') && user.email) {
-    if (note.reminderDate < now) {
-      await sendOverdueEmail(user.email, note.title, note.content, note.reminderDate);
+    if (overdue) {
+      await sendOverdueEmail(user.email, note.title, note.content, dueDate || note.reminderDate || note.deadline);
     } else {
-      await sendReminderEmail(user.email, note.title, note.content, note.reminderDate);
+      await sendReminderEmail(user.email, note.title, note.content, dueDate || note.reminderDate || note.deadline);
     }
   }
 
   // Update note status
   note.notificationSent = true;
   note.lastNotificationDate = now;
-
-  // Handle overdue status
-  if (note.reminderDate < now) {
-    note.isOverdue = true;
-  }
+  note.isOverdue = overdue;
 
   // Handle recurring reminders
   if (note.isRecurring && note.recurringPattern) {
@@ -116,26 +145,34 @@ export const checkReminders = async () => {
     const now = new Date();
     const fiveMinutesAhead = new Date(now.getTime() + 5 * 60000); // 5 minutes buffer
 
-    console.log(`🔍 Checking for reminders... (${now.toISOString()})`);
+    console.log(`🔍 Checking for reminders and deadlines... (${now.toISOString()})`);
 
-    // Find notes with reminders due within the next 5 minutes (or overdue)
-    const dueNotes = await Note.find({
-      reminderDate: { 
-        $ne: null,
-        $lte: fiveMinutesAhead 
-      },
+    const candidateNotes = await Note.find({
       $or: [
-        { notificationSent: false },
-        { 
-          isRecurring: true,
-          lastNotificationDate: { 
-            $lt: new Date(now.getTime() - 60000) // At least 1 minute since last notification
-          }
-        }
-      ]
+        { reminderDate: { $ne: null } },
+        { deadline: { $ne: null } },
+      ],
     }).populate('user');
 
-    console.log(`📋 Found ${dueNotes.length} due reminder(s)`);
+    const dueNotes = candidateNotes.filter((note) => {
+      const dueDate = getNextDueDate(note);
+      if (!dueDate) return false;
+
+      const overdue = computeIsOverdue(note, now);
+      const dueSoon = dueDate <= fiveMinutesAhead;
+
+      const isRecurring = note.isRecurring && note.recurringPattern;
+      const sentAlready = note.notificationSent && !isRecurring;
+      const sentRecentlyRecurring = isRecurring && note.lastNotificationDate && (now.getTime() - new Date(note.lastNotificationDate).getTime() < 60000);
+
+      if (!(overdue || dueSoon)) return false;
+      if (sentAlready) return false;
+      if (sentRecentlyRecurring) return false;
+
+      return true;
+    });
+
+    console.log(`📋 Found ${dueNotes.length} due reminder(s)/deadline(s)`);
 
     for (const note of dueNotes) {
       if (!note.user) {
@@ -143,14 +180,17 @@ export const checkReminders = async () => {
         continue;
       }
 
+      const dueDate = getNextDueDate(note);
+      const overdue = computeIsOverdue(note, now);
+
       try {
-        await processReminder(note, note.user);
+        await processReminder(note, note.user, { dueDate, overdue });
       } catch (error) {
         console.error(`❌ Error processing reminder for note ${note._id}:`, error);
       }
     }
 
-    console.log(`✅ Reminder check completed`);
+    console.log(`✅ Reminder/deadline check completed`);
   } catch (error) {
     console.error("❌ Error in checkReminders:", error);
   }

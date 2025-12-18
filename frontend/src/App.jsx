@@ -7,7 +7,6 @@ import CreateNote from "./pages/CreateNote";
 import EditNote from "./pages/EditNote";
 import NotesList from "./components/NotesList";
 import Header from "./components/Header";
-import NotificationCenter from "./components/NotificationCenter";
 import { useAuth } from "./auth/AuthProvider";
 import NotesPage from "./pages/NotesPage";
 
@@ -18,12 +17,9 @@ function RequireAuth({ children }) {
 }
 
 export default function App() {
-  const { user } = useAuth();
-
   return (
     <>
       <Header />
-      {user && <NotificationCenter />}
 
       <Routes>
         {/* Home page only when user visits "/" */}

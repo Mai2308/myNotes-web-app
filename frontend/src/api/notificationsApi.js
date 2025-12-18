@@ -50,3 +50,40 @@ export const clearNotifications = async () => {
     throw error.response?.data?.message || error.message;
   }
 };
+
+// Trigger immediate reminder check
+export const triggerNotificationCheck = async () => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/notifications/check`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error triggering notification check:", error);
+    throw error.response?.data?.message || error.message;
+  }
+};
+// Add test notification
+export const addTestNotification = async () => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/notifications/test`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error adding test notification:", error);
+    throw error.response?.data?.message || error.message;
+  }
+};

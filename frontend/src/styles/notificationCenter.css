@@ -1,29 +1,6 @@
-/* NOTIFICATION CENTER - Pastel Theme */
+/* NOTIFICATION CENTER - Matches Project Theme */
 
-:root {
-  /* Light Mode - Pastel */
-  --notif-bg: #ffffff;
-  --notif-border: rgba(255, 126, 185, 0.2);
-  --notif-accent: #ff7eb9;
-  --notif-text: #0f172a;
-  --notif-text-sub: #475569;
-  --notif-overdue: #dc2626;
-  --notif-panel-bg: #ffffff;
-  --notif-item-bg: #fefeff;
-  --notif-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-}
-
-body.dark {
-  --notif-bg: #1b2536;
-  --notif-border: rgba(255, 126, 185, 0.15);
-  --notif-accent: #ff7eb9;
-  --notif-text: #f1f5f9;
-  --notif-text-sub: #cbd5e1;
-  --notif-overdue: #ef4444;
-  --notif-panel-bg: #1b2536;
-  --notif-item-bg: #243447;
-  --notif-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-}
+/* Uses project's theme variables from styles.css */
 
 /* NOTIFICATION CENTER CONTAINER */
 .notification-center {
@@ -40,9 +17,9 @@ body.dark {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--reminder-accent);
+  color: var(--accent);
   transition: all 0.2s ease;
-  border-radius: 10px;
+  border-radius: var(--radius);
 }
 
 .notification-bell:hover {
@@ -55,7 +32,7 @@ body.dark {
   position: absolute;
   top: -4px;
   right: -4px;
-  background: linear-gradient(135deg, #ff7eb9 0%, #ff5ca2 100%);
+  background: var(--accent);
   color: white;
   border-radius: 50%;
   width: 24px;
@@ -85,15 +62,15 @@ body.dark {
   top: 100%;
   right: 0;
   margin-top: 8px;
-  background: var(--notif-panel-bg);
-  border-radius: 14px;
-  box-shadow: var(--notif-shadow);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   width: 380px;
   max-height: 500px;
   z-index: 999;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--notif-border);
+  border: 1px solid var(--input-border);
   animation: slideDown 0.3s ease-out;
 }
 
@@ -114,24 +91,24 @@ body.dark {
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  border-bottom: 1px solid var(--notif-border);
-  background: linear-gradient(135deg, rgba(255, 126, 185, 0.05) 0%, rgba(224, 247, 250, 0.05) 100%);
+  border-bottom: 1px solid var(--input-border);
+  background: var(--card-bg);
 }
 
 .notification-header h3 {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
-  color: var(--notif-text);
+  color: var(--text);
 }
 
 .notification-clear-btn {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--notif-text-sub);
+  color: var(--muted);
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -140,7 +117,7 @@ body.dark {
 
 .notification-clear-btn:hover {
   background: rgba(255, 126, 185, 0.1);
-  color: var(--notif-accent);
+  color: var(--accent);
 }
 
 /* NOTIFICATION LIST */
@@ -178,14 +155,14 @@ body.dark {
 }
 
 .notification-empty svg {
-  color: var(--notif-text-sub);
+  color: var(--muted);
   opacity: 0.5;
   margin-bottom: 12px;
 }
 
 .notification-empty p {
   margin: 0;
-  color: var(--notif-text-sub);
+  color: var(--muted);
   font-size: 14px;
   font-weight: 500;
 }
@@ -195,8 +172,8 @@ body.dark {
   display: flex;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--notif-border);
-  background: var(--notif-item-bg);
+  border-bottom: 1px solid var(--input-border);
+  background: var(--input-bg);
   transition: all 0.2s ease;
   cursor: pointer;
   position: relative;
@@ -208,21 +185,21 @@ body.dark {
 
 .notification-item.unread {
   background: rgba(255, 126, 185, 0.08);
-  border-left: 3px solid var(--notif-accent);
+  border-left: 3px solid var(--accent);
 }
 
 .notification-item.overdue {
-  border-left-color: var(--notif-overdue);
+  border-left-color: #dc2626;
 }
 
 .notification-item.overdue .notification-icon {
-  color: var(--notif-overdue);
+  color: #dc2626;
 }
 
 /* NOTIFICATION ICON */
 .notification-icon {
   flex-shrink: 0;
-  color: var(--notif-accent);
+  color: var(--accent);
   margin-top: 2px;
 }
 
@@ -236,7 +213,7 @@ body.dark {
   margin: 0 0 4px 0;
   font-size: 14px;
   font-weight: 600;
-  color: var(--notif-text);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -245,7 +222,7 @@ body.dark {
 .notification-content p {
   margin: 0 0 6px 0;
   font-size: 13px;
-  color: var(--notif-text-sub);
+  color: var(--muted);
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -258,14 +235,14 @@ body.dark {
 .notification-time {
   display: block;
   font-size: 11px;
-  color: var(--notif-text-sub);
+  color: var(--muted);
   opacity: 0.7;
 }
 
 /* MARK READ BUTTON */
 .notification-mark-read {
   flex-shrink: 0;
-  background: var(--notif-accent);
+  background: var(--accent);
   border: none;
   color: white;
   width: 28px;
@@ -281,7 +258,7 @@ body.dark {
 }
 
 .notification-mark-read:hover {
-  background: var(--notif-accent-hover);
+  background: var(--accent-dark);
   transform: scale(1.1);
 }
 
@@ -304,6 +281,6 @@ body.dark {
   }
 
   .notification-header {
-    background: var(--notif-panel-bg);
+    background: var(--card-bg);
   }
 }

@@ -1,33 +1,51 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { Bell, X, CheckCircle2, AlertCircle } from "lucide-react";
 import "../styles/notificationCenter.css";
-import { getNotifications, markNotificationAsRead, clearNotifications } from "../api/notificationsApi";
+import { getNotifications, markNotificationAsRead, clearNotifications, triggerNotificationCheck, addTestNotification } from "../api/notificationsApi";
 
-const NotificationCenter = () => {
+const NotificationCenter = React.forwardRef((_, ref) => {
   const { theme } = useTheme();
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const intervalRef = useRef(null);
+
+  const fetchNotifications = async () => {
+    try {
+      console.log("🔔 Fetching notifications...");
+      const response = await getNotifications();
+      console.log("📬 Received notifications:", response);
+      if (response.notifications) {
+        setNotifications(response.notifications);
+        const unread = response.notifications.filter((n) => !n.read).length;
+        setUnreadCount(unread);
+        console.log(`✅ Updated notifications: ${response.notifications.length} total, ${unread} unread`);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  };
+
+  React.useImperativeHandle(ref, () => ({
+    refreshNotifications: fetchNotifications,
+    triggerCheck: async () => {
+      try {
+        await triggerNotificationCheck();
+        await fetchNotifications();
+      } catch (error) {
+        console.error("Error triggering notification check:", error);
+      }
+    },
+  }));
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await getNotifications();
-        if (response.notifications) {
-          setNotifications(response.notifications);
-          const unread = response.notifications.filter((n) => !n.read).length;
-          setUnreadCount(unread);
-        }
-      } catch (error) {
-        console.error("Failed to fetch notifications:", error);
-      }
-    };
-
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
+    intervalRef.current = setInterval(fetchNotifications, 10000); // Poll every 10 seconds for faster updates
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []);
 
   const handleMarkAsRead = async (notificationId) => {
@@ -55,14 +73,16 @@ const NotificationCenter = () => {
   };
 
   const isOverdue = (notification) => notification.type === "overdue";
-  const isReminder = (notification) => notification.type === "reminder";
 
   return (
     <div className={`notification-center theme-${theme}`}>
       {/* Bell Icon with Badge */}
       <button
         className="notification-bell"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          fetchNotifications(); // Refresh when opening
+        }}
       >
         <Bell size={20} />
         {unreadCount > 0 && (
@@ -75,15 +95,33 @@ const NotificationCenter = () => {
         <div className="notification-panel">
           <div className="notification-header">
             <h3>Reminders & Notifications</h3>
-            {notifications.length > 0 && (
+            <div style={{ display: "flex", gap: 4 }}>
               <button
                 className="notification-clear-btn"
-                onClick={handleClearAll}
-                title="Clear all notifications"
+                onClick={async () => {
+                  try {
+                    console.log("🧪 Adding test notification...");
+                    await addTestNotification();
+                    await fetchNotifications();
+                  } catch (error) {
+                    console.error("Failed to add test notification:", error);
+                  }
+                }}
+                title="Add test notification"
+                style={{ background: "#4CAF50", color: "white", fontSize: 10, padding: "4px 8px" }}
               >
-                <X size={18} />
+                TEST
               </button>
-            )}
+              {notifications.length > 0 && (
+                <button
+                  className="notification-clear-btn"
+                  onClick={handleClearAll}
+                  title="Clear all notifications"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="notification-list">
@@ -133,6 +171,6 @@ const NotificationCenter = () => {
       )}
     </div>
   );
-};
+});
 
 export default NotificationCenter;

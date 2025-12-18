@@ -16,6 +16,8 @@ export default function CreateNote() {
   const [success, setSuccess] = useState("");
   const [isChecklist, setIsChecklist] = useState(false);
   const [checklistItems, setChecklistItems] = useState([]);
+  const [deadlineDate, setDeadlineDate] = useState("");
+  const [deadlineTime, setDeadlineTime] = useState("17:00");
   const editorRef = useRef(null);
   const location = useLocation();
 
@@ -48,6 +50,9 @@ export default function CreateNote() {
     try {
       const token = localStorage.getItem("token");
       const reminder = editorRef.current?.getReminder?.();
+      const deadlineISO = deadlineDate
+        ? new Date(`${deadlineDate}T${deadlineTime || "17:00"}`).toISOString()
+        : null;
 
       if (isChecklist) {
         if (checklistItems.length === 0) {
@@ -59,17 +64,25 @@ export default function CreateNote() {
         // Compose plain text content from checklist items for initial note creation
         const contentFromItems = checklistItems.map(i => i.text).join("\n");
 
-        const createRes = await apiCreateNote({
+        const noteData = {
           title: title.trim() || "Untitled Checklist",
           content: contentFromItems,
           folderId: folderId || null,
-          ...(reminder && {
-            reminderDate: reminder.reminderDate,
-            isRecurring: reminder.isRecurring,
-            recurringPattern: reminder.recurringPattern,
-            notificationMethods: reminder.notificationMethods,
-          }),
-        }, token);
+        };
+
+        if (deadlineISO) {
+          noteData.deadline = deadlineISO;
+        }
+
+        // Add reminder fields only if reminder exists
+        if (reminder) {
+          noteData.reminderDate = reminder.reminderDate;
+          noteData.isRecurring = reminder.isRecurring;
+          noteData.recurringPattern = reminder.recurringPattern;
+          noteData.notificationMethods = reminder.notificationMethods;
+        }
+
+        const createRes = await apiCreateNote(noteData, token);
 
         const noteId = createRes?.note?._id;
         if (!noteId) throw new Error("Failed to create note");
@@ -86,17 +99,25 @@ export default function CreateNote() {
           return;
         }
 
-        await apiCreateNote({
+        const noteData = {
           title: title.trim(),
           content,
           folderId: folderId || null,
-          ...(reminder && {
-            reminderDate: reminder.reminderDate,
-            isRecurring: reminder.isRecurring,
-            recurringPattern: reminder.recurringPattern,
-            notificationMethods: reminder.notificationMethods,
-          }),
-        }, token);
+        };
+
+        if (deadlineISO) {
+          noteData.deadline = deadlineISO;
+        }
+
+        // Add reminder fields only if reminder exists
+        if (reminder) {
+          noteData.reminderDate = reminder.reminderDate;
+          noteData.isRecurring = reminder.isRecurring;
+          noteData.recurringPattern = reminder.recurringPattern;
+          noteData.notificationMethods = reminder.notificationMethods;
+        }
+
+        await apiCreateNote(noteData, token);
       }
 
       setSuccess("Note saved successfully!");
@@ -104,6 +125,8 @@ export default function CreateNote() {
       setFolderId(null);
       setChecklistItems([]);
       setIsChecklist(false);
+      setDeadlineDate("");
+      setDeadlineTime("17:00");
       editorRef.current?.clearContent();
     } catch (err) {
       setError(err.message || "Failed to save note");
@@ -164,6 +187,28 @@ export default function CreateNote() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Deadline */}
+        <div style={{ marginBottom: "16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div>
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: "bold" }}>Deadline (optional)</label>
+            <input
+              type="date"
+              value={deadlineDate}
+              onChange={(e) => setDeadlineDate(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: "bold" }}>Time</label>
+            <input
+              type="time"
+              value={deadlineTime}
+              onChange={(e) => setDeadlineTime(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
         </div>
 
         {/* Mode Toggle Button */}

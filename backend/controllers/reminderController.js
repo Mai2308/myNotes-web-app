@@ -3,6 +3,31 @@ import mongoose from "mongoose";
 
 const { Types: { ObjectId } } = mongoose;
 
+// Determine whether a note is overdue using deadline or non-recurring reminder
+const computeIsOverdue = (noteLike, now = new Date()) => {
+  const deadlineAt = noteLike?.deadline ? new Date(noteLike.deadline) : null;
+  const reminderAt = noteLike?.reminderDate ? new Date(noteLike.reminderDate) : null;
+
+  const deadlinePassed = deadlineAt && !isNaN(deadlineAt) && deadlineAt < now;
+  const reminderPassed = reminderAt && !isNaN(reminderAt) && !noteLike?.isRecurring && reminderAt < now;
+
+  return Boolean(deadlinePassed || reminderPassed);
+};
+
+const getNextDueDate = (noteLike) => {
+  const dates = [];
+  if (noteLike?.reminderDate) {
+    const d = new Date(noteLike.reminderDate);
+    if (!isNaN(d)) dates.push(d);
+  }
+  if (noteLike?.deadline) {
+    const d = new Date(noteLike.deadline);
+    if (!isNaN(d)) dates.push(d);
+  }
+  if (!dates.length) return null;
+  return new Date(Math.min(...dates.map((d) => d.getTime())));
+};
+
 // Set or update a reminder for a note
 export const setReminder = async (req, res) => {
   try {
@@ -97,19 +122,30 @@ export const getUpcomingReminders = async (req, res) => {
     const userId = req.user.id;
     const now = new Date();
 
-    // Find notes with reminders that haven't been sent yet or are recurring
     const notes = await Note.find({
       user: userId,
-      reminderDate: { $ne: null },
       $or: [
-        { notificationSent: false },
-        { isRecurring: true }
-      ]
-    }).sort({ reminderDate: 1 });
+        { reminderDate: { $ne: null } },
+        { deadline: { $ne: null } },
+      ],
+    }).sort({ reminderDate: 1, deadline: 1 });
 
-    res.json({ 
-      count: notes.length,
-      reminders: notes 
+    const reminders = notes
+      .map((n) => n.toObject())
+      .map((n) => ({ ...n, isOverdue: computeIsOverdue(n, now) }))
+      .filter((n) => {
+        const due = getNextDueDate(n);
+        return due && due >= now;
+      })
+      .sort((a, b) => {
+        const aDue = getNextDueDate(a);
+        const bDue = getNextDueDate(b);
+        return (aDue?.getTime() || 0) - (bDue?.getTime() || 0);
+      });
+
+    res.json({
+      count: reminders.length,
+      reminders,
     });
 
   } catch (error) {
@@ -126,13 +162,28 @@ export const getOverdueNotes = async (req, res) => {
 
     const notes = await Note.find({
       user: userId,
-      reminderDate: { $lt: now, $ne: null },
-      isOverdue: true
-    }).sort({ reminderDate: 1 });
+      $or: [
+        { reminderDate: { $ne: null } },
+        { deadline: { $ne: null } },
+      ],
+    }).sort({ reminderDate: 1, deadline: 1 });
 
-    res.json({ 
-      count: notes.length,
-      overdueNotes: notes 
+    const overdueNotes = notes
+      .map((n) => n.toObject())
+      .map((n) => ({ ...n, isOverdue: computeIsOverdue(n, now) }))
+      .filter((n) => {
+        const due = getNextDueDate(n);
+        return due && due < now;
+      })
+      .sort((a, b) => {
+        const aDue = getNextDueDate(a);
+        const bDue = getNextDueDate(b);
+        return (aDue?.getTime() || 0) - (bDue?.getTime() || 0);
+      });
+
+    res.json({
+      count: overdueNotes.length,
+      overdueNotes,
     });
 
   } catch (error) {

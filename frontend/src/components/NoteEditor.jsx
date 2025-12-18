@@ -228,10 +228,11 @@ const NoteEditor = forwardRef((props, ref) => {
         {/* Reminder button */}
         <button 
           onClick={() => setShowReminderModal(true)}
-          title="Set a reminder"
-          className={reminder ? "active" : ""}
+          title={reminder ? `Reminder: ${new Date(reminder.reminderDate).toLocaleString()}` : "Set a reminder"}
+          className={reminder ? "reminder-active" : ""}
         >
           <Clock size={16} />
+          {reminder && <span style={{ fontSize: '10px', marginLeft: '4px' }}>✓</span>}
         </button>
 
         <button onClick={undo}><Undo size={16} /></button>
@@ -253,9 +254,12 @@ const NoteEditor = forwardRef((props, ref) => {
         <ReminderModal
           initialReminder={reminder}
           onSave={(reminderData) => {
+            // Handle both setting and removing reminders
             setReminder(reminderData);
             if (onReminderChange) onReminderChange(reminderData);
-            setShowReminderModal(false);
+            // Show confirmation message
+            setSavedMessage(`Reminder set for ${new Date(reminderData.reminderDate).toLocaleString()}`);
+            setTimeout(() => setSavedMessage(""), 3000);
           }}
           onClose={() => setShowReminderModal(false)}
         />

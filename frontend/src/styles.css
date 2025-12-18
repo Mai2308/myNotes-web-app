@@ -94,17 +94,18 @@ html, body, #root {
   font-size: 13px;
   font-weight: 500;
   border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.1);
-  background: #ffffffa8;
+  border: 1px solid rgba(255,126,185,0.2);
+  background: linear-gradient(135deg, rgba(255,126,185,0.12), rgba(255,92,162,0.08));
   color: var(--text);
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
   box-shadow: none;
 }
 
 .toolbar button:hover {
-  background: #f0f4ff;
-  border-color: rgba(0,0,0,0.2);
+  background: linear-gradient(135deg, rgba(255,126,185,0.18), rgba(255,92,162,0.12));
+  border-color: rgba(255,126,185,0.35);
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255,126,185,0.15);
 }
 
 html[data-theme="dark"] .toolbar button {
@@ -116,6 +117,18 @@ html[data-theme="dark"] .toolbar button {
 html[data-theme="dark"] .toolbar button:hover {
   background: #2b2b2b;
   border-color: rgba(255,255,255,0.20);
+}
+
+/* Reminder active button */
+.toolbar button.reminder-active {
+  background: var(--accent) !important;
+  color: white !important;
+  border-color: var(--accent) !important;
+}
+
+.toolbar button.reminder-active:hover {
+  background: var(--accent-dark) !important;
+  transform: translateY(-1px);
 }
 
 /* Slim select + color input */
@@ -133,6 +146,78 @@ html[data-theme="dark"] .toolbar button:hover {
   padding: 0;
   border-radius: 6px;
   border: none;
+}
+
+/* Date and Time Inputs - Match Project Theme */
+input[type="date"],
+input[type="time"] {
+  background: linear-gradient(135deg, rgba(255, 126, 185, 0.08), rgba(255, 92, 162, 0.05)) !important;
+  border: 1.5px solid rgba(255, 126, 185, 0.25) !important;
+  color: var(--text) !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-family: var(--font-sans) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 8px rgba(255, 126, 185, 0.08) !important;
+}
+
+input[type="date"]:hover,
+input[type="time"]:hover {
+  border-color: rgba(255, 126, 185, 0.45) !important;
+  box-shadow: 0 4px 12px rgba(255, 126, 185, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+input[type="date"]:focus,
+input[type="time"]:focus {
+  outline: none !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255, 126, 185, 0.15), 0 4px 12px rgba(255, 126, 185, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Calendar and time picker icons styling */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: brightness(0) saturate(100%) invert(64%) sepia(74%) saturate(3926%) hue-rotate(307deg) brightness(101%) contrast(101%);
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  background: rgba(255, 126, 185, 0.15);
+  transform: scale(1.1);
+}
+
+/* Dark mode adjustments */
+html[data-theme="dark"] input[type="date"],
+html[data-theme="dark"] input[type="time"] {
+  background: linear-gradient(135deg, rgba(122, 252, 255, 0.08), rgba(66, 217, 244, 0.05)) !important;
+  border: 1.5px solid rgba(122, 252, 255, 0.25) !important;
+  color: var(--text) !important;
+  box-shadow: 0 2px 8px rgba(122, 252, 255, 0.08) !important;
+}
+
+html[data-theme="dark"] input[type="date"]:hover,
+html[data-theme="dark"] input[type="time"]:hover {
+  border-color: rgba(122, 252, 255, 0.45) !important;
+  box-shadow: 0 4px 12px rgba(122, 252, 255, 0.15) !important;
+}
+
+html[data-theme="dark"] input[type="date"]:focus,
+html[data-theme="dark"] input[type="time"]:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(122, 252, 255, 0.15), 0 4px 12px rgba(122, 252, 255, 0.2) !important;
+}
+
+html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(86%) sepia(94%) saturate(2527%) hue-rotate(147deg) brightness(103%) contrast(101%);
 }
 
 /* Editor box */
@@ -323,10 +408,17 @@ html[data-theme="dark"] .toolbar button:hover {
 .save-controls button {
   padding: 8px 12px !important;
   border-radius: 10px !important;
-  background: transparent !important;
-  border: 1px solid rgba(0,0,0,0.06) !important;
+  background: rgba(255,126,185,0.08) !important;
+  border: 1px solid rgba(255,126,185,0.2) !important;
   color: var(--text) !important;
   font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.save-controls button:hover {
+  background: rgba(255,126,185,0.15) !important;
+  border-color: rgba(255,126,185,0.35) !important;
+  transform: translateY(-1px) !important;
 }
 
 /* Primary save button (right-most) - subtle gradient */
@@ -336,8 +428,16 @@ html[data-theme="dark"] .toolbar button:hover {
   color: #fff !important;
   border: none !important;
   padding: 10px 14px !important;
-  box-shadow: 0 8px 22px rgba(0,0,0,0.12) !important;
+  box-shadow: 0 6px 18px rgba(255,126,185,0.25) !important;
   transform: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.save-controls button:last-child:hover,
+.auth-button:hover,
+.btn:hover {
+  box-shadow: 0 8px 22px rgba(255,126,185,0.35) !important;
+  transform: translateY(-2px) !important;
 }
 
 /* Error/Success */
@@ -561,20 +661,20 @@ html[data-theme="dark"] .toolbar button:hover {
 }
 .btn-create-light {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #f8d6ff, #d8e8ff);
-  color: #4a4a4a;
+  background: linear-gradient(135deg, #ff7eb9, #ff5ca2);
+  color: #ffffff;
   border: none;
   border-radius: 9999px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(255,126,185,0.25);
   transition: all 0.25s ease;
 }
 
 .btn-create-light:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
-  background: linear-gradient(135deg, #f4cfff, #cfe0ff);
+  box-shadow: 0 6px 18px rgba(255,126,185,0.35);
+  background: linear-gradient(135deg, #ff5ca2, #ff4091);
 }
 
 .btn-create-dark {
@@ -599,19 +699,21 @@ html[data-theme="dark"] .toolbar button:hover {
 
 /* Light theme button */
 .btn-light {
-  background: #eae6ff;
-  color: #4a3aff;
+  background: linear-gradient(135deg, #ff7eb9, #ff5ca2);
+  color: #ffffff;
   border: none;
   padding: 10px 18px;
   border-radius: 999px;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(255,126,185,0.2);
 }
 
 .btn-light:hover {
-  background: #d8d2ff;
+  background: linear-gradient(135deg, #ff5ca2, #ff4091);
   transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255,126,185,0.3);
 }
 
 /* Dark theme button */
@@ -633,19 +735,23 @@ html[data-theme="dark"] .toolbar button:hover {
 
 /* Light theme delete button */
 .btn-light-danger {
-  background: #ffd6d6;
-  color: #b80000;
-  border: none;
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #dc2626;
+  border: 1px solid rgba(220,38,38,0.15);
   padding: 7px 14px;
   border-radius: 999px;
   font-size: 14px;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.1);
 }
 
 .btn-light-danger:hover {
-  background: #ffbdbd;
+  background: linear-gradient(135deg, #fecaca, #fca5a5);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220,38,38,0.2);
+  border-color: rgba(220,38,38,0.25);
 }
 
 /* Dark theme delete button */

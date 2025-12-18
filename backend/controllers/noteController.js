@@ -4,8 +4,20 @@ import mongoose from "mongoose";
 import Note from "../models/noteModel.js";
 import Folder from "../models/folderModel.js";
 import { ensureLockedFolder, isLockedFolder } from "../utils/lockedFolder.js";
+import { checkReminders, addInAppNotification } from "../services/notificationService.js";
 
 const { Types: { ObjectId } } = mongoose;
+
+// Determine whether a note is overdue using deadline or non-recurring reminder
+const computeIsOverdue = (noteLike, now = new Date()) => {
+  const deadlineAt = noteLike?.deadline ? new Date(noteLike.deadline) : null;
+  const reminderAt = noteLike?.reminderDate ? new Date(noteLike.reminderDate) : null;
+
+  const deadlinePassed = deadlineAt && !isNaN(deadlineAt) && deadlineAt < now;
+  const reminderPassed = reminderAt && !isNaN(reminderAt) && !noteLike?.isRecurring && reminderAt < now;
+
+  return Boolean(deadlinePassed || reminderPassed);
+};
 // Get all notes for the logged-in user
 export const getNotes = async (req, res) => {
   try {
@@ -45,7 +57,15 @@ export const getNotes = async (req, res) => {
     }
 
     const notes = await query.exec();
-    res.json(notes);
+    const now = new Date();
+
+    const payload = notes.map((n) => {
+      const obj = n.toObject();
+      obj.isOverdue = computeIsOverdue(obj, now);
+      return obj;
+    });
+
+    res.json(payload);
 
   } catch (error) {
     console.error("❌ Error fetching notes:", error);
@@ -180,7 +200,7 @@ export const createNote = async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    let { title = "", content = "", tags = [], folderId = null, reminderDate, isRecurring, recurringPattern, notificationMethods } = req.body;
+    let { title = "", content = "", tags = [], folderId = null, reminderDate, isRecurring, recurringPattern, notificationMethods, deadline } = req.body;
     title = String(title).trim();
     content = String(content || "");
 
@@ -201,6 +221,14 @@ export const createNote = async (req, res) => {
     });
 
     const noteData = { title, content: clean, tags, user: userId, folderId };
+
+    // Attach deadline if provided
+    if (deadline) {
+      const deadlineDate = new Date(deadline);
+      if (!isNaN(deadlineDate.getTime())) {
+        noteData.deadline = deadlineDate;
+      }
+    }
     
     // Add reminder fields if provided
     if (reminderDate) {
@@ -213,8 +241,38 @@ export const createNote = async (req, res) => {
       }
     }
 
+    noteData.isOverdue = computeIsOverdue(noteData);
+
     const note = new Note(noteData);
     await note.save();
+
+    // Send immediate notification when reminder is set
+    if (reminderDate) {
+      const userIdStr = String(userId);
+      console.log(`🔔 Creating reminder notification for user ${userIdStr}, noteId: ${note._id}`);
+      
+      try {
+        addInAppNotification(userIdStr, {
+          noteId: note._id,
+          title: `Reminder set: ${note.title || 'Untitled'}`,
+          content: `Reminder scheduled for ${new Date(reminderDate).toLocaleString()}`,
+          type: 'reminder_set',
+          reminderDate: reminderDate,
+        });
+        
+        // Verify it was added
+        const { getInAppNotifications } = await import("../services/notificationService.js");
+        const userNotifs = getInAppNotifications(userIdStr);
+        console.log(`✅ Notification added! User ${userIdStr} now has ${userNotifs.length} notification(s)`);
+      } catch (error) {
+        console.error(`❌ Failed to add notification:`, error);
+      }
+    }
+
+    // Trigger immediate reminder check if reminder was set
+    if (reminderDate || deadline) {
+      setTimeout(() => checkReminders().catch(console.error), 1000);
+    }
 
     res.status(201).json({ message: "Note created", note });
   } catch (error) {
@@ -228,7 +286,7 @@ export const updateNote = async (req, res) => {
   try {
     const userId = req.user.id;
     const noteId = req.params.id;
-    const { title, content, tags, folderId, reminderDate, isRecurring, recurringPattern, notificationMethods } = req.body;
+    const { title, content, tags, folderId, reminderDate, isRecurring, recurringPattern, notificationMethods, deadline } = req.body;
 
     const note = await Note.findOne({ _id: noteId, user: userId }).exec();
     if (!note) return res.status(404).json({ message: "Note not found or not authorized" });
@@ -244,6 +302,16 @@ export const updateNote = async (req, res) => {
     if (typeof content !== "undefined") update.content = content;
     if (typeof tags !== "undefined") update.tags = tags;
     if (typeof folderId !== "undefined") update.folderId = folderId;
+    if (typeof deadline !== "undefined") {
+      if (deadline) {
+        const deadlineDate = new Date(deadline);
+        if (!isNaN(deadlineDate.getTime())) {
+          update.deadline = deadlineDate;
+        }
+      } else {
+        update.deadline = null;
+      }
+    }
     
     // Handle reminder fields
     if (typeof reminderDate !== "undefined") {
@@ -260,14 +328,44 @@ export const updateNote = async (req, res) => {
         update.isRecurring = false;
         update.recurringPattern = null;
         update.notificationSent = false;
-        update.isOverdue = false;
+       Send immediate notification when reminder is set/updated
+    if (reminderDate) {
+      const userIdStr = String(userId);
+      console.log(`🔔 Creating reminder notification for user ${userIdStr}, noteId: ${updatedNote._id}`);
+      
+      try {
+        addInAppNotification(userIdStr, {
+          noteId: updatedNote._id,
+          title: `Reminder set: ${updatedNote.title || 'Untitled'}`,
+          content: `Reminder scheduled for ${new Date(reminderDate).toLocaleString()}`,
+          type: 'reminder_set',
+          reminderDate: reminderDate,
+        });
+        
+        // Verify it was added
+        const { getInAppNotifications } = await import("../services/notificationService.js");
+        const userNotifs = getInAppNotifications(userIdStr);
+        console.log(`✅ Notification added! User ${userIdStr} now has ${userNotifs.length} notification(s)`);
+      } catch (error) {
+        console.error(`❌ Failed to add notification:`, error);
+      }
+    }
+
+    //  update.isOverdue = false;
       }
     }
     if (typeof isRecurring !== "undefined") update.isRecurring = isRecurring;
     if (typeof recurringPattern !== "undefined") update.recurringPattern = recurringPattern;
     if (typeof notificationMethods !== "undefined") update.notificationMethods = notificationMethods;
 
+    update.isOverdue = computeIsOverdue({ ...note.toObject(), ...update });
+
     const updatedNote = await Note.findOneAndUpdate({ _id: noteId, user: userId }, update, { new: true }).exec();
+
+    // Trigger immediate reminder check if reminder or deadline was updated
+    if (typeof reminderDate !== "undefined" || typeof deadline !== "undefined") {
+      setTimeout(() => checkReminders().catch(console.error), 1000);
+    }
 
     res.json({ message: "✅ Note updated successfully!", note: updatedNote });
   } catch (error) {
@@ -392,7 +490,13 @@ export const searchNotes = async (req, res) => {
     }
 
     const notes = await Note.find(filter).sort({ createdAt: -1 }).exec();
-    res.json(notes);
+    const now = new Date();
+    const payload = notes.map((n) => {
+      const obj = n.toObject();
+      obj.isOverdue = computeIsOverdue(obj, now);
+      return obj;
+    });
+    res.json(payload);
   } catch (error) {
     console.error("❌ Error searching notes:", error);
     res.status(500).json({ message: "Server error" });

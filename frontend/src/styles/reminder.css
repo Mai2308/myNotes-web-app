@@ -1,35 +1,6 @@
-/* REMINDER MODAL - Pastel Theme */
+/* REMINDER MODAL - Matches Project Theme */
 
-:root {
-  /* Light Mode - Pastel */
-  --reminder-bg: #ffffff;
-  --reminder-border: rgba(255, 126, 185, 0.2);
-  --reminder-accent: #ff7eb9;
-  --reminder-accent-hover: #ff5ca2;
-  --reminder-success: #4ade80;
-  --reminder-error: #dc2626;
-  --reminder-warning: #f59e0b;
-  --reminder-text: #0f172a;
-  --reminder-text-sub: #475569;
-  --reminder-input-bg: #fefeff;
-  --reminder-input-border: rgba(15, 23, 42, 0.08);
-  --reminder-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-}
-
-body.dark {
-  --reminder-bg: #1b2536;
-  --reminder-border: rgba(255, 126, 185, 0.15);
-  --reminder-accent: #ff7eb9;
-  --reminder-accent-hover: #ff99cb;
-  --reminder-success: #22c55e;
-  --reminder-error: #ef4444;
-  --reminder-warning: #fbbf24;
-  --reminder-text: #f1f5f9;
-  --reminder-text-sub: #cbd5e1;
-  --reminder-input-bg: #243447;
-  --reminder-input-border: rgba(255, 255, 255, 0.08);
-  --reminder-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-}
+/* Uses project's theme variables from styles.css */
 
 /* MODAL OVERLAY */
 .reminder-modal-overlay {
@@ -67,12 +38,12 @@ body.dark {
 
 /* MODAL CONTAINER */
 .reminder-modal {
-  background: var(--reminder-bg);
-  border-radius: 16px;
-  box-shadow: var(--reminder-shadow);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   width: 100%;
   max-width: 500px;
-  border: 1px solid var(--reminder-border);
+  border: 1px solid var(--input-border);
   overflow: hidden;
   animation: slideUp 0.3s ease-out;
   transition: background 0.3s ease, box-shadow 0.3s ease;
@@ -84,8 +55,8 @@ body.dark {
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid var(--reminder-border);
-  background: linear-gradient(135deg, rgba(255, 126, 185, 0.05) 0%, rgba(224, 247, 250, 0.05) 100%);
+  border-bottom: 1px solid var(--input-border);
+  background: var(--card-bg);
 }
 
 .reminder-modal-header h2 {
@@ -95,14 +66,14 @@ body.dark {
   gap: 10px;
   font-size: 18px;
   font-weight: 600;
-  color: var(--reminder-text);
+  color: var(--text);
 }
 
 .reminder-close-btn {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--reminder-text-sub);
+  color: var(--muted);
   padding: 6px;
   border-radius: 8px;
   transition: all 0.2s ease;
@@ -113,7 +84,7 @@ body.dark {
 
 .reminder-close-btn:hover {
   background: rgba(255, 126, 185, 0.1);
-  color: var(--reminder-accent);
+  color: var(--accent);
 }
 
 /* MODAL BODY */
@@ -130,9 +101,9 @@ body.dark {
   gap: 10px;
   padding: 12px 16px;
   background: rgba(220, 38, 38, 0.1);
-  border: 1px solid var(--reminder-error);
-  border-radius: 8px;
-  color: var(--reminder-error);
+  border: 1px solid #dc2626;
+  border-radius: var(--radius);
+  color: #dc2626;
   margin-bottom: 16px;
   font-size: 14px;
   animation: slideUp 0.2s ease-out;
@@ -149,7 +120,7 @@ body.dark {
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--reminder-text);
+  color: var(--text);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 10px;
@@ -165,10 +136,10 @@ body.dark {
 .reminder-date-input,
 .reminder-time-input {
   padding: 10px 12px;
-  border: 1px solid var(--reminder-input-border);
-  border-radius: 10px;
-  background: var(--reminder-input-bg);
-  color: var(--reminder-text);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+  color: var(--text);
   font-size: 14px;
   font-family: inherit;
   transition: all 0.2s ease;
@@ -177,13 +148,13 @@ body.dark {
 
 .reminder-date-input:hover,
 .reminder-time-input:hover {
-  border-color: var(--reminder-accent);
+  border-color: var(--accent);
 }
 
 .reminder-date-input:focus,
 .reminder-time-input:focus {
-  border-color: var(--reminder-accent);
-  box-shadow: 0 0 0 3px rgba(255, 126, 185, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 6px 16px rgba(255, 126, 185, 0.15);
 }
 
 /* CHECKBOX LABEL */
@@ -193,9 +164,9 @@ body.dark {
   gap: 10px;
   cursor: pointer;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   transition: all 0.2s ease;
-  color: var(--reminder-text);
+  color: var(--text);
   font-size: 14px;
   font-weight: 500;
 }
@@ -208,17 +179,17 @@ body.dark {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: var(--reminder-accent);
+  accent-color: var(--accent);
 }
 
 /* SELECT DROPDOWN */
 .reminder-select {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--reminder-input-border);
-  border-radius: 10px;
-  background: var(--reminder-input-bg);
-  color: var(--reminder-text);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+  color: var(--text);
   font-size: 14px;
   font-family: inherit;
   cursor: pointer;
@@ -227,12 +198,12 @@ body.dark {
 }
 
 .reminder-select:hover {
-  border-color: var(--reminder-accent);
+  border-color: var(--accent);
 }
 
 .reminder-select:focus {
-  border-color: var(--reminder-accent);
-  box-shadow: 0 0 0 3px rgba(255, 126, 185, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 6px 16px rgba(255, 126, 185, 0.15);
 }
 
 /* NOTIFICATION METHODS */
@@ -247,28 +218,28 @@ body.dark {
   align-items: center;
   gap: 10px;
   padding: 12px;
-  border: 1px solid var(--reminder-input-border);
-  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.2s ease;
-  background: var(--reminder-input-bg);
+  background: var(--input-bg);
 }
 
 .reminder-method-checkbox:hover {
   background: rgba(255, 126, 185, 0.05);
-  border-color: var(--reminder-accent);
+  border-color: var(--accent);
 }
 
 .reminder-method-checkbox input[type="checkbox"] {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: var(--reminder-accent);
+  accent-color: var(--accent);
 }
 
 .reminder-method-checkbox span {
   flex: 1;
-  color: var(--reminder-text);
+  color: var(--text);
   font-size: 14px;
   font-weight: 500;
 }
@@ -278,17 +249,18 @@ body.dark {
   display: flex;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid var(--reminder-border);
-  background: linear-gradient(135deg, rgba(255, 126, 185, 0.02) 0%, rgba(224, 247, 250, 0.02) 100%);
+  border-top: 1px solid var(--input-border);
+  background: var(--card-bg);
 }
 
 /* BUTTONS */
 .reminder-btn-cancel,
-.reminder-btn-save {
+.reminder-btn-save,
+.reminder-btn-remove {
   flex: 1;
   padding: 10px 16px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -302,22 +274,23 @@ body.dark {
 
 .reminder-btn-cancel {
   background: rgba(107, 114, 128, 0.1);
-  color: var(--reminder-text-sub);
-  border: 1px solid var(--reminder-input-border);
+    color: var(--muted);
+    border: 1px solid var(--input-border);
 }
 
 .reminder-btn-cancel:hover {
-  background: rgba(107, 114, 128, 0.2);
-  color: var(--reminder-text);
+  background: var(--input-bg);
+  color: var(--text);
 }
 
 .reminder-btn-save {
-  background: linear-gradient(135deg, var(--reminder-accent) 0%, var(--reminder-accent-hover) 100%);
+  background: var(--accent);
   color: white;
   box-shadow: 0 4px 12px rgba(255, 126, 185, 0.3);
 }
 
 .reminder-btn-save:hover {
+  background: var(--accent-dark);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(255, 126, 185, 0.4);
 }
@@ -326,11 +299,24 @@ body.dark {
   transform: translateY(0);
 }
 
+.reminder-btn-remove {
+  background: #ef4444;
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.reminder-btn-remove:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
 /* RESPONSIVE */
 @media (max-width: 600px) {
   .reminder-modal {
     max-width: 100%;
-    border-radius: 16px 16px 0 0;
+    border-radius: 1,
+  .reminder-btn-remove6px 16px 0 0;
     margin-top: auto;
   }
 

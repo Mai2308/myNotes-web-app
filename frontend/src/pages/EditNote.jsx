@@ -30,6 +30,8 @@ export default function EditNote() {
   const [converting, setConverting] = useState(false);
   const [emojis, setEmojis] = useState([]);
   const [reminder, setReminder] = useState(null);
+  const [deadlineDate, setDeadlineDate] = useState("");
+  const [deadlineTime, setDeadlineTime] = useState("17:00");
   
   const editorRef = useRef(null);
 
@@ -72,6 +74,14 @@ export default function EditNote() {
             notificationMethods: note.notificationMethods || ["in-app"],
           });
         }
+
+        if (note.deadline) {
+          const d = new Date(note.deadline);
+          if (!isNaN(d)) {
+            setDeadlineDate(d.toISOString().split("T")[0]);
+            setDeadlineTime(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+          }
+        }
         
 
         // Load folders
@@ -80,8 +90,19 @@ export default function EditNote() {
         
         // Set editor content after a small delay to ensure ref is ready
         setTimeout(() => {
-          if (editorRef.current && note.content && !note.isChecklist) {
-            editorRef.current.setContent(note.content);
+          if (editorRef.current) {
+            if (note.content && !note.isChecklist) {
+              editorRef.current.setContent(note.content);
+            }
+            // Set reminder in editor if it exists
+            if (note.reminderDate) {
+              editorRef.current.setReminder({
+                reminderDate: note.reminderDate,
+                isRecurring: note.isRecurring || false,
+                recurringPattern: note.recurringPattern || "daily",
+                notificationMethods: note.notificationMethods || ["in-app"],
+              });
+            }
           }
         }, 100);
       } catch (err) {
@@ -100,6 +121,10 @@ export default function EditNote() {
     setSuccess("");
 
     try {
+      const deadlineISO = deadlineDate
+        ? new Date(`${deadlineDate}T${deadlineTime || "17:00"}`).toISOString()
+        : null;
+
       if (isChecklist) {
         // Update checklist items first
         await updateChecklistItems(id, checklistItems, token);
@@ -110,12 +135,11 @@ export default function EditNote() {
           {
             title: title.trim() || "Untitled Checklist",
             folderId: folderId || null,
-            ...(reminder && {
-              reminderDate: reminder.reminderDate,
-              isRecurring: reminder.isRecurring,
-              recurringPattern: reminder.recurringPattern,
-              notificationMethods: reminder.notificationMethods,
-            }),
+            deadline: deadlineISO,
+            reminderDate: reminder?.reminderDate || null,
+            isRecurring: reminder?.isRecurring || false,
+            recurringPattern: reminder?.recurringPattern || null,
+            notificationMethods: reminder?.notificationMethods || [],
           },
           token
         );
@@ -134,12 +158,11 @@ export default function EditNote() {
             title: title.trim(),
             content,
             folderId: folderId || null,
-            ...(reminder && {
-              reminderDate: reminder.reminderDate,
-              isRecurring: reminder.isRecurring,
-              recurringPattern: reminder.recurringPattern,
-              notificationMethods: reminder.notificationMethods,
-            }),
+            deadline: deadlineISO,
+            reminderDate: reminder?.reminderDate || null,
+            isRecurring: reminder?.isRecurring || false,
+            recurringPattern: reminder?.recurringPattern || null,
+            notificationMethods: reminder?.notificationMethods || [],
           },
           token
         );
@@ -285,6 +308,28 @@ export default function EditNote() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Deadline */}
+        <div style={{ marginBottom: "16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div>
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: "bold" }}>Deadline (optional)</label>
+            <input
+              type="date"
+              value={deadlineDate}
+              onChange={(e) => setDeadlineDate(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: "bold" }}>Time</label>
+            <input
+              type="time"
+              value={deadlineTime}
+              onChange={(e) => setDeadlineTime(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
         </div>
 
         {/* Mode Toggle Button */}

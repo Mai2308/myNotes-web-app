@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useTheme } from "../context/ThemeContext";
 import {
   Clock,
   Bell,
@@ -11,8 +10,7 @@ import {
 } from "lucide-react";
 import "../styles/reminder.css";
 
-const ReminderModal = ({ isOpen, onClose, onSave, initialReminder = null }) => {
-  const { theme } = useTheme();
+const ReminderModal = ({ onClose, onSave, initialReminder = null, isOpen = true }) => {
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("09:00");
   const [isRecurring, setIsRecurring] = useState(false);
@@ -21,7 +19,7 @@ const ReminderModal = ({ isOpen, onClose, onSave, initialReminder = null }) => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (initialReminder) {
+    if (initialReminder && isOpen) {
       if (initialReminder.reminderDate) {
         const date = new Date(initialReminder.reminderDate);
         setReminderDate(date.toISOString().split("T")[0]);
@@ -90,7 +88,7 @@ const ReminderModal = ({ isOpen, onClose, onSave, initialReminder = null }) => {
   if (!isOpen) return null;
 
   return (
-    <div className={`reminder-modal-overlay theme-${theme}`}>
+    <div className="reminder-modal-overlay">
       <div className="reminder-modal">
         <div className="reminder-modal-header">
           <h2>
@@ -194,6 +192,18 @@ const ReminderModal = ({ isOpen, onClose, onSave, initialReminder = null }) => {
             <X size={16} />
             Cancel
           </button>
+          {initialReminder && (
+            <button 
+              className="reminder-btn-remove" 
+              onClick={() => {
+                onSave(null);
+                handleClose();
+              }}
+            >
+              <X size={16} />
+              Remove Reminder
+            </button>
+          )}
           <button className="reminder-btn-save" onClick={handleSave}>
             <Check size={16} />
             Set Reminder
