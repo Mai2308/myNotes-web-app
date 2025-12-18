@@ -328,7 +328,18 @@ export const updateNote = async (req, res) => {
         update.isRecurring = false;
         update.recurringPattern = null;
         update.notificationSent = false;
-       Send immediate notification when reminder is set/updated
+      }
+    }
+
+    if (typeof isRecurring !== "undefined") update.isRecurring = isRecurring;
+    if (typeof recurringPattern !== "undefined") update.recurringPattern = recurringPattern;
+    if (typeof notificationMethods !== "undefined") update.notificationMethods = notificationMethods;
+
+    update.isOverdue = computeIsOverdue({ ...note.toObject(), ...update });
+
+    const updatedNote = await Note.findOneAndUpdate({ _id: noteId, user: userId }, update, { new: true }).exec();
+
+    // Send immediate notification when reminder is set/updated
     if (reminderDate) {
       const userIdStr = String(userId);
       console.log(`🔔 Creating reminder notification for user ${userIdStr}, noteId: ${updatedNote._id}`);
@@ -350,17 +361,6 @@ export const updateNote = async (req, res) => {
         console.error(`❌ Failed to add notification:`, error);
       }
     }
-
-    //  update.isOverdue = false;
-      }
-    }
-    if (typeof isRecurring !== "undefined") update.isRecurring = isRecurring;
-    if (typeof recurringPattern !== "undefined") update.recurringPattern = recurringPattern;
-    if (typeof notificationMethods !== "undefined") update.notificationMethods = notificationMethods;
-
-    update.isOverdue = computeIsOverdue({ ...note.toObject(), ...update });
-
-    const updatedNote = await Note.findOneAndUpdate({ _id: noteId, user: userId }, update, { new: true }).exec();
 
     // Trigger immediate reminder check if reminder or deadline was updated
     if (typeof reminderDate !== "undefined" || typeof deadline !== "undefined") {
