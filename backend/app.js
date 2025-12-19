@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import morgan from "morgan";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 // Routes
@@ -31,11 +32,20 @@ if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
 
 // Serve static files from frontend build
 const buildPath = path.join(__dirname, "../frontend/build");
+console.log("Build path:", buildPath);
+
+// Check if build directory exists
+if (!fs.existsSync(buildPath)) {
+  console.error("WARNING: Build directory does not exist at", buildPath);
+} else {
+  console.log("Build directory found");
+}
+
 app.use(express.static(buildPath));
 
 // Health check
 app.get("/health", (req, res) => {
-  res.send("🚀 Notes App Backend Running!");
+  res.json({ status: "ok", message: "🚀 Notes App Backend Running!" });
 });
 
 // API Routes
@@ -48,17 +58,20 @@ app.use("/api/flashcards", flashcardRoutes);
 // Serve React app for all other routes (must be after API routes)
 app.get("*", (req, res) => {
   const indexPath = path.join(buildPath, "index.html");
+  console.log("Attempting to serve index.html from:", indexPath);
   res.sendFile(indexPath, (err) => {
     if (err) {
       console.error("Error serving index.html:", err);
-      res.status(500).json({ message: "Server error" });
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Error serving index.html", error: err.message });
+      }
     }
   });
 });
 
 // Error handler (must be last)
 app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
+  console.error("Express error handler - Unhandled error:", err);
   if (!res.headersSent) {
     res.status(err.status || 500).json({
       message: err.message || "Server error",

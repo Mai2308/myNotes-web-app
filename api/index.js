@@ -25,22 +25,23 @@ async function initializeDB() {
 // Vercel serverless handler
 export default async (req, res) => {
   try {
+    // Log request
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path || req.url}`);
+
     // Connect to MongoDB on first request
     await initializeDB();
 
     // Handle the request with Express app
-    return await new Promise((resolve, reject) => {
-      app(req, res, (err) => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
-      });
-    });
+    // Express apps can be called as middleware
+    app(req, res);
   } catch (error) {
     console.error("API Error:", error);
+    console.error("Error stack:", error.stack);
     if (!res.headersSent) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ 
+        error: error.message,
+        details: process.env.NODE_ENV === "development" ? error.stack : undefined
+      });
     }
   }
 };
