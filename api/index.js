@@ -5,18 +5,22 @@ import connectMongo from "../backend/src/database/mongo.js";
 
 dotenv.config();
 
-// Connect to MongoDB once (cached across requests)
+// Connection cache
 let isConnected = false;
 
-const connectDB = async () => {
-  if (!isConnected) {
-    await connectMongo();
-    isConnected = true;
+// Vercel serverless handler
+export default async (req, res) => {
+  try {
+    // Connect to MongoDB on first request
+    if (!isConnected) {
+      await connectMongo();
+      isConnected = true;
+    }
+
+    // Pass request to Express app
+    return app(req, res);
+  } catch (error) {
+    console.error("API Error:", error);
+    res.status(500).json({ error: error.message });
   }
 };
-
-// Export the serverless function
-export default async function handler(req, res) {
-  await connectDB();
-  return app(req, res);
-}
