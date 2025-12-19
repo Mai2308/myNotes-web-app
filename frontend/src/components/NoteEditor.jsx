@@ -41,6 +41,7 @@ const NoteEditor = forwardRef((props, ref) => {
   // Highlight state
   const [highlights, setHighlights] = useState([]);
   const [showHighlightToolbar, setShowHighlightToolbar] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
   const [selectedText, setSelectedText] = useState("");
   const [selectedColor, setSelectedColor] = useState("yellow");
@@ -291,38 +292,39 @@ const NoteEditor = forwardRef((props, ref) => {
     }
   };
 
-  const handleDeleteHighlight = async (highlightId) => {
-    try {
-      const token = localStorage.getItem("token");
-      await highlightsApi.deleteHighlight(noteId, highlightId, token);
-      await loadHighlights();
-    } catch (err) {
-      console.error("Failed to delete highlight:", err);
-    }
-  };
+  // TODO: Wire up these handlers to HighlightsPanel component
+  // const handleDeleteHighlight = async (highlightId) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     await highlightsApi.deleteHighlight(noteId, highlightId, token);
+  //     await loadHighlights();
+  //   } catch (err) {
+  //     console.error("Failed to delete highlight:", err);
+  //   }
+  // };
 
-  const handleUpdateHighlight = async (highlightId, updates) => {
-    try {
-      const token = localStorage.getItem("token");
-      await highlightsApi.updateHighlight(noteId, highlightId, updates, token);
-      await loadHighlights();
-    } catch (err) {
-      console.error("Failed to update highlight:", err);
-    }
-  };
+  // const handleUpdateHighlight = async (highlightId, updates) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     await highlightsApi.updateHighlight(noteId, highlightId, updates, token);
+  //     await loadHighlights();
+  //   } catch (err) {
+  //     console.error("Failed to update highlight:", err);
+  //   }
+  // };
 
-  const handleScrollToHighlight = (offset) => {
-    // Simple scroll to position
-    if (editorRef.current) {
-      const text = editorRef.current.innerText;
-      if (offset < text.length) {
-        editorRef.current.focus();
-        // Approximate scroll position
-        const lines = text.substring(0, offset).split('\n').length;
-        editorRef.current.parentElement.scrollTop = lines * 24;
-      }
-    }
-  };
+  // const handleScrollToHighlight = (offset) => {
+  //   // Simple scroll to position
+  //   if (editorRef.current) {
+  //     const text = editorRef.current.innerText;
+  //     if (offset < text.length) {
+  //       editorRef.current.focus();
+  //       // Approximate scroll position
+  //       const lines = text.substring(0, offset).split('\n').length;
+  //       editorRef.current.parentElement.scrollTop = lines * 24;
+  //     }
+  //   }
+  // };
 
   // Flashcard handlers
   const handleCreateFlashcardClick = () => {
