@@ -4,6 +4,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // Routes
 import userRoutes from "./routes/users.js";
@@ -13,6 +15,9 @@ import emojiRoutes from "./routes/emojis.js";
 import flashcardRoutes from "./routes/flashcards.js";
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -24,21 +29,25 @@ app.use(cors({
 app.use(express.json({ limit: "10mb" }));
 if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
 
+// Serve static files from frontend build
+const buildPath = path.join(__dirname, "../frontend/build");
+app.use(express.static(buildPath));
+
 // Health check
-app.get("/", (req, res) => {
+app.get("/health", (req, res) => {
   res.send("🚀 Notes App Backend Running!");
 });
 
-// Routes
+// API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/emojis", emojiRoutes);
 app.use("/api/flashcards", flashcardRoutes);
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ message: "Not Found" });
+// Serve React app for all other routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(buildPath, "index.html"));
 });
 
 // Error handler

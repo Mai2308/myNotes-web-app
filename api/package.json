@@ -12,5 +12,8 @@
     "jsonwebtoken": "^9.0.2",
     "helmet": "^7.0.0",
     "morgan": "^1.10.0"
+  },
+  "scripts": {
+    "build": "cd ../frontend && npm install && npm run build"
   }
 }
