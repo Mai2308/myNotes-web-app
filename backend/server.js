@@ -47,6 +47,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // Mount API routes (routes should apply protect middleware where needed)
+console.log("📍 Mounting API routes...");
 app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/folders", folderRoutes);
@@ -54,6 +55,7 @@ app.use("/api/emojis", emojiRoutes);
 app.use("/api/reminders", reminderRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/flashcards", flashcardRoutes);
+console.log("✅ All routes mounted including /api/flashcards");
 
 // Global 404 handler
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));
