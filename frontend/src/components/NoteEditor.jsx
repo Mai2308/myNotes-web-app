@@ -17,6 +17,7 @@ import {
   Save,
   Upload,
   Clock,
+  MessageSquare,
 } from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
 import ReminderModal from "./ReminderModal";
@@ -24,7 +25,6 @@ import { addEmojiToNote } from "../api/notesApi";
 import * as highlightsApi from "../api/highlightsApi";
 import * as flashcardsApi from "../api/flashcardsApi";
 import HighlightToolbar from "./HighlightToolbar";
-import HighlightsPanel from "./HighlightsPanel";
 import FlashcardCreator from "./FlashcardCreator";
 
 const NoteEditor = forwardRef((props, ref) => {
@@ -241,77 +241,6 @@ const NoteEditor = forwardRef((props, ref) => {
   };
 
   // Highlight handlers
-  const handleMouseUp = () => {
-    const sel = window.getSelection();
-    if (!sel.toString()) {
-      setShowHighlightToolbar(false);
-      setShowFlashcardCreator(false);
-      return;
-    }
-
-    const selectedText = sel.toString();
-    console.log("✨ Text selected:", selectedText);
-    setSelectedText(selectedText);
-    
-    const range = sel.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    
-    // For position: fixed, use viewport coordinates (getBoundingClientRect gives us this)
-    const toolbarHeight = 320; // approximate height
-    const toolbarWidth = 350; // approximate width
-    const padding = 16; // padding from edge
-    
-    let top = rect.top - toolbarHeight - 12;
-    let left = rect.left - 30;
-    
-    // Adjust if toolbar goes above viewport
-    if (top < padding) {
-      top = rect.bottom + 12;
-    }
-    
-    // Adjust if toolbar goes off right edge
-    if (left + toolbarWidth > window.innerWidth) {
-      left = window.innerWidth - toolbarWidth - padding;
-    }
-    
-    // Adjust if toolbar goes off left edge
-    if (left < padding) {
-      left = padding;
-    }
-    
-    // Clamp top to viewport
-    if (top < padding) {
-      top = padding;
-    }
-    if (top + toolbarHeight > window.innerHeight) {
-      top = window.innerHeight - toolbarHeight - padding;
-    }
-    
-    console.log("📍 Toolbar position (fixed):", { top, left, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
-    setToolbarPos({ top, left });
-    
-    setShowHighlightToolbar(true);
-    console.log("🎯 Highlight toolbar shown");
-  };
-
-  const handleCreateFlashcardClick = () => {
-    setShowHighlightToolbar(false);
-    setShowFlashcardCreator(true);
-  };
-
-  const handleCreateFlashcard = async (flashcardData) => {
-    try {
-      const token = localStorage.getItem("token");
-      await flashcardsApi.createFlashcard(flashcardData, token);
-      setShowFlashcardCreator(false);
-      setSelectedText("");
-      alert("Flashcard created successfully! 🎉");
-    } catch (err) {
-      console.error("Failed to create flashcard:", err);
-      alert(`Error: ${err.message}`);
-    }
-  };
-
   const handleApplyHighlight = async () => {
     try {
       console.log("📍 handleApplyHighlight called", { noteId, selectedText });

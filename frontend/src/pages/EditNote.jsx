@@ -32,6 +32,8 @@ export default function EditNote() {
   const [reminder, setReminder] = useState(null);
   const [deadlineDate, setDeadlineDate] = useState("");
   const [deadlineTime, setDeadlineTime] = useState("17:00");
+  const [createdAt, setCreatedAt] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState(null);
   
   const editorRef = useRef(null);
 
