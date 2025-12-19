@@ -56,7 +56,9 @@ jobs:
       
       - name: Install dependencies (locked)
         working-directory: ./frontend
-        run: npm install --no-audit --no-fund
+        run: |
+          rm -rf node_modules
+          npm install --no-audit --no-fund
       
       - name: Run tests (try test:ci, fallback to npx vitest or npm test)
         working-directory: ./frontend
@@ -98,7 +100,9 @@ jobs:
       
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm install --no-audit --no-fund
+        run: |
+          rm -rf node_modules
+          npm install --no-audit --no-fund
       
       - name: Start backend server
         working-directory: ./backend
@@ -142,7 +146,9 @@ jobs:
       
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm install --no-audit --no-fund
+        run: |
+          rm -rf node_modules
+          npm install --no-audit --no-fund
       
       - name: Build frontend
         working-directory: ./frontend
