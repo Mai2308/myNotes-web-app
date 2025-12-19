@@ -33,6 +33,17 @@ if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
 // Simple health check
 app.get("/", (req, res) => res.send("🚀 Notes App Backend Running!"));
 
+// Diagnostic endpoint (development only)
+if (process.env.NODE_ENV !== "production") {
+  app.get("/api/health", (req, res) => {
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      mongoConnection: require("mongoose").connection.readyState === 1 ? "connected" : "disconnected"
+    });
+  });
+}
+
 // Mount API routes (routes should apply protect middleware where needed)
 app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
