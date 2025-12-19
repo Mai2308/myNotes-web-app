@@ -17,8 +17,8 @@ export default async (req, res) => {
       isConnected = true;
     }
 
-    // Pass request to Express app
-    return app(req, res);
+    // Handle the request with Express app
+    app(req, res);
   } catch (error) {
     console.error("API Error:", error);
     res.status(500).json({ error: error.message });
