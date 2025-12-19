@@ -45,17 +45,25 @@ app.use("/api/folders", folderRoutes);
 app.use("/api/emojis", emojiRoutes);
 app.use("/api/flashcards", flashcardRoutes);
 
-// Serve React app for all other routes
+// Serve React app for all other routes (must be after API routes)
 app.get("*", (req, res) => {
-  res.sendFile(path.join(buildPath, "index.html"));
+  const indexPath = path.join(buildPath, "index.html");
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error("Error serving index.html:", err);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
 });
 
-// Error handler
+// Error handler (must be last)
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
-  res.status(err.status || 500).json({
-    message: err.message || "Server error",
-  });
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({
+      message: err.message || "Server error",
+    });
+  }
 });
 
 export default app;
