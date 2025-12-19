@@ -30,10 +30,11 @@
     "sanitize-html": "^2.10.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10",
-    "vitest": "^2.1.8",
+    "@ljharb/tsconfig": "^0.3.2",
     "@vitest/coverage-v8": "^2.1.8",
+    "mongodb-memory-server": "^10.1.5",
+    "nodemon": "^3.1.10",
     "supertest": "^7.0.0",
-    "mongodb-memory-server": "^10.1.5"
+    "vitest": "^2.1.8"
   }
 }
