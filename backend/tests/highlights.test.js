@@ -5,13 +5,23 @@ import server from "../server.js";
 import User from "../models/userModel.js";
 import Note from "../models/noteModel.js";
 import jwt from "jsonwebtoken";
+import { setupTestDB, teardownTestDB, clearTestDB } from "./setup.js";
 
 describe("Highlight Operations", () => {
   let authToken;
   let userId;
   let noteId;
 
+  beforeAll(async () => {
+    await setupTestDB();
+  });
+
+  afterAll(async () => {
+    await teardownTestDB();
+  });
+
   beforeEach(async () => {
+    await clearTestDB();
     // Create test user
     const user = await User.create({
       name: "Highlighter Test",

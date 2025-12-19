@@ -35,7 +35,8 @@ export const addHighlight = async (req, res) => {
     note.highlights.push(highlight);
     await note.save();
 
-    res.status(201).json(highlight);
+    // Return shape expected by tests: { highlight: {...} }
+    res.status(201).json({ highlight });
   } catch (error) {
     console.error("❌ Error adding highlight:", error);
     res.status(500).json({ message: "Server error" });
@@ -82,7 +83,8 @@ export const updateHighlight = async (req, res) => {
 
     await note.save();
 
-    res.json(highlight);
+    // Return shape expected by tests: { highlight: {...} }
+    res.json({ highlight });
   } catch (error) {
     console.error("❌ Error updating highlight:", error);
     res.status(500).json({ message: "Server error" });
