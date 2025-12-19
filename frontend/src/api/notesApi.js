@@ -1,5 +1,13 @@
 const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
+// Build API URL - handle both full URLs and relative paths
+function getApiUrl(endpoint) {
+  if (BASE.startsWith("http")) {
+    return `${BASE}/api${endpoint}`;
+  }
+  return `/api${endpoint}`;
+}
+
 // Returns authorization headers if token is provided or stored in localStorage
 function authHeaders(token) {
   const t = token ?? localStorage.getItem("token");
@@ -20,7 +28,7 @@ export const getNotes = async (token, sortOrOptions = {}) => {
   if (folderId !== undefined && folderId !== null) params.append("folderId", folderId);
   if (q) params.append("q", q);
 
-  const url = `${BASE}/api/notes${params.toString() ? `?${params.toString()}` : ""}`;
+  const url = getApiUrl(`/notes${params.toString() ? `?${params.toString()}` : ""}`);
   const res = await fetch(url, { headers: { ...authHeaders(token) } });
   return await res.json();
 };
@@ -30,7 +38,7 @@ export const getNotesByFolder = async (folderId, token, options = {}) => {
   const q = typeof folderId === "string" ? encodeURIComponent(folderId) : "null";
   const headers = { ...authHeaders(token) };
   if (options.password) headers["x-folder-password"] = options.password;
-  const res = await fetch(`${BASE}/api/notes?folderId=${q}`, { headers });
+  const res = await fetch(getApiUrl(`/notes?folderId=${q}`), { headers });
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to fetch notes by folder");
@@ -40,7 +48,7 @@ export const getNotesByFolder = async (folderId, token, options = {}) => {
 
 // Create a new note
 export const createNote = async (note, token) => {
-  const res = await fetch(`${BASE}/api/notes`, {
+  const res = await fetch(getApiUrl("/notes"), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify(note),
@@ -50,7 +58,7 @@ export const createNote = async (note, token) => {
 
 // Update an existing note
 export const updateNote = async (id, data, token) => {
-  const res = await fetch(`${BASE}/api/notes/${id}`, {
+  const res = await fetch(getApiUrl(`/notes/${id}`), {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify(data),
@@ -61,7 +69,7 @@ export const updateNote = async (id, data, token) => {
 
 // Delete a note
 export const deleteNote = async (id, token) => {
-  const res = await fetch(`${BASE}/api/notes/${id}`, {
+  const res = await fetch(getApiUrl(`/notes/${id}`), {
     method: "DELETE",
     headers: { ...authHeaders(token) },
   });

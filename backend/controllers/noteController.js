@@ -276,8 +276,8 @@ export const createNote = async (req, res) => {
 
     res.status(201).json({ message: "Note created", note });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Create note error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

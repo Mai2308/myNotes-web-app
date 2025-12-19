@@ -1,0 +1,27 @@
+<svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg" width="300" height="100">
+  <!-- Notepad icon -->
+  <g>
+    <!-- Notepad body -->
+    <rect x="20" y="15" width="50" height="70" rx="3" fill="none" stroke="#FF69B4" stroke-width="2.5"/>
+    
+    <!-- Notepad lines (written text) -->
+    <line x1="26" y1="28" x2="64" y2="28" stroke="#FFB6D9" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="26" y1="38" x2="64" y2="38" stroke="#FFB6D9" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="26" y1="48" x2="55" y2="48" stroke="#FFB6D9" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="26" y1="58" x2="64" y2="58" stroke="#FFB6D9" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="26" y1="68" x2="50" y2="68" stroke="#FFB6D9" stroke-width="1.8" stroke-linecap="round"/>
+    
+    <!-- Pen/pencil -->
+    <circle cx="64" cy="20" r="2.5" fill="#FF69B4"/>
+    <line x1="64" y1="22" x2="68" y2="30" stroke="#FF69B4" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- MyNotes text - bold italic with modern font -->
+  <text x="95" y="65" font-size="50" font-weight="700" font-style="italic" fill="#FF69B4" font-family="'Segoe UI', 'Trebuchet MS', sans-serif" letter-spacing="-1" text-rendering="optimizeLegibility">
+    MyNotes
+  </text>
+  
+  <!-- Accent dots -->
+  <circle cx="85" cy="30" r="3" fill="#A8D8FF" opacity="0.7"/>
+  <circle cx="280" cy="75" r="2.5" fill="#A8D8FF" opacity="0.5"/>
+</svg>

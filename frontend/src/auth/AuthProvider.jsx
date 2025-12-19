@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
       return { ok: false, message: res?.message || "Registration failed" };
     } catch (err) {
       console.error("Signup error", err);
-      return { ok: false, message: "Signup error" };
+      return { ok: false, message: err.message || "Signup error" };
     }
   };
 
@@ -54,7 +54,7 @@ export function AuthProvider({ children }) {
       return { ok: false, message: res?.message || "Login failed" };
     } catch (err) {
       console.error("Login error", err);
-      return { ok: false, message: "Login error" };
+      return { ok: false, message: err.message || "Login error" };
     }
   };
 

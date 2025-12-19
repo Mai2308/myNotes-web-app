@@ -9,6 +9,7 @@ import NotesList from "./components/NotesList";
 import Header from "./components/Header";
 import { useAuth } from "./auth/AuthProvider";
 import NotesPage from "./pages/NotesPage";
+import FlashcardsPage from "./pages/FlashcardsPage";
 
 function RequireAuth({ children }) {
   const { user } = useAuth();
@@ -69,6 +70,15 @@ export default function App() {
           element={
             <RequireAuth>
               <NotesList />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/flashcards"
+          element={
+            <RequireAuth>
+              <FlashcardsPage />
             </RequireAuth>
           }
         />

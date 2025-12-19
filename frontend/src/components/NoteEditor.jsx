@@ -21,6 +21,11 @@ import {
 import EmojiPicker from "./EmojiPicker";
 import ReminderModal from "./ReminderModal";
 import { addEmojiToNote } from "../api/notesApi";
+import * as highlightsApi from "../api/highlightsApi";
+import * as flashcardsApi from "../api/flashcardsApi";
+import HighlightToolbar from "./HighlightToolbar";
+import HighlightsPanel from "./HighlightsPanel";
+import FlashcardCreator from "./FlashcardCreator";
 
 const NoteEditor = forwardRef((props, ref) => {
   const { onSave, noteId, onReminderChange } = props || {};
@@ -32,6 +37,18 @@ const NoteEditor = forwardRef((props, ref) => {
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [reminder, setReminder] = useState(null);
   const saveKey = "autoSavedNote";
+
+  // Highlight state
+  const [highlights, setHighlights] = useState([]);
+  const [showHighlightToolbar, setShowHighlightToolbar] = useState(false);
+  const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
+  const [selectedText, setSelectedText] = useState("");
+  const [selectedColor, setSelectedColor] = useState("yellow");
+  const [comment, setComment] = useState("");
+  const [showHighlightsPanel, setShowHighlightsPanel] = useState(false);
+
+  // Flashcard state
+  const [showFlashcardCreator, setShowFlashcardCreator] = useState(false);
 
   useImperativeHandle(ref, () => ({
     getContent: () => editorRef.current?.innerHTML || "",
@@ -55,6 +72,25 @@ const NoteEditor = forwardRef((props, ref) => {
     const html = editorRef.current?.innerHTML ?? "";
     if (html) setHistory([html]);
   }, []);
+
+  // Load highlights when noteId changes
+  const loadHighlights = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const data = await highlightsApi.getHighlights(noteId, token);
+      setHighlights(data);
+    } catch (err) {
+      console.warn("Failed to load highlights:", err);
+      // Non-blocking error - don't show alert
+    }
+  };
+
+  useEffect(() => {
+    if (noteId) {
+      loadHighlights();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteId]);
 
   const pushHistory = (snapshot) => {
     setHistory((h) => [...h, snapshot].slice(-50));
@@ -204,6 +240,161 @@ const NoteEditor = forwardRef((props, ref) => {
     setRedoStack([]);
   };
 
+  // Highlight handlers
+  const handleMouseUp = () => {
+    const sel = window.getSelection();
+    if (!sel.toString()) {
+      setShowHighlightToolbar(false);
+      setShowFlashcardCreator(false);
+      return;
+    }
+
+    const selectedText = sel.toString();
+    console.log("✨ Text selected:", selectedText);
+    setSelectedText(selectedText);
+    
+    const range = sel.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    
+    // For position: fixed, use viewport coordinates (getBoundingClientRect gives us this)
+    const toolbarHeight = 320; // approximate height
+    const toolbarWidth = 350; // approximate width
+    const padding = 16; // padding from edge
+    
+    let top = rect.top - toolbarHeight - 12;
+    let left = rect.left - 30;
+    
+    // Adjust if toolbar goes above viewport
+    if (top < padding) {
+      top = rect.bottom + 12;
+    }
+    
+    // Adjust if toolbar goes off right edge
+    if (left + toolbarWidth > window.innerWidth) {
+      left = window.innerWidth - toolbarWidth - padding;
+    }
+    
+    // Adjust if toolbar goes off left edge
+    if (left < padding) {
+      left = padding;
+    }
+    
+    // Clamp top to viewport
+    if (top < padding) {
+      top = padding;
+    }
+    if (top + toolbarHeight > window.innerHeight) {
+      top = window.innerHeight - toolbarHeight - padding;
+    }
+    
+    console.log("📍 Toolbar position (fixed):", { top, left, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
+    setToolbarPos({ top, left });
+    
+    setShowHighlightToolbar(true);
+    console.log("🎯 Highlight toolbar shown");
+  };
+
+  const handleCreateFlashcardClick = () => {
+    setShowHighlightToolbar(false);
+    setShowFlashcardCreator(true);
+  };
+
+  const handleCreateFlashcard = async (flashcardData) => {
+    try {
+      const token = localStorage.getItem("token");
+      await flashcardsApi.createFlashcard(flashcardData, token);
+      setShowFlashcardCreator(false);
+      setSelectedText("");
+      alert("Flashcard created successfully! 🎉");
+    } catch (err) {
+      console.error("Failed to create flashcard:", err);
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const handleApplyHighlight = async () => {
+    try {
+      console.log("📍 handleApplyHighlight called", { noteId, selectedText });
+      if (!noteId) {
+        console.warn("⚠️ Cannot highlight: Note hasn't been saved yet");
+        alert("Please save the note first before highlighting text!");
+        return;
+      }
+      
+      if (!selectedText) {
+        console.warn("⚠️ Missing selectedText");
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+
+      // Get start and end offsets from the entire content
+      const editorContent = editorRef.current.innerText;
+      const offset = editorContent.indexOf(selectedText);
+
+      // Validate offset calculation
+      if (offset < 0) {
+        console.error("❌ Text not found in editor content");
+        return;
+      }
+
+      const highlightData = {
+        startOffset: offset,
+        endOffset: offset + selectedText.length,
+        color: selectedColor,
+        selectedText: selectedText,
+        comment: comment
+      };
+
+      console.log("📤 Sending highlight data:", highlightData);
+      await highlightsApi.addHighlight(noteId, highlightData, token);
+      console.log("✅ Highlight added successfully");
+      
+      await loadHighlights();
+
+      setShowHighlightToolbar(false);
+      setSelectedColor("yellow");
+      setComment("");
+      window.getSelection().removeAllRanges();
+    } catch (err) {
+      console.error("❌ Failed to apply highlight:", err);
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const handleDeleteHighlight = async (highlightId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await highlightsApi.deleteHighlight(noteId, highlightId, token);
+      await loadHighlights();
+    } catch (err) {
+      console.error("Failed to delete highlight:", err);
+    }
+  };
+
+  const handleUpdateHighlight = async (highlightId, updates) => {
+    try {
+      const token = localStorage.getItem("token");
+      await highlightsApi.updateHighlight(noteId, highlightId, updates, token);
+      await loadHighlights();
+    } catch (err) {
+      console.error("Failed to update highlight:", err);
+    }
+  };
+
+  const handleScrollToHighlight = (offset) => {
+    // Simple scroll to position
+    if (editorRef.current) {
+      const text = editorRef.current.innerText;
+      if (offset < text.length) {
+        editorRef.current.focus();
+        // Approximate scroll position
+        const lines = text.substring(0, offset).split('\n').length;
+        editorRef.current.parentElement.scrollTop = lines * 24;
+      }
+    }
+  };
+
   return (
     <div className="note-editor-container">
 
@@ -222,6 +413,34 @@ const NoteEditor = forwardRef((props, ref) => {
           <Palette size={16} />
           <input type="color" onChange={(e) => setNoteBackground(e.target.value)} />
         </label>
+
+        {/* Highlights panel toggle */}
+        <button 
+          onClick={() => setShowHighlightsPanel(!showHighlightsPanel)}
+          title={`Highlights (${highlights.length})`}
+          style={{ position: "relative" }}
+        >
+          <MessageSquare size={16} />
+          {highlights.length > 0 && (
+            <span style={{
+              position: "absolute",
+              top: "-8px",
+              right: "-8px",
+              backgroundColor: "#FF6B6B",
+              color: "white",
+              borderRadius: "50%",
+              width: "20px",
+              height: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "12px",
+              fontWeight: "bold"
+            }}>
+              {highlights.length}
+            </span>
+          )}
+        </button>
 
         <div className="divider"></div>
 
@@ -279,6 +498,35 @@ const NoteEditor = forwardRef((props, ref) => {
           </button>
         )}
       </div>
+
+      {/* Highlight toolbar (floating) */}
+      {showHighlightToolbar && (
+        <div style={{ position: "fixed", top: `${toolbarPos.top}px`, left: `${toolbarPos.left}px`, zIndex: 10001, pointerEvents: "auto" }}>
+          <HighlightToolbar
+            selectedText={selectedText}
+            selectedColor={selectedColor}
+            setSelectedColor={setSelectedColor}
+            comment={comment}
+            setComment={setComment}
+            onApply={handleApplyHighlight}
+            onCancel={() => setShowHighlightToolbar(false)}
+            onCreateFlashcard={handleCreateFlashcardClick}
+          />
+        </div>
+      )}
+
+      {/* Flashcard creator modal */}
+      {showFlashcardCreator && (
+        <FlashcardCreator
+          selectedText={selectedText}
+          noteId={noteId}
+          onSave={handleCreateFlashcard}
+          onCancel={() => {
+            setShowFlashcardCreator(false);
+            setSelectedText("");
+          }}
+        />
+      )}
     </div>
   );
 });

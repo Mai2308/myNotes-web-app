@@ -59,11 +59,7 @@ connectMongo()
       // Start the notification scheduler after server starts
       startNotificationScheduler();
     });
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB connection failed:", err);
-    process.exit(1);
-  });
+}
 
 // Graceful shutdown
 const shutdown = async (signal) => {
@@ -77,3 +73,5 @@ const shutdown = async (signal) => {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+export default app;
