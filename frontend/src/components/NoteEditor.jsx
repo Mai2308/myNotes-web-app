@@ -324,6 +324,25 @@ const NoteEditor = forwardRef((props, ref) => {
     }
   };
 
+  // Flashcard handlers
+  const handleCreateFlashcardClick = () => {
+    setShowHighlightToolbar(false);
+    setShowFlashcardCreator(true);
+  };
+
+  const handleCreateFlashcard = async (flashcardData) => {
+    try {
+      const token = localStorage.getItem("token");
+      await flashcardsApi.createFlashcard(flashcardData, token);
+      setShowFlashcardCreator(false);
+      setSelectedText("");
+      alert("Flashcard created successfully!");
+    } catch (err) {
+      console.error("Failed to create flashcard:", err);
+      alert(`Error creating flashcard: ${err.message}`);
+    }
+  };
+
   return (
     <div className="note-editor-container">
 
