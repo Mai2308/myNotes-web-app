@@ -251,11 +251,39 @@ const NoteEditor = forwardRef((props, ref) => {
     const range = sel.getRangeAt(0);
     const rect = range.getBoundingClientRect();
     
-    console.log("📍 Toolbar position:", { top: rect.top, left: rect.left });
-    setToolbarPos({
-      top: rect.top + window.scrollY - 60,
-      left: rect.left + window.scrollX - 50
-    });
+    // For position: fixed, use viewport coordinates (getBoundingClientRect gives us this)
+    const toolbarHeight = 320; // approximate height
+    const toolbarWidth = 350; // approximate width
+    const padding = 16; // padding from edge
+    
+    let top = rect.top - toolbarHeight - 12;
+    let left = rect.left - 30;
+    
+    // Adjust if toolbar goes above viewport
+    if (top < padding) {
+      top = rect.bottom + 12;
+    }
+    
+    // Adjust if toolbar goes off right edge
+    if (left + toolbarWidth > window.innerWidth) {
+      left = window.innerWidth - toolbarWidth - padding;
+    }
+    
+    // Adjust if toolbar goes off left edge
+    if (left < padding) {
+      left = padding;
+    }
+    
+    // Clamp top to viewport
+    if (top < padding) {
+      top = padding;
+    }
+    if (top + toolbarHeight > window.innerHeight) {
+      top = window.innerHeight - toolbarHeight - padding;
+    }
+    
+    console.log("📍 Toolbar position (fixed):", { top, left, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
+    setToolbarPos({ top, left });
     
     setShowHighlightToolbar(true);
     console.log("🎯 Highlight toolbar shown");
@@ -479,7 +507,7 @@ const NoteEditor = forwardRef((props, ref) => {
 
       {/* Highlight toolbar (floating) */}
       {showHighlightToolbar && (
-        <div style={{ position: "fixed", top: toolbarPos.top, left: toolbarPos.left, zIndex: 10000, pointerEvents: "auto" }}>
+        <div style={{ position: "fixed", top: `${toolbarPos.top}px`, left: `${toolbarPos.left}px`, zIndex: 10001, pointerEvents: "auto" }}>
           <HighlightToolbar
             selectedText={selectedText}
             selectedColor={selectedColor}

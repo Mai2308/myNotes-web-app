@@ -23,38 +23,45 @@ export default function HighlightToolbar({
     <div
       style={{
         position: "absolute",
-        backgroundColor: "#fff",
-        border: "2px solid #333",
-        borderRadius: "8px",
-        padding: "12px",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-        zIndex: 10000,
-        minWidth: "280px"
+        background: "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)",
+        backdropFilter: "blur(10px)",
+        border: "1px solid rgba(255,105,180,0.3)",
+        borderRadius: "12px",
+        padding: "16px",
+        boxShadow: "0 8px 32px rgba(255,105,180,0.15), 0 2px 8px rgba(0,0,0,0.1)",
+        zIndex: 10001,
+        minWidth: "300px",
+        maxWidth: "350px",
+        color: "#0f172a"
       }}
     >
-      <div style={{ marginBottom: "10px" }}>
-        <p style={{ fontSize: "12px", color: "#666", margin: 0, marginBottom: "6px" }}>
-          Selected: <strong>"{selectedText?.substring(0, 40)}{selectedText?.length > 40 ? "..." : ""}"</strong>
+      <div style={{ marginBottom: "12px" }}>
+        <p style={{ fontSize: "11px", color: "#6b7280", margin: 0, marginBottom: "6px", textTransform: "uppercase", fontWeight: "600", letterSpacing: "0.5px" }}>
+          Selected Text
+        </p>
+        <p style={{ fontSize: "13px", color: "#333", margin: 0, fontWeight: "500", wordBreak: "break-word", maxHeight: "40px", overflow: "hidden", textOverflow: "ellipsis" }}>
+          "{selectedText?.substring(0, 60)}{selectedText?.length > 60 ? "..." : ""}"
         </p>
       </div>
 
       {/* Color picker */}
-      <div style={{ marginBottom: "10px" }}>
-        <p style={{ fontSize: "12px", fontWeight: "bold", margin: "0 0 6px 0" }}>Color:</p>
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+      <div style={{ marginBottom: "14px" }}>
+        <p style={{ fontSize: "11px", fontWeight: "600", margin: "0 0 8px 0", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px" }}>Color:</p>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           {colors.map((color) => (
             <button
               key={color.name}
               onClick={() => setSelectedColor(color.name)}
               title={color.label}
               style={{
-                width: "28px",
-                height: "28px",
+                width: "32px",
+                height: "32px",
                 backgroundColor: color.hex,
-                border: selectedColor === color.name ? "3px solid #333" : "1px solid #999",
-                borderRadius: "4px",
+                border: selectedColor === color.name ? "3px solid #333" : "2px solid rgba(0,0,0,0.1)",
+                borderRadius: "6px",
                 cursor: "pointer",
-                transition: "all 0.2s"
+                transition: "all 0.2s",
+                boxShadow: selectedColor === color.name ? "0 0 0 2px rgba(255,105,180,0.3)" : "none"
               }}
             />
           ))}
@@ -62,8 +69,8 @@ export default function HighlightToolbar({
       </div>
 
       {/* Comment input */}
-      <div style={{ marginBottom: "10px" }}>
-        <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px" }}>
+      <div style={{ marginBottom: "14px" }}>
+        <label style={{ fontSize: "11px", fontWeight: "600", display: "block", marginBottom: "6px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px" }}>
           Comment (optional):
         </label>
         <input
@@ -74,11 +81,14 @@ export default function HighlightToolbar({
           maxLength={120}
           style={{
             width: "100%",
-            padding: "6px",
-            fontSize: "12px",
-            border: "1px solid #ccc",
-            borderRadius: "4px",
-            boxSizing: "border-box"
+            padding: "8px 12px",
+            fontSize: "13px",
+            border: "1px solid rgba(0,0,0,0.1)",
+            borderRadius: "6px",
+            boxSizing: "border-box",
+            backgroundColor: "rgba(255,255,255,0.7)",
+            color: "#0f172a",
+            transition: "all 0.2s"
           }}
         />
         <p style={{ fontSize: "11px", color: "#999", margin: "4px 0 0 0" }}>
@@ -95,15 +105,18 @@ export default function HighlightToolbar({
             onCancel();
           }}
           style={{
-            padding: "6px 12px",
+            padding: "8px 14px",
             fontSize: "12px",
-            backgroundColor: "#f0f0f0",
-            border: "1px solid #ccc",
-            borderRadius: "4px",
+            fontWeight: "600",
+            backgroundColor: "rgba(0,0,0,0.05)",
+            border: "1px solid rgba(0,0,0,0.1)",
+            borderRadius: "6px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            gap: "4px"
+            gap: "6px",
+            transition: "all 0.2s",
+            color: "#333"
           }}
         >
           <X size={14} /> Cancel
@@ -113,17 +126,19 @@ export default function HighlightToolbar({
             type="button"
             onClick={onCreateFlashcard}
             style={{
-              padding: "6px 12px",
+              padding: "8px 14px",
               fontSize: "12px",
-              backgroundColor: "#2196F3",
-              color: "white",
+              fontWeight: "600",
+              background: "linear-gradient(135deg, #7afcff 0%, #42d9f4 100%)",
+              color: "#0f172a",
               border: "none",
-              borderRadius: "4px",
+              borderRadius: "6px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "4px",
-              fontWeight: "600"
+              gap: "6px",
+              transition: "all 0.2s",
+              boxShadow: "0 4px 12px rgba(122,252,255,0.3)"
             }}
           >
             <BookOpen size={14} /> Flashcard
@@ -140,17 +155,19 @@ export default function HighlightToolbar({
             }
           }}
           style={{
-            padding: "6px 12px",
+            padding: "8px 14px",
             fontSize: "12px",
-            backgroundColor: "#4CAF50",
+            fontWeight: "600",
+            background: "linear-gradient(135deg, #ff7eb9 0%, #ff5ca2 100%)",
             color: "white",
             border: "none",
-            borderRadius: "4px",
+            borderRadius: "6px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            gap: "4px",
-            fontWeight: "600"
+            gap: "6px",
+            transition: "all 0.2s",
+            boxShadow: "0 4px 12px rgba(255,105,180,0.3)"
           }}
         >
           <Highlighter size={14} /> Highlight

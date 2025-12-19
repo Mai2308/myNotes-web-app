@@ -1269,3 +1269,145 @@ html[data-theme="dark"] .view-toggle .view-btn.selected,
   text-align: right;
   margin-bottom: 8px;
 }
+/* PAGE WRAPPER — FULL WIDTH */
+.page {
+  width: 100%;
+  padding: 24px 32px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* HEADER */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+/* ===== STUDY SECTION ===== */
+.study-section {
+  width: 100%;
+  margin-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.study-card {
+  width: 100%;
+  max-width: 600px;
+  min-height: 280px;
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.12);
+  cursor: pointer;
+}
+
+.study-actions {
+  display: flex;
+  gap: 16px;
+}
+
+/* ===== GRID (THIS FIXES YOUR ISSUE) ===== */
+.flashcards-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+/* ===== CARD ===== */
+.flashcard {
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--text);
+}
+
+.flashcard-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.card-text {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.card-text.main {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.card-meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.flashcard-footer {
+  border-top: 1px solid var(--input-border);
+  margin-top: 16px;
+  padding-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* BUTTONS */
+.btn {
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn.primary {
+  background: #4f46e5;
+  color: white;
+}
+
+.btn.success {
+  background: #22c55e;
+  color: white;
+}
+
+.btn.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.icon-btn {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.icon-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
