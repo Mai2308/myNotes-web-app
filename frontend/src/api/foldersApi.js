@@ -18,7 +18,7 @@ function authHeaders(token) {
 
 // Get all folders for the current user
 export const getFolders = async (token) => {
-  const res = await fetch(`${BASE}/api/folders`, {
+  const res = await fetch(getApiUrl("/folders"), {
     headers: { ...authHeaders(token) },
   });
   if (!res.ok) throw new Error("Failed to fetch folders");
@@ -29,8 +29,8 @@ export const getFolders = async (token) => {
 export const getFolder = async (id, options = {}, token) => {
   const includeNotes = options.includeNotes === true;
   const url = includeNotes
-    ? `${BASE}/api/folders/${id}?includeNotes=true`
-    : `${BASE}/api/folders/${id}`;
+    ? getApiUrl(`/folders/${id}?includeNotes=true`)
+    : getApiUrl(`/folders/${id}`);
 
   const headers = { ...authHeaders(token) };
   if (includeNotes && options.password) {
@@ -46,7 +46,7 @@ export const getFolder = async (id, options = {}, token) => {
 
 // Protect a folder with a password
 export const protectFolder = async (id, password, token) => {
-  const res = await fetch(`${BASE}/api/folders/${id}/protect`, {
+  const res = await fetch(getApiUrl(`/folders/${id}/protect`), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ password }),
@@ -60,7 +60,7 @@ export const protectFolder = async (id, password, token) => {
 
 // Remove protection from a folder
 export const unprotectFolder = async (id, token) => {
-  const res = await fetch(`${BASE}/api/folders/${id}/protect`, {
+  const res = await fetch(getApiUrl(`/folders/${id}/protect`), {
     method: "DELETE",
     headers: { ...authHeaders(token) },
   });
@@ -75,7 +75,7 @@ export const unprotectFolder = async (id, token) => {
 
 // Get the locked folder (normalized)
 export const getLockedFolder = async (token) => {
-  const res = await fetch(`${BASE}/api/folders/locked`, {
+  const res = await fetch(getApiUrl("/folders/locked"), {
     headers: { ...authHeaders(token) },
   });
 
@@ -93,7 +93,7 @@ export const getLockedFolder = async (token) => {
 
 // Set password for locked folder
 export const setLockedFolderPassword = async (password, token) => {
-  const res = await fetch(`${BASE}/api/folders/locked/password`, {
+  const res = await fetch(getApiUrl("/folders/locked/password"), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ password }),
@@ -109,7 +109,7 @@ export const setLockedFolderPassword = async (password, token) => {
 
 // Verify password for locked folder
 export const verifyLockedFolderPassword = async (password, token) => {
-  const res = await fetch(`${BASE}/api/folders/locked/verify`, {
+  const res = await fetch(getApiUrl("/folders/locked/verify"), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ password }),
@@ -127,7 +127,7 @@ export const verifyLockedFolderPassword = async (password, token) => {
 
 // Create a new folder
 export const createFolder = async (folderData, token) => {
-  const res = await fetch(`${BASE}/api/folders`, {
+  const res = await fetch(getApiUrl("/folders"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -146,7 +146,7 @@ export const createFolder = async (folderData, token) => {
 
 // Update folder (rename or move)
 export const updateFolder = async (id, updates, token) => {
-  const res = await fetch(`${BASE}/api/folders/${id}`, {
+  const res = await fetch(getApiUrl(`/folders/${id}`), {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -165,7 +165,7 @@ export const updateFolder = async (id, updates, token) => {
 
 // Delete folder
 export const deleteFolder = async (id, token) => {
-  const res = await fetch(`${BASE}/api/folders/${id}`, {
+  const res = await fetch(getApiUrl(`/folders/${id}`), {
     method: "DELETE",
     headers: { ...authHeaders(token) },
   });
