@@ -37,13 +37,6 @@ jobs:
         working-directory: ./backend
         run: npm run test:ci || npx --yes vitest run --coverage || npm test --if-present
       
-      - name: Upload coverage reports
-        if: success() && hashFiles('./backend/coverage/coverage-final.json') != ''
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./backend/coverage/coverage-final.json
-          flags: backend
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   frontend-tests:
     name: Frontend Tests
@@ -75,13 +68,6 @@ jobs:
         working-directory: ./frontend
         run: npm run test:ci || npx --yes vitest run --coverage || npm test --if-present
       
-      - name: Upload coverage reports
-        if: success() && hashFiles('./frontend/coverage/coverage-final.json') != ''
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./frontend/coverage/coverage-final.json
-          flags: frontend
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   integration-tests:
     name: Integration Tests
