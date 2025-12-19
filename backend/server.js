@@ -1,5 +1,4 @@
-import express from "express";
-import cors from "cors";
+// backend/server.js
 import dotenv from "dotenv";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -51,7 +50,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 let server;
 
-// Connect DB then start
 connectMongo()
   .then(() => {
     server = app.listen(PORT, () => {
@@ -70,10 +68,6 @@ const shutdown = async (signal) => {
   console.log(`Received ${signal}, shutting down...`);
   try {
     if (server) server.close();
-    // If your connectMongo returns a mongoose instance or you can import mongoose here and disconnect:
-    // await mongoose.disconnect();
-  } catch (err) {
-    console.error("Error during shutdown:", err);
   } finally {
     process.exit(0);
   }
@@ -81,13 +75,3 @@ const shutdown = async (signal) => {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-
-process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled Rejection:", reason);
-});
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception:", err);
-  process.exit(1);
-});
-
-export default app;

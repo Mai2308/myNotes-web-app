@@ -9,7 +9,6 @@ import {
 import {
   
   getLockedFolder,
- 
   verifyLockedFolderPassword,
 } from "../api/foldersApi";
 import { getUpcomingReminders, getOverdueNotes, testRemindersApi } from "../api/remindersApi";
@@ -234,7 +233,7 @@ export default function Dashboard() {
   };
 
   const handleDragEnd = () => setDraggedNote(null);
-  
+
 const handleMoveNote = useCallback(
   async (noteId, targetFolderId) => {
     try {
