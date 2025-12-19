@@ -16,7 +16,6 @@ export default function CreateNote() {
   const [success, setSuccess] = useState("");
   const [isChecklist, setIsChecklist] = useState(false);
   const [checklistItems, setChecklistItems] = useState([]);
-  const [createdAt, setCreatedAt] = useState(null);
   
   const editorRef = useRef(null);
   const location = useLocation();
@@ -128,14 +127,6 @@ export default function CreateNote() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
-
-        {createdAt && (
-          <div style={{ marginBottom: 12, color: "var(--muted)", fontSize: "12px" }}>
-            <span title={new Date(createdAt).toLocaleString()}>
-              Created: {new Date(createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        )}
 
         {/* Folder Selection Dropdown */}
         <div style={{ marginBottom: "16px" }}>
