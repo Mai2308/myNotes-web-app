@@ -13,6 +13,7 @@ import folderRoutes from "./routes/folders.js";
 import emojiRoutes from "./routes/emojis.js";
 import reminderRoutes from "./routes/reminders.js";
 import notificationRoutes from "./routes/notifications.js";
+import flashcardRoutes from "./routes/flashcards.js";
 
 // Services
 import { startNotificationScheduler } from "./services/notificationService.js";
@@ -39,6 +40,7 @@ app.use("/api/folders", folderRoutes);
 app.use("/api/emojis", emojiRoutes);
 app.use("/api/reminders", reminderRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/flashcards", flashcardRoutes);
 
 // Global 404 handler
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));
