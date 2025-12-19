@@ -11,11 +11,13 @@ import {
   getLockedFolder,
   verifyLockedFolderPassword,
 } from "../api/foldersApi";
+import { getUpcomingReminders, getOverdueNotes, testRemindersApi } from "../api/remindersApi";
 import FolderManager from "./FolderManager";
 import { useTheme } from "../context/ThemeContext";
 import { useView } from "../context/ViewContext";
 import SortMenu from "./viewOptions/SortMenu";
 import ViewLayoutSelector from "./viewOptions/ViewLayoutSelector";
+import { Clock, AlertCircle } from "lucide-react";
 
 export default function Dashboard() {
   const { sort, viewType } = useView();
@@ -74,6 +76,11 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [favPending, setFavPending] = useState(new Set());
 
+  const [upcomingReminders, setUpcomingReminders] = useState([]);
+  const [overdueItems, setOverdueItems] = useState([]);
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [reminderError, setReminderError] = useState("");
+
   const [lockedFolderId, setLockedFolderId] = useState(null);
   const [lockedFolderPassword, setLockedFolderPasswordState] = useState(null);
 
@@ -86,6 +93,41 @@ export default function Dashboard() {
   const menuButtonRefs = useRef({});
   const menuRef = useRef(null);
 
+  const getNextDueDate = useCallback((note) => {
+    if (!note) return null;
+    const dates = [];
+    if (note.reminderDate) {
+      const d = new Date(note.reminderDate);
+      if (!isNaN(d)) dates.push(d);
+    }
+    if (note.deadline) {
+      const d = new Date(note.deadline);
+      if (!isNaN(d)) dates.push(d);
+    }
+    if (!dates.length) return null;
+    return new Date(Math.min(...dates.map((d) => d.getTime())));
+  }, []);
+
+  const formatDueDate = (date) => {
+    if (!date) return "";
+    return new Date(date).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getDueLabel = useCallback((note) => {
+    if (!note) return "";
+    const reminderAt = note.reminderDate ? new Date(note.reminderDate) : null;
+    const deadlineAt = note.deadline ? new Date(note.deadline) : null;
+    if (deadlineAt && !isNaN(deadlineAt)) {
+      if (!reminderAt || deadlineAt <= reminderAt) return "Deadline";
+    }
+    return note.reminderDate ? "Reminder" : "";
+  }, []);
+
   // Load locked folder info on mount
   useEffect(() => {
     if (!token) return;
@@ -94,6 +136,39 @@ export default function Dashboard() {
         setLockedFolderId(folder._id);
       })
       .catch((err) => console.error("Failed to get locked folder:", err));
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    
+    // First test if API is reachable
+    testRemindersApi().then((result) => {
+      if (!result.success) {
+        console.error("⚠️ Reminders API not reachable:", result.error);
+        setReminderError("Reminders API is not reachable");
+        setReminderLoading(false);
+        return;
+      }
+      
+      // If API is reachable, fetch reminders and deadlines
+      setReminderLoading(true);
+      setReminderError("");
+
+      console.log("🔍 Fetching reminders and deadlines...");
+      Promise.all([getUpcomingReminders(token), getOverdueNotes(token)])
+        .then(([upcomingRes, overdueRes]) => {
+          console.log("✅ Upcoming reminders response:", upcomingRes);
+          console.log("✅ Overdue notes response:", overdueRes);
+          setUpcomingReminders(upcomingRes?.reminders || []);
+          setOverdueItems(overdueRes?.overdueNotes || []);
+        })
+        .catch((err) => {
+          console.error("❌ Failed to load reminders/deadlines:", err);
+          console.error("Error details:", err.message, err.stack);
+          setReminderError("Could not load reminders and deadlines");
+        })
+        .finally(() => setReminderLoading(false));
+    });
   }, [token]);
 
   const applySort = useCallback(
@@ -270,6 +345,95 @@ const handleMoveNote = useCallback(
         />
 
         <div>
+          <div className="card" style={{ marginBottom: 16, padding: 8, border: "1px solid var(--border-color)", boxShadow: "var(--shadow)", maxHeight: 220, overflow: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <h4 style={{ margin: 0, fontSize: 12, fontWeight: 600 }}>Reminders & Deadlines</h4>
+              {reminderLoading && <span style={{ fontSize: 9, color: "var(--muted)" }}>Loading…</span>}
+            </div>
+            {reminderError && <div className="alert" style={{ marginBottom: 4, fontSize: 11, padding: 4 }}>{reminderError}</div>}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                  <strong style={{ fontSize: 11 }}>Upcoming</strong>
+                  <span style={{ fontSize: 9, color: "var(--muted)" }}>{upcomingReminders.length}</span>
+                </div>
+                {upcomingReminders.length === 0 ? (
+                  <p style={{ color: "var(--muted)", margin: 0, fontSize: 10 }}>No upcoming.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {upcomingReminders.slice(0, 2).map((item) => {
+                      const due = getNextDueDate(item);
+                      return (
+                        <button
+                          key={item._id}
+                          onClick={() => navigate(`/edit/${item._id}`)}
+                          style={{
+                            textAlign: "left",
+                            padding: "4px 6px",
+                            borderRadius: 4,
+                            border: "1px solid var(--border-color)",
+                            background: "linear-gradient(135deg, rgba(122,252,255,0.08), rgba(122,252,255,0.04))",
+                            color: "inherit",
+                            cursor: "pointer",
+                            fontSize: 10,
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
+                            <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{item.title || "Untitled"}</span>
+                            <span style={{ fontSize: 8, color: "var(--muted)", whiteSpace: "nowrap" }}>{getDueLabel(item)}</span>
+                          </div>
+                          <div style={{ fontSize: 8, marginTop: 1, display: "flex", alignItems: "center", gap: 2, color: "var(--muted)" }}>
+                            <Clock size={8} /> {formatDueDate(due)}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                  <strong style={{ fontSize: 11, color: "#dc2626" }}>Overdue</strong>
+                  <span style={{ fontSize: 9, color: "var(--muted)" }}>{overdueItems.length}</span>
+                </div>
+                {overdueItems.length === 0 ? (
+                  <p style={{ color: "var(--muted)", margin: 0, fontSize: 10 }}>No overdue.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {overdueItems.slice(0, 2).map((item) => {
+                      const due = getNextDueDate(item);
+                      return (
+                        <button
+                          key={item._id}
+                          onClick={() => navigate(`/edit/${item._id}`)}
+                          style={{
+                            textAlign: "left",
+                            padding: "4px 6px",
+                            borderRadius: 4,
+                            border: "1px solid rgba(220,38,38,0.3)",
+                            background: "linear-gradient(135deg, rgba(220,38,38,0.12), rgba(220,38,38,0.06))",
+                            color: "inherit",
+                            cursor: "pointer",
+                            fontSize: 10,
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
+                            <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{item.title || "Untitled"}</span>\n                            <span style={{ fontSize: 8, color: "#dc2626" }}>{getDueLabel(item)}</span>
+                          </div>
+                          <div style={{ fontSize: 8, marginTop: 1, display: "flex", alignItems: "center", gap: 2, color: "var(--muted)" }}>
+                            <AlertCircle size={8} /> {formatDueDate(due)}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div
             style={{
               display: "flex",
@@ -336,7 +500,7 @@ const handleMoveNote = useCallback(
             {filteredNotes.map((note) => (
               <div
                 key={note._id}
-                className="card"
+                className={`card ${note.isOverdue ? "overdue-note" : ""}`}
                 draggable
                 onDragStart={(e) => handleDragStart(e, note)}
                 onDragEnd={handleDragEnd}
@@ -346,6 +510,8 @@ const handleMoveNote = useCallback(
                   opacity: draggedNote?._id === note._id ? 0.5 : 1,
                   minHeight: "200px",
                   position: "relative",
+                  borderLeft: note.isOverdue ? "4px solid #dc2626" : undefined,
+                  background: note.isOverdue ? "linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(239, 68, 68, 0.05) 100%)" : undefined,
                 }}
               >
                 <h3 style={{ fontSize: "16px", margin: "0 0 8px 0" }}>
@@ -362,6 +528,67 @@ const handleMoveNote = useCallback(
                   )}
                 </div>
 
+                {/* Reminder and Overdue Indicators */}
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
+                  {note.deadline && (
+                    <div
+                      title={`Deadline: ${new Date(note.deadline).toLocaleString()}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        background: "rgba(122, 252, 255, 0.1)",
+                        color: "var(--accent)",
+                      }}
+                    >
+                      <Clock size={12} />
+                      Deadline
+                    </div>
+                  )}
+                  {note.reminderDate && (
+                    <div
+                      title={`Reminder: ${new Date(note.reminderDate).toLocaleString()}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        background: "rgba(255, 126, 185, 0.1)",
+                        color: "#ff7eb9",
+                      }}
+                    >
+                      <Clock size={12} />
+                      Reminder
+                    </div>
+                  )}
+                  {note.isOverdue && (
+                    <div
+                      title="This note is overdue"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        background: "rgba(220, 38, 38, 0.1)",
+                        color: "#dc2626",
+                      }}
+                    >
+                      <AlertCircle size={12} />
+                      Overdue
+                    </div>
+                  )}
+                </div>
+
                 <div style={{ position: "absolute", top: 8, right: 8 }}>
                   <button
                     ref={(el) => {
@@ -371,7 +598,7 @@ const handleMoveNote = useCallback(
                       const btn = menuButtonRefs.current[note._id];
                       if (!btn) return;
                       const rect = btn.getBoundingClientRect();
-                      const pos = { top: rect.bottom + window.scrollY + 6, left: rect.right + window.scrollX };
+                      const pos = { top: rect.bottom + 2, left: rect.right };
                       // toggle on repeated clicks
                       if (openMenuId === note._id) {
                         closeMenu();

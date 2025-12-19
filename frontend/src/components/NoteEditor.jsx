@@ -16,28 +16,32 @@ import {
   Trash2,
   Save,
   Upload,
+  Clock,
   MessageSquare,
 } from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
+import ReminderModal from "./ReminderModal";
 import { addEmojiToNote } from "../api/notesApi";
 import * as highlightsApi from "../api/highlightsApi";
 import * as flashcardsApi from "../api/flashcardsApi";
 import HighlightToolbar from "./HighlightToolbar";
-import HighlightsPanel from "./HighlightsPanel";
 import FlashcardCreator from "./FlashcardCreator";
 
 const NoteEditor = forwardRef((props, ref) => {
-  const { onSave, noteId } = props || {};
+  const { onSave, noteId, onReminderChange } = props || {};
 
   const editorRef = useRef(null);
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [savedMessage, setSavedMessage] = useState("");
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminder, setReminder] = useState(null);
   const saveKey = "autoSavedNote";
 
   // Highlight state
   const [highlights, setHighlights] = useState([]);
   const [showHighlightToolbar, setShowHighlightToolbar] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
   const [selectedText, setSelectedText] = useState("");
   const [selectedColor, setSelectedColor] = useState("yellow");
@@ -61,6 +65,8 @@ const NoteEditor = forwardRef((props, ref) => {
       setHistory([]);
       setRedoStack([]);
     },
+    getReminder: () => reminder,
+    setReminder: (remindData) => setReminder(remindData),
   }));
 
   useEffect(() => {
@@ -236,77 +242,6 @@ const NoteEditor = forwardRef((props, ref) => {
   };
 
   // Highlight handlers
-  const handleMouseUp = () => {
-    const sel = window.getSelection();
-    if (!sel.toString()) {
-      setShowHighlightToolbar(false);
-      setShowFlashcardCreator(false);
-      return;
-    }
-
-    const selectedText = sel.toString();
-    console.log("✨ Text selected:", selectedText);
-    setSelectedText(selectedText);
-    
-    const range = sel.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    
-    // For position: fixed, use viewport coordinates (getBoundingClientRect gives us this)
-    const toolbarHeight = 320; // approximate height
-    const toolbarWidth = 350; // approximate width
-    const padding = 16; // padding from edge
-    
-    let top = rect.top - toolbarHeight - 12;
-    let left = rect.left - 30;
-    
-    // Adjust if toolbar goes above viewport
-    if (top < padding) {
-      top = rect.bottom + 12;
-    }
-    
-    // Adjust if toolbar goes off right edge
-    if (left + toolbarWidth > window.innerWidth) {
-      left = window.innerWidth - toolbarWidth - padding;
-    }
-    
-    // Adjust if toolbar goes off left edge
-    if (left < padding) {
-      left = padding;
-    }
-    
-    // Clamp top to viewport
-    if (top < padding) {
-      top = padding;
-    }
-    if (top + toolbarHeight > window.innerHeight) {
-      top = window.innerHeight - toolbarHeight - padding;
-    }
-    
-    console.log("📍 Toolbar position (fixed):", { top, left, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
-    setToolbarPos({ top, left });
-    
-    setShowHighlightToolbar(true);
-    console.log("🎯 Highlight toolbar shown");
-  };
-
-  const handleCreateFlashcardClick = () => {
-    setShowHighlightToolbar(false);
-    setShowFlashcardCreator(true);
-  };
-
-  const handleCreateFlashcard = async (flashcardData) => {
-    try {
-      const token = localStorage.getItem("token");
-      await flashcardsApi.createFlashcard(flashcardData, token);
-      setShowFlashcardCreator(false);
-      setSelectedText("");
-      alert("Flashcard created successfully! 🎉");
-    } catch (err) {
-      console.error("Failed to create flashcard:", err);
-      alert(`Error: ${err.message}`);
-    }
-  };
-
   const handleApplyHighlight = async () => {
     try {
       console.log("📍 handleApplyHighlight called", { noteId, selectedText });
@@ -357,36 +292,56 @@ const NoteEditor = forwardRef((props, ref) => {
     }
   };
 
-  const handleDeleteHighlight = async (highlightId) => {
-    try {
-      const token = localStorage.getItem("token");
-      await highlightsApi.deleteHighlight(noteId, highlightId, token);
-      await loadHighlights();
-    } catch (err) {
-      console.error("Failed to delete highlight:", err);
-    }
+  // TODO: Wire up these handlers to HighlightsPanel component
+  // const handleDeleteHighlight = async (highlightId) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     await highlightsApi.deleteHighlight(noteId, highlightId, token);
+  //     await loadHighlights();
+  //   } catch (err) {
+  //     console.error("Failed to delete highlight:", err);
+  //   }
+  // };
+
+  // const handleUpdateHighlight = async (highlightId, updates) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     await highlightsApi.updateHighlight(noteId, highlightId, updates, token);
+  //     await loadHighlights();
+  //   } catch (err) {
+  //     console.error("Failed to update highlight:", err);
+  //   }
+  // };
+
+  // const handleScrollToHighlight = (offset) => {
+  //   // Simple scroll to position
+  //   if (editorRef.current) {
+  //     const text = editorRef.current.innerText;
+  //     if (offset < text.length) {
+  //       editorRef.current.focus();
+  //       // Approximate scroll position
+  //       const lines = text.substring(0, offset).split('\n').length;
+  //       editorRef.current.parentElement.scrollTop = lines * 24;
+  //     }
+  //   }
+  // };
+
+  // Flashcard handlers
+  const handleCreateFlashcardClick = () => {
+    setShowHighlightToolbar(false);
+    setShowFlashcardCreator(true);
   };
 
-  const handleUpdateHighlight = async (highlightId, updates) => {
+  const handleCreateFlashcard = async (flashcardData) => {
     try {
       const token = localStorage.getItem("token");
-      await highlightsApi.updateHighlight(noteId, highlightId, updates, token);
-      await loadHighlights();
+      await flashcardsApi.createFlashcard(flashcardData, token);
+      setShowFlashcardCreator(false);
+      setSelectedText("");
+      alert("Flashcard created successfully!");
     } catch (err) {
-      console.error("Failed to update highlight:", err);
-    }
-  };
-
-  const handleScrollToHighlight = (offset) => {
-    // Simple scroll to position
-    if (editorRef.current) {
-      const text = editorRef.current.innerText;
-      if (offset < text.length) {
-        editorRef.current.focus();
-        // Approximate scroll position
-        const lines = text.substring(0, offset).split('\n').length;
-        editorRef.current.parentElement.scrollTop = lines * 24;
-      }
+      console.error("Failed to create flashcard:", err);
+      alert(`Error creating flashcard: ${err.message}`);
     }
   };
 
@@ -439,69 +394,58 @@ const NoteEditor = forwardRef((props, ref) => {
 
         <div className="divider"></div>
 
+        {/* Reminder button */}
+        <button 
+          onClick={() => setShowReminderModal(true)}
+          title={reminder ? `Reminder: ${new Date(reminder.reminderDate).toLocaleString()}` : "Set a reminder"}
+          className={reminder ? "reminder-active" : ""}
+        >
+          <Clock size={16} />
+          {reminder && <span style={{ fontSize: '10px', marginLeft: '4px' }}>✓</span>}
+        </button>
+
         <button onClick={undo}><Undo size={16} /></button>
         <button onClick={redo}><Redo size={16} /></button>
       </div>
 
-      {/* Main content area with editor and highlights panel */}
-      <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
-        {/* Editor */}
-        <div style={{ flex: 1 }}>
-          <div
-            ref={editorRef}
-            className="rich-editor"
-            contentEditable
-            onInput={handleInput}
-            onMouseUp={handleMouseUp}
-            suppressContentEditableWarning
-          />
+      {/* Editor */}
+      <div
+        ref={editorRef}
+        className="rich-editor"
+        contentEditable
+        onInput={handleInput}
+        suppressContentEditableWarning
+      />
 
-          {savedMessage && <p className="saved-msg">{savedMessage}</p>}
+      {savedMessage && <p className="saved-msg">{savedMessage}</p>}
 
-          <div className="save-controls">
-            <button onClick={handleSaveDraft}><Save size={16} /> Save Draft</button>
-            <button onClick={handleLoadDraft}><Upload size={16} /> Load Draft</button>
-            <button onClick={handleDelete} className="danger"><Trash2 size={16} /> Delete</button>
+      {showReminderModal && (
+        <ReminderModal
+          initialReminder={reminder}
+          onSave={(reminderData) => {
+            // Handle both setting and removing reminders
+            setReminder(reminderData);
+            if (onReminderChange) onReminderChange(reminderData);
+            // Show confirmation message
+            setSavedMessage(`Reminder set for ${new Date(reminderData.reminderDate).toLocaleString()}`);
+            setTimeout(() => setSavedMessage(""), 3000);
+          }}
+          onClose={() => setShowReminderModal(false)}
+        />
+      )}
 
-            {onSave && (
-              <button
-                className="btn-primary"
-                onClick={() => onSave(editorRef.current?.innerHTML || "")}
-              >
-                <Save size={16} /> Save
-              </button>
-            )}
-          </div>
-        </div>
+      <div className="save-controls">
+        <button onClick={handleSaveDraft}><Save size={16} /> Save Draft</button>
+        <button onClick={handleLoadDraft}><Upload size={16} /> Load Draft</button>
+        <button onClick={handleDelete} className="danger"><Trash2 size={16} /> Delete</button>
 
-        {/* Highlights Panel Sidebar */}
-        {showHighlightsPanel && (
-          <div style={{
-            width: "280px",
-            backgroundColor: "#f5f5f5",
-            borderRadius: "6px",
-            border: "1px solid #ddd",
-            maxHeight: "500px",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
-          }}>
-            <div style={{
-              padding: "12px",
-              borderBottom: "1px solid #ddd",
-              fontWeight: "600",
-              fontSize: "14px",
-              backgroundColor: "#fff"
-            }}>
-              Highlights & Notes ({highlights.length})
-            </div>
-            <HighlightsPanel
-              highlights={highlights}
-              onDeleteHighlight={handleDeleteHighlight}
-              onUpdateHighlight={handleUpdateHighlight}
-              onScrollToHighlight={handleScrollToHighlight}
-            />
-          </div>
+        {onSave && (
+          <button
+            className="btn-primary"
+            onClick={() => onSave(editorRef.current?.innerHTML || "")}
+          >
+            <Save size={16} /> Save
+          </button>
         )}
       </div>
 

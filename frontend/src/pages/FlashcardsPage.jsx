@@ -16,10 +16,22 @@ export default function FlashcardsPage() {
   }, []);
 
   const load = async () => {
-    const token = localStorage.getItem("token");
-    setFlashcards(await flashcardsApi.getFlashcards(null, token));
-    setDueFlashcards(await flashcardsApi.getDueFlashcards(token));
-    setLoading(false);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.warn("No token found - user may not be logged in");
+        setLoading(false);
+        return;
+      }
+      const flashcardsData = await flashcardsApi.getFlashcards(null, token);
+      const dueData = await flashcardsApi.getDueFlashcards(token);
+      setFlashcards(flashcardsData || []);
+      setDueFlashcards(dueData || []);
+    } catch (err) {
+      console.error("Failed to load flashcards:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const review = async (correct) => {

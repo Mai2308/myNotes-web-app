@@ -19,9 +19,6 @@ export const addHighlight = async (req, res) => {
       });
     }
 
-    const note = await Note.findOne({ _id: noteId, user: userId }).exec();
-    if (!note) return res.status(404).json({ message: "Note not found" });
-
     const highlight = {
       _id: new ObjectId(),
       startOffset,
@@ -32,8 +29,13 @@ export const addHighlight = async (req, res) => {
       createdAt: new Date()
     };
 
-    note.highlights.push(highlight);
-    await note.save();
+    const note = await Note.findOneAndUpdate(
+      { _id: noteId, user: userId },
+      { $push: { highlights: highlight } },
+      { new: true, runValidators: true }
+    );
+
+    if (!note) return res.status(404).json({ message: "Note not found" });
 
     // Return shape expected by tests: { highlight: {...} }
     res.status(201).json({ highlight });

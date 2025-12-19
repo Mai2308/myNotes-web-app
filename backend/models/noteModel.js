@@ -18,14 +18,34 @@ const NoteSchema = new mongoose.Schema(
       completed: { type: Boolean, default: false },
       order: { type: Number, required: true }
     }],
-    // Highlights and annotations
+    // Hard deadline for the note
+    deadline: { type: Date, default: null },
+    // Reminder/Deadline fields
+    reminderDate: { type: Date, default: null }, // Date and time for the reminder
+    isRecurring: { type: Boolean, default: false }, // Whether the reminder repeats
+    recurringPattern: { 
+      type: String, 
+      enum: ['daily', 'weekly', 'monthly', 'yearly', null],
+      default: null 
+    }, // Recurrence pattern
+    notificationSent: { type: Boolean, default: false }, // Track if notification was sent
+    lastNotificationDate: { type: Date, default: null }, // Track when last notification was sent
+    notificationMethods: {
+      type: [{
+        type: String,
+        enum: ['in-app', 'email'],
+      }],
+      default: ['in-app'],
+    }, // How to notify the user
+    isOverdue: { type: Boolean, default: false }, // Mark if deadline passed
+    // Highlights field
     highlights: [{
-      _id: mongoose.Schema.Types.ObjectId,
+      _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
       startOffset: { type: Number, required: true },
       endOffset: { type: Number, required: true },
-      color: { type: String, enum: ["yellow", "green", "red", "blue", "purple"], default: "yellow" },
+      color: { type: String, default: 'yellow' },
       selectedText: { type: String, required: true },
-      comment: { type: String, default: "" },
+      comment: { type: String, default: '' },
       createdAt: { type: Date, default: Date.now }
     }],
   },

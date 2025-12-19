@@ -4,10 +4,13 @@ import mongoose from 'mongoose';
 let mongoServer;
 
 export const setupTestDB = async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  
-  await mongoose.connect(mongoUri);
+  // Only create new connection if not already connected
+  if (mongoose.connection.readyState === 0) {
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+    
+    await mongoose.connect(mongoUri);
+  }
 };
 
 export const teardownTestDB = async () => {
