@@ -4,6 +4,7 @@ import React, {
   useRef,
   forwardRef,
   useImperativeHandle,
+  useCallback,
 } from "react";
 
 import {
@@ -26,6 +27,15 @@ import * as highlightsApi from "../api/highlightsApi";
 import * as flashcardsApi from "../api/flashcardsApi";
 import HighlightToolbar from "./HighlightToolbar";
 import FlashcardCreator from "./FlashcardCreator";
+import HighlightsPanel from "./HighlightsPanel";
+
+const HIGHLIGHT_COLORS = {
+  yellow: "#FFF59D",
+  green: "#C8E6C9",
+  red: "#FFCDD2",
+  blue: "#BBDEFB",
+  purple: "#E1BEE7",
+};
 
 const NoteEditor = forwardRef((props, ref) => {
   const { onSave, noteId, onReminderChange } = props || {};
@@ -47,6 +57,7 @@ const NoteEditor = forwardRef((props, ref) => {
   const [selectedColor, setSelectedColor] = useState("yellow");
   const [comment, setComment] = useState("");
   const [showHighlightsPanel, setShowHighlightsPanel] = useState(false);
+  const [selectionOffsets, setSelectionOffsets] = useState({ start: null, end: null });
 
   // Flashcard state
   const [showFlashcardCreator, setShowFlashcardCreator] = useState(false);
@@ -173,6 +184,81 @@ const NoteEditor = forwardRef((props, ref) => {
     }
   };
 
+  const clearDomHighlights = useCallback(() => {
+    if (!editorRef.current) return;
+    const spans = editorRef.current.querySelectorAll('[data-highlight-span="1"]');
+    spans.forEach((span) => {
+      const parent = span.parentNode;
+      while (span.firstChild) parent.insertBefore(span.firstChild, span);
+      parent.removeChild(span);
+    });
+  }, []);
+
+  const getTextNodes = useCallback((root) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    let node = walker.nextNode();
+    while (node) {
+      nodes.push(node);
+      node = walker.nextNode();
+    }
+    return nodes;
+  }, []);
+
+  const findPositionInText = useCallback((nodes, target) => {
+    let traversed = 0;
+    for (const node of nodes) {
+      const len = node.nodeValue.length;
+      if (traversed + len >= target) {
+        return { node, offset: target - traversed };
+      }
+      traversed += len;
+    }
+    return null;
+  }, []);
+
+  const renderHighlights = useCallback((list = highlights) => {
+    if (!editorRef.current || !list || list.length === 0) {
+      clearDomHighlights();
+      return;
+    }
+
+    clearDomHighlights();
+    const nodes = getTextNodes(editorRef.current);
+    if (!nodes.length) return;
+
+    const sorted = [...list].sort((a, b) => a.startOffset - b.startOffset);
+    sorted.forEach((h) => {
+      if (h.startOffset == null || h.endOffset == null) return;
+      if (h.endOffset <= h.startOffset) return;
+
+      const startPos = findPositionInText(nodes, h.startOffset);
+      const endPos = findPositionInText(nodes, h.endOffset);
+      if (!startPos || !endPos) return;
+
+      const range = document.createRange();
+      try {
+        range.setStart(startPos.node, startPos.offset);
+        range.setEnd(endPos.node, endPos.offset);
+      } catch (e) {
+        return;
+      }
+
+      const span = document.createElement("span");
+      span.setAttribute("data-highlight-span", "1");
+      if (h._id) span.setAttribute("data-highlight-id", h._id);
+      span.style.backgroundColor = HIGHLIGHT_COLORS[h.color] || HIGHLIGHT_COLORS.yellow;
+      span.style.borderRadius = "2px";
+      span.style.padding = "0";
+
+      try {
+        range.surroundContents(span);
+      } catch (e) {
+        // ignore invalid ranges that cross non-text nodes
+      }
+    });
+  }, [clearDomHighlights, findPositionInText, getTextNodes, highlights]);
+
   const redo = () => {
     if (!redoStack.length) return;
 
@@ -208,6 +294,72 @@ const NoteEditor = forwardRef((props, ref) => {
     pushHistory(snapshot);
     el.focus();
   };
+
+  useEffect(() => {
+    renderHighlights(highlights);
+  }, [highlights, renderHighlights]);
+
+  const captureSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      setShowHighlightToolbar(false);
+      setSelectedText("");
+      setSelectionOffsets({ start: null, end: null });
+      return;
+    }
+
+    const range = selection.rangeCount ? selection.getRangeAt(0) : null;
+    if (!range || !editorRef.current || !editorRef.current.contains(range.commonAncestorContainer)) {
+      setShowHighlightToolbar(false);
+      setSelectedText("");
+      setSelectionOffsets({ start: null, end: null });
+      return;
+    }
+
+    const rawText = selection.toString();
+    const trimmed = rawText.trim();
+    if (!trimmed) {
+      setShowHighlightToolbar(false);
+      setSelectedText("");
+      setSelectionOffsets({ start: null, end: null });
+      return;
+    }
+
+    const preSelectionRange = range.cloneRange();
+    preSelectionRange.selectNodeContents(editorRef.current);
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+    const start = preSelectionRange.toString().length;
+    const end = start + range.toString().length;
+
+    const rect = range.getBoundingClientRect();
+    const toolbarWidth = 350; // max-width from HighlightToolbar
+    const toolbarHeight = 300; // estimated height
+    
+    let top = rect.top + window.scrollY - toolbarHeight - 10;
+    let left = rect.left + window.scrollX;
+    
+    // Keep toolbar within viewport
+    if (top < window.scrollY + 10) {
+      top = rect.bottom + window.scrollY + 10; // show below selection if not enough space above
+    }
+    if (left + toolbarWidth > window.innerWidth) {
+      left = window.innerWidth - toolbarWidth - 20;
+    }
+    if (left < 10) {
+      left = 10;
+    }
+    
+    setToolbarPos({ top, left });
+    setSelectedText(rawText);
+    setSelectionOffsets({ start, end });
+    setShowHighlightToolbar(true);
+  }, [setToolbarPos]);
+
+  useEffect(() => {
+    const handler = () => captureSelection();
+    document.addEventListener("selectionchange", handler);
+    return () => document.removeEventListener("selectionchange", handler);
+  }, [captureSelection]);
 
   const handleSaveDraft = () => {
     const html = editorRef.current?.innerHTML ?? "";
@@ -257,20 +409,20 @@ const NoteEditor = forwardRef((props, ref) => {
       }
 
       const token = localStorage.getItem("token");
+      if (!token) {
+        alert("You must be logged in to add highlights.");
+        return;
+      }
 
-      // Get start and end offsets from the entire content
-      const editorContent = editorRef.current.innerText;
-      const offset = editorContent.indexOf(selectedText);
-
-      // Validate offset calculation
-      if (offset < 0) {
-        console.error("❌ Text not found in editor content");
+      const { start, end } = selectionOffsets;
+      if (start === null || end === null) {
+        console.warn("⚠️ Selection offsets missing, ignoring highlight");
         return;
       }
 
       const highlightData = {
-        startOffset: offset,
-        endOffset: offset + selectedText.length,
+        startOffset: start,
+        endOffset: end,
         color: selectedColor,
         selectedText: selectedText,
         comment: comment
@@ -285,6 +437,8 @@ const NoteEditor = forwardRef((props, ref) => {
       setShowHighlightToolbar(false);
       setSelectedColor("yellow");
       setComment("");
+      setSelectionOffsets({ start: null, end: null });
+      setSelectedText("");
       window.getSelection().removeAllRanges();
     } catch (err) {
       console.error("❌ Failed to apply highlight:", err);
@@ -292,42 +446,42 @@ const NoteEditor = forwardRef((props, ref) => {
     }
   };
 
-  // TODO: Wire up these handlers to HighlightsPanel component
-  // const handleDeleteHighlight = async (highlightId) => {
-  //   try {
-  //     const token = localStorage.getItem("token");
-  //     await highlightsApi.deleteHighlight(noteId, highlightId, token);
-  //     await loadHighlights();
-  //   } catch (err) {
-  //     console.error("Failed to delete highlight:", err);
-  //   }
-  // };
+  const handleDeleteHighlight = async (highlightId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await highlightsApi.deleteHighlight(noteId, highlightId, token);
+      await loadHighlights();
+    } catch (err) {
+      console.error("Failed to delete highlight:", err);
+    }
+  };
 
-  // const handleUpdateHighlight = async (highlightId, updates) => {
-  //   try {
-  //     const token = localStorage.getItem("token");
-  //     await highlightsApi.updateHighlight(noteId, highlightId, updates, token);
-  //     await loadHighlights();
-  //   } catch (err) {
-  //     console.error("Failed to update highlight:", err);
-  //   }
-  // };
+  const handleUpdateHighlight = async (highlightId, updates) => {
+    try {
+      const token = localStorage.getItem("token");
+      await highlightsApi.updateHighlight(noteId, highlightId, updates, token);
+      await loadHighlights();
+    } catch (err) {
+      console.error("Failed to update highlight:", err);
+    }
+  };
 
-  // const handleScrollToHighlight = (offset) => {
-  //   // Simple scroll to position
-  //   if (editorRef.current) {
-  //     const text = editorRef.current.innerText;
-  //     if (offset < text.length) {
-  //       editorRef.current.focus();
-  //       // Approximate scroll position
-  //       const lines = text.substring(0, offset).split('\n').length;
-  //       editorRef.current.parentElement.scrollTop = lines * 24;
-  //     }
-  //   }
-  // };
+  const handleScrollToHighlight = (offset) => {
+    if (!editorRef.current) return;
+
+    // Approximate scroll based on characters before the highlight
+    const textBefore = editorRef.current.innerText.substring(0, offset);
+    const lineCount = textBefore.split("\n").length;
+    editorRef.current.focus();
+    editorRef.current.parentElement.scrollTop = Math.max(lineCount * 24 - 50, 0);
+  };
 
   // Flashcard handlers
   const handleCreateFlashcardClick = () => {
+    if (!selectedText || !selectedText.trim()) {
+      alert("Please select some text first to create a flashcard.");
+      return;
+    }
     setShowHighlightToolbar(false);
     setShowFlashcardCreator(true);
   };
@@ -414,6 +568,9 @@ const NoteEditor = forwardRef((props, ref) => {
         className="rich-editor"
         contentEditable
         onInput={handleInput}
+        onMouseUp={captureSelection}
+        onKeyUp={captureSelection}
+        onTouchEnd={captureSelection}
         suppressContentEditableWarning
       />
 
@@ -476,6 +633,17 @@ const NoteEditor = forwardRef((props, ref) => {
             setSelectedText("");
           }}
         />
+      )}
+
+      {showHighlightsPanel && (
+        <div style={{ marginTop: "12px", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px", background: "#f8fafc" }}>
+          <HighlightsPanel
+            highlights={highlights}
+            onDeleteHighlight={handleDeleteHighlight}
+            onUpdateHighlight={handleUpdateHighlight}
+            onScrollToHighlight={handleScrollToHighlight}
+          />
+        </div>
       )}
     </div>
   );

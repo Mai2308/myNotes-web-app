@@ -105,7 +105,7 @@ export default function HighlightToolbar({
             onCancel();
           }}
           style={{
-            padding: "8px 14px",
+            padding: "6px 12px",
             fontSize: "12px",
             fontWeight: "600",
             backgroundColor: "rgba(0,0,0,0.05)",
@@ -114,7 +114,7 @@ export default function HighlightToolbar({
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            gap: "6px",
+            gap: "4px",
             transition: "all 0.2s",
             color: "#333"
           }}
@@ -126,7 +126,7 @@ export default function HighlightToolbar({
             type="button"
             onClick={onCreateFlashcard}
             style={{
-              padding: "8px 14px",
+              padding: "6px 12px",
               fontSize: "12px",
               fontWeight: "600",
               background: "linear-gradient(135deg, #7afcff 0%, #42d9f4 100%)",
@@ -136,7 +136,7 @@ export default function HighlightToolbar({
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "6px",
+              gap: "4px",
               transition: "all 0.2s",
               boxShadow: "0 4px 12px rgba(122,252,255,0.3)"
             }}
@@ -155,7 +155,7 @@ export default function HighlightToolbar({
             }
           }}
           style={{
-            padding: "8px 14px",
+            padding: "6px 12px",
             fontSize: "12px",
             fontWeight: "600",
             background: "linear-gradient(135deg, #ff7eb9 0%, #ff5ca2 100%)",
@@ -165,7 +165,7 @@ export default function HighlightToolbar({
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            gap: "6px",
+            gap: "4px",
             transition: "all 0.2s",
             boxShadow: "0 4px 12px rgba(255,105,180,0.3)"
           }}
