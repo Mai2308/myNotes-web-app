@@ -16,6 +16,7 @@ export default function CreateNote() {
   const [success, setSuccess] = useState("");
   const [isChecklist, setIsChecklist] = useState(false);
   const [checklistItems, setChecklistItems] = useState([]);
+  
   const editorRef = useRef(null);
   const location = useLocation();
 
@@ -41,6 +42,7 @@ export default function CreateNote() {
   }, []);
 
   const handleSave = async () => {
+    if (loading) return;
     setLoading(true);
     setError("");
     setSuccess("");

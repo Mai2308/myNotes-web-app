@@ -13,6 +13,13 @@ import {
   updateChecklistItems,
   toggleChecklistItem,
 } from "../controllers/noteController.js";
+import {
+  addHighlight,
+  getHighlights,
+  updateHighlight,
+  deleteHighlight,
+  clearHighlights
+} from "../controllers/highlightController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { addEmojiToNote, removeEmojiFromNote } from "../controllers/noteController.js";
 
@@ -49,11 +56,14 @@ router.patch("/:id/checklist/toggle", protect, toggleChecklistItem);
 router.post("/:id/emojis", protect, addEmojiToNote);
 router.delete("/:id/emojis/:emoji", protect, removeEmojiFromNote);
 
+// Highlight operations
+router.get("/:id/highlights", protect, getHighlights);
+router.post("/:id/highlights", protect, addHighlight);
+router.put("/:noteId/highlights/:highlightId", protect, updateHighlight);
+router.delete("/:noteId/highlights/:highlightId", protect, deleteHighlight);
+router.delete("/:id/highlights/clear", protect, clearHighlights);
 
 // Delete a note
 router.delete("/:id", protect, deleteNote);
-
-// 🔍 SEARCH ROUTE
-router.get("/search", protect, searchNotes);
 
 export default router;
