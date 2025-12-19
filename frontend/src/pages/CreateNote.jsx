@@ -43,6 +43,7 @@ export default function CreateNote() {
   }, []);
 
   const handleSave = async () => {
+    if (loading) return;
     setLoading(true);
     setError("");
     setSuccess("");

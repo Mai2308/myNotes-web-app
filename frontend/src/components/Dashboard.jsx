@@ -35,6 +35,25 @@ export default function Dashboard() {
       .replace(/&gt;/g, ">")
       .trim();
 
+  const formatTimestamp = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const isToday = d.toDateString() === today.toDateString();
+    const isYesterday = d.toDateString() === yesterday.toDateString();
+    
+    if (isToday) {
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    } else if (isYesterday) {
+      return 'Yesterday';
+    } else {
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+    }
+  };
+
   const renderPreview = (note) => {
     if (!note) return "";
     if (note.isChecklist && Array.isArray(note.checklistItems) && note.checklistItems.length > 0) {
@@ -500,6 +519,13 @@ const handleMoveNote = useCallback(
                 </h3>
                 <div className="note-preview" style={{ marginTop: 6 }}>
                   {renderPreview(note)}
+                </div>
+                <div style={{ marginTop: 8, fontSize: "12px", color: "var(--muted)", minHeight: "18px" }}>
+                  {note.updatedAt && (
+                    <span title={new Date(note.updatedAt).toLocaleString()}>
+                      Edited {formatTimestamp(note.updatedAt)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Reminder and Overdue Indicators */}
