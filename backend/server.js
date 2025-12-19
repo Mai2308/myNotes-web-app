@@ -33,14 +33,16 @@ if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
 // Simple health check
 app.get("/", (req, res) => res.send("🚀 Notes App Backend Running!"));
 
-// Diagnostic endpoint (development only)
+// Debug endpoint (development only) - check user count
 if (process.env.NODE_ENV !== "production") {
-  app.get("/api/health", (req, res) => {
-    res.json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      mongoConnection: require("mongoose").connection.readyState === 1 ? "connected" : "disconnected"
-    });
+  app.get("/api/debug/users", async (req, res) => {
+    try {
+      const User = await import("./models/userModel.js").then(m => m.default);
+      const count = await User.countDocuments();
+      res.json({ totalUsers: count, timestamp: new Date().toISOString() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 }
 
