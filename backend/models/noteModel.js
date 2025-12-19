@@ -38,6 +38,16 @@ const NoteSchema = new mongoose.Schema(
       default: ['in-app'],
     }, // How to notify the user
     isOverdue: { type: Boolean, default: false }, // Mark if deadline passed
+    // Highlights field
+    highlights: [{
+      _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
+      startOffset: { type: Number, required: true },
+      endOffset: { type: Number, required: true },
+      color: { type: String, default: 'yellow' },
+      selectedText: { type: String, required: true },
+      comment: { type: String, default: '' },
+      createdAt: { type: Date, default: Date.now }
+    }],
   },
   { timestamps: true }
 );
