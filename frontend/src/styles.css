@@ -1058,3 +1058,356 @@ html[data-theme="dark"] .view-toggle .view-btn.selected,
 .menu-btn:hover {
   background: #f0f0f0;
 }
+/* ===== HIGHLIGHTS & ANNOTATIONS ===== */
+
+/* Highlighted text spans */
+.highlight {
+  padding: 2px 4px;
+  margin: 0 1px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.highlight:hover {
+  opacity: 0.8;
+  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+}
+
+.highlight-yellow {
+  background-color: #FFFF00;
+  color: #000;
+}
+
+.highlight-green {
+  background-color: #00FF00;
+  color: #000;
+}
+
+.highlight-red {
+  background-color: #FF0000;
+  color: #fff;
+}
+
+.highlight-blue {
+  background-color: #00AAFF;
+  color: #000;
+}
+
+.highlight-purple {
+  background-color: #FF00FF;
+  color: #fff;
+}
+
+/* Highlight annotation indicator */
+.highlight-with-note::after {
+  content: "📝";
+  margin-left: 2px;
+  font-size: 0.9em;
+}
+
+/* Highlight toolbar animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.highlight-toolbar {
+  animation: slideIn 0.2s ease-out;
+}
+
+/* Highlights panel styling */
+.highlights-panel {
+  background-color: #f9f9f9;
+  border-left: 3px solid #4CAF50;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.highlights-panel:hover {
+  background-color: #f0f0f0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.highlight-item-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.highlight-item-comment {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+  margin-bottom: 4px;
+  padding: 4px 0;
+}
+
+.highlight-item-date {
+  font-size: 11px;
+  color: #999;
+}
+
+.highlight-color-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Highlight controls (edit/delete buttons) */
+.highlight-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.highlight-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: "center";
+  gap: 2px;
+}
+
+.highlight-btn:hover {
+  background-color: #f5f5f5;
+  border-color: #999;
+}
+
+.highlight-btn-delete {
+  border-color: #ffcccc;
+  background-color: #ffe6e6;
+  color: #c62828;
+}
+
+.highlight-btn-delete:hover {
+  background-color: #ffcccc;
+  border-color: #ff9999;
+}
+
+/* Counter badge for highlights */
+.highlights-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FF6B6B;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+/* Highlight color palette in toolbar */
+.color-palette {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.color-swatch-selected {
+  border-color: #333;
+  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+}
+
+/* Comment input in highlight toolbar */
+.highlight-comment-input {
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-bottom: 6px;
+  font-family: var(--font-sans);
+}
+
+.highlight-comment-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.2);
+}
+
+.highlight-comment-counter {
+  font-size: 11px;
+  color: #999;
+  text-align: right;
+  margin-bottom: 8px;
+}
+/* PAGE WRAPPER — FULL WIDTH */
+.page {
+  width: 100%;
+  padding: 24px 32px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* HEADER */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+/* ===== STUDY SECTION ===== */
+.study-section {
+  width: 100%;
+  margin-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.study-card {
+  width: 100%;
+  max-width: 600px;
+  min-height: 280px;
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.12);
+  cursor: pointer;
+}
+
+.study-actions {
+  display: flex;
+  gap: 16px;
+}
+
+/* ===== GRID (THIS FIXES YOUR ISSUE) ===== */
+.flashcards-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+/* ===== CARD ===== */
+.flashcard {
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--text);
+}
+
+.flashcard-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.card-text {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.card-text.main {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.card-meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.flashcard-footer {
+  border-top: 1px solid var(--input-border);
+  margin-top: 16px;
+  padding-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* BUTTONS */
+.btn {
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn.primary {
+  background: #4f46e5;
+  color: white;
+}
+
+.btn.success {
+  background: #22c55e;
+  color: white;
+}
+
+.btn.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.icon-btn {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.icon-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+}

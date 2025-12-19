@@ -18,6 +18,16 @@ const NoteSchema = new mongoose.Schema(
       completed: { type: Boolean, default: false },
       order: { type: Number, required: true }
     }],
+    // Highlights and annotations
+    highlights: [{
+      _id: mongoose.Schema.Types.ObjectId,
+      startOffset: { type: Number, required: true },
+      endOffset: { type: Number, required: true },
+      color: { type: String, enum: ["yellow", "green", "red", "blue", "purple"], default: "yellow" },
+      selectedText: { type: String, required: true },
+      comment: { type: String, default: "" },
+      createdAt: { type: Date, default: Date.now }
+    }],
   },
   { timestamps: true }
 );

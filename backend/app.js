@@ -10,6 +10,7 @@ import userRoutes from "./routes/users.js";
 import noteRoutes from "./routes/notes.js";
 import folderRoutes from "./routes/folders.js";
 import emojiRoutes from "./routes/emojis.js";
+import flashcardRoutes from "./routes/flashcards.js";
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/emojis", emojiRoutes);
+app.use("/api/flashcards", flashcardRoutes);
 
 // 404 handler
 app.use((req, res) => {

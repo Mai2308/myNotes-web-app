@@ -8,16 +8,19 @@ dotenv.config();
 const PORT = process.env.PORT || 5000;
 let server;
 
-connectMongo()
-  .then(() => {
-    server = app.listen(PORT, () => {
-      console.log(`✅ Server running on port ${PORT}`);
+// Avoid starting server or exiting during tests; tests import the app directly
+if (process.env.NODE_ENV !== "test") {
+  connectMongo()
+    .then(() => {
+      server = app.listen(PORT, () => {
+        console.log(`✅ Server running on port ${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error("❌ MongoDB connection failed:", err);
+      process.exit(1);
     });
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB connection failed:", err);
-    process.exit(1);
-  });
+}
 
 // Graceful shutdown
 const shutdown = async (signal) => {
@@ -31,3 +34,5 @@ const shutdown = async (signal) => {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+export default app;
