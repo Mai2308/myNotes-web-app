@@ -1,7 +1,5 @@
 {
   "version": 2,
-  "root": "frontend",
-  "buildCommand": "npm install && npm run build",
   "builds": [
     {
       "src": "package.json",
