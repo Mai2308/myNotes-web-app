@@ -63,7 +63,16 @@ export default function FlashcardStudyMode({ flashcards, onExit, startIndex = 0 
 
   const handleCorrect = () => {
     setCorrectCount(correctCount + 1);
-    handleNext();
+    
+    // If on the last card, exit study mode after marking as correct
+    if (currentIndex === flashcards.length - 1) {
+      // Show exit confirmation or exit directly
+      setTimeout(() => {
+        onExit();
+      }, 300);
+    } else {
+      handleNext();
+    }
   };
 
   const handleReset = () => {
