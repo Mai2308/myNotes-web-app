@@ -31,12 +31,16 @@ app.use(express.json({ limit: "10mb" }));
 if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
 
 // Serve static files from frontend build
-const buildPath = path.join(__dirname, "../frontend/build");
+// Try both locations: public folder (production) and ../frontend/build (local dev)
+let buildPath = path.join(__dirname, "public");
+if (!fs.existsSync(buildPath)) {
+  buildPath = path.join(__dirname, "../frontend/build");
+}
 console.log("Build path:", buildPath);
 
 // Check if build directory exists and serve static files
 if (fs.existsSync(buildPath)) {
-  console.log("Build directory found");
+  console.log("Build directory found, serving static files");
   app.use(express.static(buildPath));
 } else {
   console.warn("WARNING: Build directory does not exist at", buildPath);
