@@ -1375,6 +1375,48 @@ html[data-theme="dark"] .view-toggle .view-btn.selected,
   text-align: right;
   margin-bottom: 8px;
 }
+
+/* Highlight comment indicator button */
+.highlight-comment-indicator {
+  animation: subtlePulse 2.5s infinite ease-in-out;
+}
+
+.highlight-comment-indicator:hover {
+  transform: scale(1.1);
+  background: #2563EB !important;
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.4) !important;
+  animation: none;
+}
+
+.highlight-comment-indicator:active {
+  transform: scale(0.95);
+}
+
+@keyframes subtlePulse {
+  0%, 100% {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  50% {
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  }
+}
+
+/* Highlight comment tooltip */
+.highlight-comment-tooltip {
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* PAGE WRAPPER — FULL WIDTH */
 .page {
   width: 100%;

@@ -58,6 +58,7 @@ const NoteEditor = forwardRef((props, ref) => {
   const [comment, setComment] = useState("");
   const [showHighlightsPanel, setShowHighlightsPanel] = useState(false);
   const [selectionOffsets, setSelectionOffsets] = useState({ start: null, end: null });
+  const [selectedComment, setSelectedComment] = useState(null);
 
   // Flashcard state
   const [showFlashcardCreator, setShowFlashcardCreator] = useState(false);
@@ -195,6 +196,11 @@ const NoteEditor = forwardRef((props, ref) => {
 
   const clearDomHighlights = useCallback(() => {
     if (!editorRef.current) return;
+    
+    // Remove comment indicator buttons
+    const commentBtns = editorRef.current.querySelectorAll('.highlight-comment-indicator');
+    commentBtns.forEach(btn => btn.remove());
+    
     const spans = editorRef.current.querySelectorAll('[data-highlight-span="1"]');
     spans.forEach((span) => {
       const parent = span.parentNode;
@@ -258,10 +264,50 @@ const NoteEditor = forwardRef((props, ref) => {
       if (h._id) span.setAttribute("data-highlight-id", h._id);
       span.style.backgroundColor = HIGHLIGHT_COLORS[h.color] || HIGHLIGHT_COLORS.yellow;
       span.style.borderRadius = "2px";
-      span.style.padding = "0";
+      span.style.padding = "0 2px";
 
       try {
         range.surroundContents(span);
+        
+        // Add comment indicator button inline if highlight has a comment
+        if (h.comment && h.comment.trim()) {
+          const commentBtn = document.createElement("button");
+          commentBtn.innerHTML = "💬";
+          commentBtn.className = "highlight-comment-indicator";
+          commentBtn.setAttribute("data-comment", h.comment);
+          commentBtn.setAttribute("data-highlight-id", h._id);
+          commentBtn.style.cssText = `
+            background: #3B82F6;
+            border: none;
+            border-radius: 4px;
+            width: 24px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+            vertical-align: middle;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            padding: 0;
+            line-height: 1;
+            transition: all 0.2s;
+          `;
+          commentBtn.title = "Click to view comment";
+          
+          // Prevent button click from affecting selection and show in side panel
+          commentBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setSelectedComment({
+              text: h.comment,
+              highlightText: h.selectedText
+            });
+          });
+          
+          span.parentNode.insertBefore(commentBtn, span.nextSibling);
+        }
       } catch (e) {
         // ignore invalid ranges that cross non-text nodes
       }
@@ -612,6 +658,101 @@ const NoteEditor = forwardRef((props, ref) => {
         onTouchEnd={captureSelection}
         suppressContentEditableWarning
       />
+
+      {/* Comment display panel beside editor */}
+      {selectedComment && (
+        <div style={{
+          position: "absolute",
+          right: 0,
+          top: 0,
+          width: "280px",
+          backgroundColor: "#f0f9ff",
+          border: "1px solid #bfdbfe",
+          borderRadius: "8px",
+          padding: "16px",
+          marginLeft: "16px",
+          maxHeight: "400px",
+          overflowY: "auto",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          zIndex: 100
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "12px" }}>
+            <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#1e40af" }}>
+              💬 Comment
+            </h4>
+            <button
+              onClick={() => setSelectedComment(null)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "18px",
+                color: "#666",
+                padding: "0",
+                width: "20px",
+                height: "20px"
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div style={{
+            backgroundColor: "white",
+            padding: "12px",
+            borderRadius: "6px",
+            border: "1px solid #dbeafe",
+            marginBottom: "12px"
+          }}>
+            <p style={{ 
+              margin: 0, 
+              fontSize: "13px", 
+              color: "#1e40af",
+              fontWeight: "500",
+              marginBottom: "8px"
+            }}>
+              Highlighted text:
+            </p>
+            <p style={{
+              margin: 0,
+              fontSize: "12px",
+              color: "#0c4a6e",
+              fontStyle: "italic",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            }}>
+              "{selectedComment.highlightText}"
+            </p>
+          </div>
+
+          <div style={{
+            backgroundColor: "white",
+            padding: "12px",
+            borderRadius: "6px",
+            border: "1px solid #dbeafe"
+          }}>
+            <p style={{ 
+              margin: 0, 
+              fontSize: "13px", 
+              color: "#1e40af",
+              fontWeight: "500",
+              marginBottom: "8px"
+            }}>
+              Your note:
+            </p>
+            <p style={{
+              margin: 0,
+              fontSize: "13px",
+              color: "#0c4a6e",
+              lineHeight: "1.5",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word"
+            }}>
+              {selectedComment.text}
+            </p>
+          </div>
+        </div>
+      )}
 
       {savedMessage && <p className="saved-msg">{savedMessage}</p>}
 

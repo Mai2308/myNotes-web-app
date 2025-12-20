@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Edit2, Check, X, RotateCcw } from "lucide-react";
+import { Trash2, Edit2, RotateCcw } from "lucide-react";
 import * as flashcardsApi from "../api/flashcardsApi";
 import FlashcardStudyMode from "../components/FlashcardStudyMode";
 import "../styles.css";
@@ -10,7 +10,6 @@ export default function FlashcardsPage() {
   const [loading, setLoading] = useState(true);
   const [studying, setStudying] = useState(false);
   const [index, setIndex] = useState(0);
-  const [flipped, setFlipped] = useState(false);
 
   useEffect(() => {
     load();
@@ -35,28 +34,7 @@ export default function FlashcardsPage() {
     }
   };
 
-  const review = async (correct) => {
-    const token = localStorage.getItem("token");
-    await flashcardsApi.reviewFlashcard(
-      dueFlashcards[index]._id,
-      correct,
-      token
-    );
-
-    if (index < dueFlashcards.length - 1) {
-      setIndex(index + 1);
-      setFlipped(false);
-    } else {
-      setStudying(false);
-      setIndex(0);
-      setFlipped(false);
-      load();
-    }
-  };
-
   if (loading) return <div className="page">Loading…</div>;
-
-  const current = dueFlashcards[index];
 
   // If in study mode, show only the FlashcardStudyMode component (focused view)
   if (studying && dueFlashcards.length > 0) {
@@ -66,7 +44,6 @@ export default function FlashcardsPage() {
         onExit={() => {
           setStudying(false);
           setIndex(0);
-          setFlipped(false);
           load(); // Refresh flashcards after study session
         }}
         startIndex={index}
