@@ -34,14 +34,13 @@ if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
 const buildPath = path.join(__dirname, "../frontend/build");
 console.log("Build path:", buildPath);
 
-// Check if build directory exists
-if (!fs.existsSync(buildPath)) {
-  console.error("WARNING: Build directory does not exist at", buildPath);
-} else {
+// Check if build directory exists and serve static files
+if (fs.existsSync(buildPath)) {
   console.log("Build directory found");
+  app.use(express.static(buildPath));
+} else {
+  console.warn("WARNING: Build directory does not exist at", buildPath);
 }
-
-app.use(express.static(buildPath));
 
 // Health check
 app.get("/health", (req, res) => {
