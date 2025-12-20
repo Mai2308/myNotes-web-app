@@ -56,7 +56,8 @@ app.use("/api/emojis", emojiRoutes);
 app.use("/api/flashcards", flashcardRoutes);
 
 // Serve React app for all other routes (must be after API routes)
-app.get("/*", (req, res) => {
+// Express 5 compatible - use middleware instead of wildcard route
+app.use((req, res) => {
   const indexPath = path.join(buildPath, "index.html");
   console.log("Attempting to serve index.html from:", indexPath);
   res.sendFile(indexPath, (err) => {
