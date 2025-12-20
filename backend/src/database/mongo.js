@@ -10,17 +10,23 @@ export async function connectMongo() {
   }
 
   try {
+    // Enable TLS only for SRV URIs (mongodb+srv://); don't force it for local mongodb://
+    const isSrv = mongoUri.startsWith("mongodb+srv://");
+    
     await mongoose.connect(mongoUri, {
-      // Modern driver options
       serverSelectionTimeoutMS: 30000,
-      // For standard connection strings (mongodb://host1,host2,...)
-      tls: true,
+      tls: isSrv ? true : undefined,
     });
-    console.log("✅ Connected to MongoDB");
+    
+    const { host, name } = mongoose.connection;
+    console.log(`✅ Connected to MongoDB host="${host}" db="${name}"`);
+    if (!isSrv) {
+      console.log("ℹ️ Using standard connection string; TLS is disabled.");
+    }
   } catch (err) {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("❌ MongoDB connection error:", err?.message || err);
     console.error(
-      "If you see ETIMEOUT on DNS TXT lookups, switch to a standard (non-SRV) connection string from Atlas or change your DNS to 8.8.8.8/1.1.1.1."
+      "Check MONGO_URI. For local dev, use mongodb://127.0.0.1:27017/myNotes. For Atlas, use mongodb+srv://..."
     );
     throw err;
   }

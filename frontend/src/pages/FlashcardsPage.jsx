@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, Edit2, Check, X, RotateCcw } from "lucide-react";
 import * as flashcardsApi from "../api/flashcardsApi";
+import FlashcardStudyMode from "../components/FlashcardStudyMode";
 import "../styles.css";
 
 export default function FlashcardsPage() {
@@ -57,6 +58,22 @@ export default function FlashcardsPage() {
 
   const current = dueFlashcards[index];
 
+  // If in study mode, show only the FlashcardStudyMode component (focused view)
+  if (studying && dueFlashcards.length > 0) {
+    return (
+      <FlashcardStudyMode
+        flashcards={dueFlashcards}
+        onExit={() => {
+          setStudying(false);
+          setIndex(0);
+          setFlipped(false);
+          load(); // Refresh flashcards after study session
+        }}
+        startIndex={index}
+      />
+    );
+  }
+
   return (
     <div className="page">
       {/* ===== HEADER ===== */}
@@ -71,29 +88,6 @@ export default function FlashcardsPage() {
           Study ({dueFlashcards.length})
         </button>
       </div>
-
-      {/* ===== STUDY SECTION (TOP) ===== */}
-      {studying && current && (
-        <div className="study-section">
-          <div
-            className="study-card"
-            onClick={() => setFlipped(!flipped)}
-          >
-            {flipped ? current.back : current.front}
-          </div>
-
-          {flipped && (
-            <div className="study-actions">
-              <button className="btn danger" onClick={() => review(false)}>
-                <X size={18} /> Incorrect
-              </button>
-              <button className="btn success" onClick={() => review(true)}>
-                <Check size={18} /> Correct
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ===== CARDS GRID ===== */}
       <div className="flashcards-grid">

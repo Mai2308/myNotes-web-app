@@ -10,7 +10,18 @@ export const addHighlight = async (req, res) => {
     const noteId = req.params.id;
     const { startOffset, endOffset, color, selectedText, comment } = req.body;
 
-    console.log("📍 Add Highlight Request:", { userId, noteId, startOffset, endOffset, color, selectedText, comment });
+    console.log("📍 Add Highlight Request received:", { 
+      userId, 
+      noteId, 
+      startOffset, 
+      endOffset, 
+      color, 
+      selectedText: selectedText?.substring(0, 30), 
+      comment,
+      commentType: typeof comment,
+      commentLength: comment?.length || 0,
+      commentEmpty: !comment || comment === ""
+    });
 
     if (startOffset === undefined || endOffset === undefined || !selectedText) {
       console.error("❌ Validation failed:", { startOffset, endOffset, selectedText });
@@ -25,9 +36,14 @@ export const addHighlight = async (req, res) => {
       endOffset,
       color: color || "yellow",
       selectedText: selectedText.substring(0, 500), // limit text length
-      comment: comment || "",
+      comment: comment ? comment.trim() : "",
       createdAt: new Date()
     };
+
+    console.log("📝 Highlight object prepared:", {
+      ...highlight,
+      selectedText: highlight.selectedText.substring(0, 30)
+    });
 
     const note = await Note.findOneAndUpdate(
       { _id: noteId, user: userId },
@@ -35,7 +51,21 @@ export const addHighlight = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!note) return res.status(404).json({ message: "Note not found" });
+    if (!note) {
+      console.error("❌ Note not found for user:", { noteId, userId });
+      return res.status(404).json({ message: "Note not found" });
+    }
+
+    console.log("✅ Highlight added successfully. Total highlights:", note.highlights?.length);
+    
+    // Verify the highlight was saved with comment
+    const savedHighlight = note.highlights.find(h => h._id.toString() === highlight._id.toString());
+    if (savedHighlight) {
+      console.log("✅ Verified saved highlight has comment:", {
+        comment: savedHighlight.comment,
+        commentLength: savedHighlight.comment?.length || 0
+      });
+    }
 
     // Return shape expected by tests: { highlight: {...} }
     res.status(201).json({ highlight });
@@ -60,6 +90,15 @@ export const getHighlights = async (req, res) => {
     }
 
     console.log("✅ Found highlights:", note.highlights?.length || 0);
+    
+    // Log details of each highlight to verify comments are included
+    if (note.highlights && note.highlights.length > 0) {
+      console.log("📋 Highlight details:");
+      note.highlights.forEach((h, idx) => {
+        console.log(`  [${idx}] color=${h.color}, comment="${h.comment || ''}", commentLength=${h.comment?.length || 0}`);
+      });
+    }
+    
     res.json(note.highlights || []);
   } catch (error) {
     console.error("❌ Error fetching highlights:", error);

@@ -18,6 +18,16 @@ export default function HighlightsPanel({
   const [editingId, setEditingId] = useState(null);
   const [editComment, setEditComment] = useState("");
 
+  console.log("📋 HighlightsPanel rendered with highlights:", highlights?.length || 0);
+  if (highlights?.length > 0) {
+    console.log("📋 Highlight details:", highlights.map(h => ({
+      id: h._id,
+      text: h.selectedText?.substring(0, 20),
+      comment: h.comment || '(no comment)',
+      hasComment: !!h.comment
+    })));
+  }
+
   const handleEditComment = (highlight) => {
     setEditingId(highlight._id);
     setEditComment(highlight.comment);

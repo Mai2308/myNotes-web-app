@@ -88,11 +88,20 @@ const NoteEditor = forwardRef((props, ref) => {
   // Load highlights when noteId changes
   const loadHighlights = async () => {
     try {
+      console.log("📖 Loading highlights for noteId:", noteId);
       const token = localStorage.getItem("token");
       const data = await highlightsApi.getHighlights(noteId, token);
+      console.log("✅ Loaded highlights:", data?.length || 0);
+      if (data?.length > 0) {
+        console.log("📋 Highlight data:", data.map(h => ({
+          text: h.selectedText?.substring(0, 20),
+          comment: h.comment || '(empty)',
+          hasComment: !!h.comment
+        })));
+      }
       setHighlights(data);
     } catch (err) {
-      console.warn("Failed to load highlights:", err);
+      console.warn("❌ Failed to load highlights:", err);
       // Non-blocking error - don't show alert
     }
   };
@@ -302,17 +311,29 @@ const NoteEditor = forwardRef((props, ref) => {
   const captureSelection = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
-      setShowHighlightToolbar(false);
-      setSelectedText("");
-      setSelectionOffsets({ start: null, end: null });
+      // Check if we're interacting with the highlight toolbar (input, buttons)
+      const activeEl = document.activeElement;
+      const isInToolbar = activeEl && activeEl.closest('[data-highlight-toolbar]');
+      
+      if (!isInToolbar) {
+        setShowHighlightToolbar(false);
+        setSelectedText("");
+        setSelectionOffsets({ start: null, end: null });
+      }
       return;
     }
 
     const range = selection.rangeCount ? selection.getRangeAt(0) : null;
     if (!range || !editorRef.current || !editorRef.current.contains(range.commonAncestorContainer)) {
-      setShowHighlightToolbar(false);
-      setSelectedText("");
-      setSelectionOffsets({ start: null, end: null });
+      // Check if we're interacting with the highlight toolbar (input, buttons)
+      const activeEl = document.activeElement;
+      const isInToolbar = activeEl && activeEl.closest('[data-highlight-toolbar]');
+      
+      if (!isInToolbar) {
+        setShowHighlightToolbar(false);
+        setSelectedText("");
+        setSelectionOffsets({ start: null, end: null });
+      }
       return;
     }
 
@@ -396,15 +417,23 @@ const NoteEditor = forwardRef((props, ref) => {
   // Highlight handlers
   const handleApplyHighlight = async () => {
     try {
-      console.log("📍 handleApplyHighlight called", { noteId, selectedText });
+      console.log("📍 handleApplyHighlight called", { 
+        noteId, 
+        selectedText, 
+        comment,
+        selectedColor,
+        selectionOffsets
+      });
+      
       if (!noteId) {
         console.warn("⚠️ Cannot highlight: Note hasn't been saved yet");
-        alert("Please save the note first before highlighting text!");
+        alert("❌ Please save the note first before highlighting text!");
         return;
       }
       
-      if (!selectedText) {
+      if (!selectedText || !selectedText.trim()) {
         console.warn("⚠️ Missing selectedText");
+        alert("Please select some text to highlight");
         return;
       }
 
@@ -417,20 +446,30 @@ const NoteEditor = forwardRef((props, ref) => {
       const { start, end } = selectionOffsets;
       if (start === null || end === null) {
         console.warn("⚠️ Selection offsets missing, ignoring highlight");
+        alert("Selection offset error. Try selecting text again.");
         return;
       }
 
       const highlightData = {
         startOffset: start,
         endOffset: end,
-        color: selectedColor,
-        selectedText: selectedText,
-        comment: comment
+        color: selectedColor || "yellow",
+        selectedText: selectedText.trim(),
+        comment: comment.trim() || ""
       };
 
-      console.log("📤 Sending highlight data:", highlightData);
-      await highlightsApi.addHighlight(noteId, highlightData, token);
-      console.log("✅ Highlight added successfully");
+      console.log("📤 Sending highlight data to API:", {
+        ...highlightData,
+        noteId,
+        commentLength: highlightData.comment.length,
+        commentEmpty: highlightData.comment === ""
+      });
+      
+      const response = await highlightsApi.addHighlight(noteId, highlightData, token);
+      console.log("✅ Highlight response from API:", response);
+      
+      setSavedMessage("✅ Highlight added!");
+      setTimeout(() => setSavedMessage(""), 2000);
       
       await loadHighlights();
 
@@ -442,7 +481,7 @@ const NoteEditor = forwardRef((props, ref) => {
       window.getSelection().removeAllRanges();
     } catch (err) {
       console.error("❌ Failed to apply highlight:", err);
-      alert(`Error: ${err.message}`);
+      alert(`Error: ${err.message || 'Failed to add highlight'}`);
     }
   };
 
@@ -608,7 +647,10 @@ const NoteEditor = forwardRef((props, ref) => {
 
       {/* Highlight toolbar (floating) */}
       {showHighlightToolbar && (
-        <div style={{ position: "fixed", top: `${toolbarPos.top}px`, left: `${toolbarPos.left}px`, zIndex: 10001, pointerEvents: "auto" }}>
+        <div 
+          data-highlight-toolbar="true"
+          style={{ position: "fixed", top: `${toolbarPos.top}px`, left: `${toolbarPos.left}px`, zIndex: 10001, pointerEvents: "auto" }}
+        >
           <HighlightToolbar
             selectedText={selectedText}
             selectedColor={selectedColor}
@@ -616,7 +658,15 @@ const NoteEditor = forwardRef((props, ref) => {
             comment={comment}
             setComment={setComment}
             onApply={handleApplyHighlight}
-            onCancel={() => setShowHighlightToolbar(false)}
+            onCancel={() => {
+              console.log("❌ Cancel toolbar clicked");
+              setShowHighlightToolbar(false);
+              setComment("");
+              setSelectedColor("yellow");
+              setSelectedText("");
+              setSelectionOffsets({ start: null, end: null });
+              window.getSelection().removeAllRanges();
+            }}
             onCreateFlashcard={handleCreateFlashcardClick}
           />
         </div>

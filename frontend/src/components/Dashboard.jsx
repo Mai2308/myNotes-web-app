@@ -12,7 +12,9 @@ import {
   verifyLockedFolderPassword,
 } from "../api/foldersApi";
 import { getUpcomingReminders, getOverdueNotes, testRemindersApi } from "../api/remindersApi";
+import { getFlashcards } from "../api/flashcardsApi";
 import FolderManager from "./FolderManager";
+import FlashcardStudyMode from "./FlashcardStudyMode";
 import { useTheme } from "../context/ThemeContext";
 import { useView } from "../context/ViewContext";
 import SortMenu from "./viewOptions/SortMenu";
@@ -83,6 +85,9 @@ export default function Dashboard() {
 
   const [lockedFolderId, setLockedFolderId] = useState(null);
   const [lockedFolderPassword, setLockedFolderPasswordState] = useState(null);
+
+  const [studyMode, setStudyMode] = useState(false);
+  const [studyFlashcards, setStudyFlashcards] = useState([]);
 
   const token = localStorage.getItem("token");
   const requestIdRef = useRef(0);
@@ -245,6 +250,32 @@ export default function Dashboard() {
     },
     [token]
   );
+
+  const enterStudyMode = useCallback(
+    async (noteId) => {
+      try {
+        console.log("🎓 Entering study mode for noteId:", noteId);
+        const flashcards = await getFlashcards(noteId, token);
+        console.log("📚 Fetched flashcards:", flashcards?.length || 0);
+        if (!flashcards || flashcards.length === 0) {
+          alert("No flashcards found for this note.");
+          return;
+        }
+        setStudyFlashcards(flashcards);
+        setStudyMode(true);
+        console.log("✅ Study mode activated");
+      } catch (err) {
+        console.error("❌ Failed to load flashcards:", err);
+        alert("Failed to load flashcards.");
+      }
+    },
+    [token]
+  );
+
+  const exitStudyMode = useCallback(() => {
+    setStudyMode(false);
+    setStudyFlashcards([]);
+  }, []);
 
   const handleDragStart = (e, note) => {
     setDraggedNote(note);
@@ -706,6 +737,20 @@ const handleMoveNote = useCallback(
                       )}
                       <button
                         onClick={() => {
+                          enterStudyMode(note._id);
+                          closeMenu();
+                        }}
+                        style={{
+                          padding: 8,
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                        }}
+                      >
+                        📚 Study
+                      </button>
+                      <button
+                        onClick={() => {
                           handleDelete(note._id);
                           closeMenu();
                         }}
@@ -727,6 +772,13 @@ const handleMoveNote = useCallback(
           </div>
         </div>
       </div>
+      
+      {studyMode && (
+        <FlashcardStudyMode
+          flashcards={studyFlashcards}
+          onExit={exitStudyMode}
+        />
+      )}
     </div>
   );
 }

@@ -21,8 +21,9 @@ export default function HighlightToolbar({
 }) {
   return (
     <div
+      data-highlight-toolbar="true"
       style={{
-        position: "absolute",
+        position: "relative",
         background: "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)",
         backdropFilter: "blur(10px)",
         border: "1px solid rgba(255,105,180,0.3)",
@@ -32,7 +33,8 @@ export default function HighlightToolbar({
         zIndex: 10001,
         minWidth: "300px",
         maxWidth: "350px",
-        color: "#0f172a"
+        color: "#0f172a",
+        pointerEvents: "auto"
       }}
     >
       <div style={{ marginBottom: "12px" }}>
@@ -77,7 +79,13 @@ export default function HighlightToolbar({
           type="text"
           placeholder="Add a note..."
           value={comment}
-          onChange={(e) => setComment(e.target.value)}
+          onChange={(e) => {
+            console.log("📝 Comment changed:", { 
+              newValue: e.target.value, 
+              length: e.target.value.length 
+            });
+            setComment(e.target.value);
+          }}
           maxLength={120}
           style={{
             width: "100%",
@@ -100,7 +108,9 @@ export default function HighlightToolbar({
       <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
         <button
           type="button"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
             console.log("❌ Cancel clicked");
             onCancel();
           }}
@@ -116,7 +126,8 @@ export default function HighlightToolbar({
             alignItems: "center",
             gap: "4px",
             transition: "all 0.2s",
-            color: "#333"
+            color: "#333",
+            pointerEvents: "auto"
           }}
         >
           <X size={14} /> Cancel
@@ -124,7 +135,12 @@ export default function HighlightToolbar({
         {onCreateFlashcard && (
           <button
             type="button"
-            onClick={onCreateFlashcard}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              console.log("📚 Flashcard button clicked");
+              onCreateFlashcard();
+            }}
             style={{
               padding: "6px 12px",
               fontSize: "12px",
@@ -138,7 +154,8 @@ export default function HighlightToolbar({
               alignItems: "center",
               gap: "4px",
               transition: "all 0.2s",
-              boxShadow: "0 4px 12px rgba(122,252,255,0.3)"
+              boxShadow: "0 4px 12px rgba(122,252,255,0.3)",
+              pointerEvents: "auto"
             }}
           >
             <BookOpen size={14} /> Flashcard
@@ -146,9 +163,12 @@ export default function HighlightToolbar({
         )}
         <button
           type="button"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
             console.log("🎨 Highlight button clicked", { onApply: !!onApply });
             if (onApply) {
+              console.log("📤 Calling onApply handler");
               onApply();
             } else {
               console.error("❌ onApply is not defined!");
@@ -167,7 +187,8 @@ export default function HighlightToolbar({
             alignItems: "center",
             gap: "4px",
             transition: "all 0.2s",
-            boxShadow: "0 4px 12px rgba(255,105,180,0.3)"
+            boxShadow: "0 4px 12px rgba(255,105,180,0.3)",
+            pointerEvents: "auto"
           }}
         >
           <Highlighter size={14} /> Highlight
