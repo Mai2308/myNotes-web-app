@@ -1,7 +1,7 @@
 // api/index.js - Vercel serverless function wrapper
 import dotenv from "dotenv";
 import app from "./app.js";
-import connectMongo from "./database/mongo.js";
+import connectMongo from "./src/database/mongo.js";
 
 dotenv.config();
 
