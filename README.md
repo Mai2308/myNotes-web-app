@@ -23,7 +23,13 @@ Modern notes, reminders, flashcards, and folder organization with a secure locke
 - Backend: Node.js, Express
 - Database: MongoDB Atlas
 - Tests: Vitest (+ jsdom for frontend)
-- Deploy: Vercel (frontend), Render/Railway/Heroku (backend)
+- Deploy: Vercel (frontend), Railway (backend)
+
+## Live Deployment 🚀
+
+- **Frontend:** https://my-notes-web-app-seven.vercel.app
+- **Backend API:** https://mynotes-web-app-production.up.railway.app
+- **Backend API Docs:** https://mynotes-web-app-production.up.railway.app/ (health check)
 
 ## Repository Structure
 ```
@@ -38,6 +44,11 @@ myNotes-web-app/
 ```
 
 ## Getting Started
+
+### Try the Live App
+Simply visit: **https://my-notes-web-app-seven.vercel.app** and sign up!
+
+### Or run locally:
 
 ### Prerequisites
 - Node.js 18+ and npm
@@ -145,6 +156,25 @@ cd backend && npm run test:ci
 cd ../frontend && npm run test:ci
 ```
 CI status and configuration are documented in [CI_VERIFICATION_REPORT.md](CI_VERIFICATION_REPORT.md).
+
+## Deployment Guide
+
+### Backend Deployment (Railway)
+The backend is deployed on Railway. For detailed setup instructions, see [RAILWAY_QUICK_START.md](RAILWAY_QUICK_START.md).
+
+- **Service URL:** https://mynotes-web-app-production.up.railway.app
+- **Database:** MongoDB Atlas
+- **Environment Variables:** Auto-configured during deployment
+- **Auto-deployment:** Enabled on GitHub push to `main`
+
+### Frontend Deployment (Vercel)
+The frontend is deployed on Vercel and automatically redeploys on GitHub push.
+
+- **Live URL:** https://my-notes-web-app-seven.vercel.app
+- **Environment Variable:** `REACT_APP_API_URL=https://mynotes-web-app-production.up.railway.app`
+
+### CI/CD Pipeline
+All tests run automatically on every push via GitHub Actions. See [CI_VERIFICATION_REPORT.md](CI_VERIFICATION_REPORT.md) for details.
 
 
 ## Security Notes
