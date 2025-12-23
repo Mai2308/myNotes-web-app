@@ -49,7 +49,7 @@ git push -u origin main
 8. Copy the connection string
    - Replace `<password>` with your database password
    - Replace `myFirstDatabase` with `notesapp`
-   - Example: `mongodb+srv://notesapp:your-password@cluster.mongodb.net/notesapp?retryWrites=true&w=majority`
+   - Format: `mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>`
    - **Save this connection string** - you'll need it soon
 
 ---
@@ -96,21 +96,21 @@ After Railway finishes building:
 
 ```
 PORT=
-MONGO_URI=mongodb+srv://notesapp:YOUR-PASSWORD@cluster.mongodb.net/notesapp?retryWrites=true&w=majority
-JWT_SECRET=your-super-secret-key-here-make-it-long-and-random-abc123xyz789
+MONGO_URI=<your-mongodb-atlas-connection-string>
+JWT_SECRET=<generate-a-long-random-secure-string>
 NODE_ENV=production
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-specific-password
+EMAIL_USER=<your-email-address>
+EMAIL_PASSWORD=<your-gmail-app-password>
 CORS_ORIGIN=*
 ```
 
-**Replace these with your actual values:**
-- `YOUR-PASSWORD` - Your MongoDB password
-- `your-super-secret-key-here...` - Any random string (at least 32 characters)
-- `your-email@gmail.com` - Your email
-- `your-app-specific-password` - Your Gmail app password
+**Replace the placeholders with your actual values:**
+- `<your-mongodb-atlas-connection-string>` - Copy from MongoDB Atlas (Step 3)
+- `<generate-a-long-random-secure-string>` - Any 32+ character random string
+- `<your-email-address>` - Your actual email for sending reminders
+- `<your-gmail-app-password>` - Generate at https://myaccount.google.com/apppasswords
 
 4. Click **Deploy**
 5. Wait for deployment to complete
